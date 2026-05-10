@@ -42,7 +42,24 @@ export function useCreateSession() {
 
 export function usePromptSession() {
 	return useMutation({
-		mutationFn: (input: { piSessionId: string; text: string }) =>
-			invoke("session.prompt", input),
+		mutationFn: (input: {
+			piSessionId: string;
+			text: string;
+			streamingBehavior?: "steer" | "followUp";
+		}) => invoke("session.prompt", input),
+	});
+}
+
+export function useClearQueue() {
+	return useMutation({
+		mutationFn: (input: { piSessionId: string }) =>
+			invoke("session.clearQueue", input),
+	});
+}
+
+export function useAbortSession() {
+	return useMutation({
+		mutationFn: (input: { piSessionId: string }) =>
+			invoke("session.abort", input),
 	});
 }

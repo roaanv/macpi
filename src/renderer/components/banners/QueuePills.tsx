@@ -1,14 +1,15 @@
-// QueuePills — display-only chips showing the steering and follow-up queues
-// for the active session. Steering items render as indigo pills; follow-up
-// items render as zinc pills. Renders nothing when both queues are empty.
-
 import type { QueueState } from "../../state/timeline-state";
 
-export function QueuePills({ queue }: { queue: QueueState }) {
+export interface QueuePillsProps {
+	queue: QueueState;
+	onClear?: () => void;
+}
+
+export function QueuePills({ queue, onClear }: QueuePillsProps) {
 	const total = queue.steering.length + queue.followUp.length;
 	if (total === 0) return null;
 	return (
-		<div className="flex flex-wrap gap-1 rounded bg-zinc-900/60 px-2 py-1 text-[11px] text-zinc-300">
+		<div className="flex flex-wrap items-center gap-1 rounded bg-zinc-900/60 px-2 py-1 text-[11px] text-zinc-300">
 			{queue.steering.map((q, i) => (
 				<span
 					// biome-ignore lint/suspicious/noArrayIndexKey: queue items have no stable id
@@ -29,6 +30,16 @@ export function QueuePills({ queue }: { queue: QueueState }) {
 					queued: {ellipsize(q, 24)}
 				</span>
 			))}
+			{onClear && (
+				<button
+					type="button"
+					onClick={onClear}
+					className="ml-auto rounded border border-zinc-700 px-2 py-0.5 text-[10px] text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+					title="Clear all steered and queued messages"
+				>
+					Clear
+				</button>
+			)}
 		</div>
 	);
 }

@@ -96,10 +96,31 @@ export class PiSessionManager {
 		return piSessionId;
 	}
 
-	async prompt(piSessionId: string, text: string): Promise<void> {
+	async prompt(
+		piSessionId: string,
+		text: string,
+		streamingBehavior?: "steer" | "followUp",
+	): Promise<void> {
 		const active = this.active.get(piSessionId);
 		if (!active) throw new Error(`unknown session ${piSessionId}`);
-		await active.session.prompt(text, { source: "interactive" });
+		await active.session.prompt(text, {
+			source: "interactive",
+			streamingBehavior,
+		});
+	}
+
+	async clearQueue(
+		piSessionId: string,
+	): Promise<{ steering: string[]; followUp: string[] }> {
+		const active = this.active.get(piSessionId);
+		if (!active) throw new Error(`unknown session ${piSessionId}`);
+		return active.session.clearQueue();
+	}
+
+	async abort(piSessionId: string): Promise<void> {
+		const active = this.active.get(piSessionId);
+		if (!active) throw new Error(`unknown session ${piSessionId}`);
+		await active.session.abort();
 	}
 
 	shutdown(): void {

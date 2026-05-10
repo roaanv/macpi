@@ -51,7 +51,21 @@ export interface IpcMethods {
 		res: { piSessionId: string };
 	};
 	"session.prompt": {
-		req: { piSessionId: string; text: string };
+		req: {
+			piSessionId: string;
+			text: string;
+			/** Required when the session is streaming. "steer" interrupts; "followUp" queues. */
+			streamingBehavior?: "steer" | "followUp";
+		};
+		res: Record<string, never>;
+	};
+	"session.clearQueue": {
+		req: { piSessionId: string };
+		/** Returns the cleared messages so the renderer can stash them as drafts if it wants. */
+		res: { steering: string[]; followUp: string[] };
+	};
+	"session.abort": {
+		req: { piSessionId: string };
 		res: Record<string, never>;
 	};
 	"session.listForChannel": {

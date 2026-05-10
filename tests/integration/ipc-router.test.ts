@@ -19,6 +19,8 @@ let router: IpcRouter;
 let piSessionManagerMock: {
 	createSession: ReturnType<typeof vi.fn>;
 	prompt: ReturnType<typeof vi.fn>;
+	clearQueue: ReturnType<typeof vi.fn>;
+	abort: ReturnType<typeof vi.fn>;
 };
 
 beforeEach(() => {
@@ -32,6 +34,8 @@ beforeEach(() => {
 	piSessionManagerMock = {
 		createSession: vi.fn(),
 		prompt: vi.fn(),
+		clearQueue: vi.fn(),
+		abort: vi.fn(),
 	};
 	router = new IpcRouter({
 		channels: new ChannelsRepo(db),
@@ -114,5 +118,78 @@ describe("IpcRouter", () => {
 		});
 		expect(r.ok).toBe(false);
 		if (!r.ok) expect(r.error.code).toBe("exception");
+	});
+
+	it("session.prompt forwards streamingBehavior to the manager", async () => {
+		piSessionManagerMock.prompt.mockResolvedValue(undefined);
+
+		const r1 = await router.dispatch("session.prompt", {
+			piSessionId: "s1",
+			text: "go",
+		});
+		const r2 = await router.dispatch("session.prompt", {
+			piSessionId: "s1",
+			text: "wait",
+			streamingBehavior: "followUp",
+		});
+
+		expect(r1.ok).toBe(true);
+		expect(r2.ok).toBe(true);
+		expect(piSessionManagerMock.prompt).toHaveBeenCalledTimes(2);
+		expect(piSessionManagerMock.prompt).toHaveBeenNthCalledWith(
+			1,
+			"s1",
+			"go",
+			undefined,
+		);
+		expect(piSessionManagerMock.prompt).toHaveBeenNthCalledWith(
+			2,
+			"s1",
+			"wait",
+			"followUp",
+		);
+	});
+
+	it("session.clearQueue returns the cleared messages", async () => {
+		piSessionManagerMock.clearQueue.mockResolvedValueOnce({
+			steering: ["a"],
+			followUp: ["b", "c"],
+		});
+
+		const result = await router.dispatch("session.clearQueue", {
+			piSessionId: "s1",
+		});
+
+		expect(result).toEqual({
+			ok: true,
+			data: { steering: ["a"], followUp: ["b", "c"] },
+		});
+		expect(piSessionManagerMock.clearQueue).toHaveBeenCalledWith("s1");
+	});
+
+	it("session.abort returns ok with no payload", async () => {
+		piSessionManagerMock.abort.mockResolvedValueOnce(undefined);
+
+		const result = await router.dispatch("session.abort", {
+			piSessionId: "s7",
+		});
+
+		expect(result).toEqual({ ok: true, data: {} });
+		expect(piSessionManagerMock.abort).toHaveBeenCalledWith("s7");
+	});
+
+	it("session.clearQueue surfaces manager errors as ipc errors", async () => {
+		piSessionManagerMock.clearQueue.mockRejectedValueOnce(
+			new Error("unknown session s1"),
+		);
+
+		const result = await router.dispatch("session.clearQueue", {
+			piSessionId: "s1",
+		});
+
+		expect(result.ok).toBe(false);
+		if (!result.ok) {
+			expect(result.error.message).toContain("unknown session s1");
+		}
 	});
 });

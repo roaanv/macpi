@@ -242,7 +242,7 @@ Renderer subscribes to a single `session.events` stream from main; main forwards
 
 ### 8.4 Composer + steering
 
-While streaming, sending a new message offers two buttons (matching `streamingBehavior` in `PromptOptions`): **Steer** (interrupt) or **Queue** (after current turn). Outside streaming, plain Send. `/command` and `@skill` autocomplete pull from `ResourceLoader` + slash commands (already provided by pi).
+While streaming, sending a new message offers two buttons: **Steer** (abort the current run and inject this prompt) or **Queue** (deliver after the current turn finishes via pi's `streamingBehavior: "followUp"`). Outside streaming, plain Send. Pi's `streamingBehavior: "steer"` (queue between tool calls) is intentionally **not** surfaced in v1 — for text-only turns it's indistinguishable from followUp, and for tool-using turns we'd want a separate UI affordance to make the timing distinction clear; both can wait for a later milestone. `/command` and `@skill` autocomplete pull from `ResourceLoader` + slash commands (already provided by pi).
 
 ## 9. Settings UI
 

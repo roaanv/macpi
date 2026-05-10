@@ -55,7 +55,21 @@ export class IpcRouter {
 			return ok({ piSessionId });
 		});
 		this.register("session.prompt", async (args) => {
-			await this.deps.piSessionManager.prompt(args.piSessionId, args.text);
+			await this.deps.piSessionManager.prompt(
+				args.piSessionId,
+				args.text,
+				args.streamingBehavior,
+			);
+			return ok({});
+		});
+		this.register("session.clearQueue", async (args) => {
+			const cleared = await this.deps.piSessionManager.clearQueue(
+				args.piSessionId,
+			);
+			return ok(cleared);
+		});
+		this.register("session.abort", async (args) => {
+			await this.deps.piSessionManager.abort(args.piSessionId);
 			return ok({});
 		});
 		this.register("session.listForChannel", async (args) => {
