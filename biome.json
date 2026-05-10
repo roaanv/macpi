@@ -1,0 +1,18 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.4.14/schema.json",
+	"files": {
+		"includes": ["**", "!**/dist", "!**/out", "!**/node_modules", "!**/.vite"]
+	},
+	"formatter": { "enabled": true, "indentStyle": "tab" },
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"recommended": true,
+			"suspicious": {
+				"noUnknownAtRules": "off"
+			}
+		}
+	},
+	"javascript": { "formatter": { "quoteStyle": "double" } },
+	"assist": { "actions": { "source": { "organizeImports": "on" } } }
+}

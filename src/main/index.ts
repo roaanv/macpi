@@ -1,0 +1,69 @@
+// Main process entry point. Initialises the database, instantiates the in-process
+// pi session manager, wires up the IPC router, and creates the main window.
+
+import path from "node:path";
+import { app, BrowserWindow } from "electron";
+import { openDb } from "./db/connection";
+import { runMigrations } from "./db/migrations";
+import { IpcRouter } from "./ipc-router";
+import { PiSessionManager } from "./pi-session-manager";
+import { ChannelSessionsRepo } from "./repos/channel-sessions";
+import { ChannelsRepo } from "./repos/channels";
+
+declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
+declare const MAIN_WINDOW_VITE_NAME: string;
+
+let piSessionManager: PiSessionManager | null = null;
+let router: IpcRouter | null = null;
+
+function createWindow() {
+	const mainWindow = new BrowserWindow({
+		width: 1280,
+		height: 800,
+		title: "macpi",
+		webPreferences: {
+			preload: path.join(__dirname, "preload.js"),
+			contextIsolation: true,
+			sandbox: false,
+			nodeIntegration: false,
+		},
+	});
+	if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+		void mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
+	} else {
+		void mainWindow.loadFile(
+			path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
+		);
+	}
+}
+
+app.whenReady().then(() => {
+	const dbPath = path.join(app.getPath("userData"), "macpi.db");
+	process.env.MACPI_MIGRATIONS_DIR = path.join(__dirname, "migrations");
+	const db = openDb({ filename: dbPath });
+	runMigrations(db);
+
+	const channels = new ChannelsRepo(db);
+	const channelSessions = new ChannelSessionsRepo(db);
+
+	piSessionManager = new PiSessionManager();
+	piSessionManager.onEvent((event) => {
+		for (const w of BrowserWindow.getAllWindows()) {
+			w.webContents.send("macpi:pi-event", event);
+		}
+	});
+
+	router = new IpcRouter({ channels, channelSessions, piSessionManager });
+	router.attach();
+
+	createWindow();
+	app.on("activate", () => {
+		if (BrowserWindow.getAllWindows().length === 0) createWindow();
+	});
+});
+
+app.on("window-all-closed", () => {
+	router?.detach();
+	piSessionManager?.shutdown();
+	if (process.platform !== "darwin") app.quit();
+});

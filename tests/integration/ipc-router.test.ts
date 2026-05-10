@@ -1,0 +1,118 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { type DbHandle, openDb } from "../../src/main/db/connection";
+import { runMigrations } from "../../src/main/db/migrations";
+import { IpcRouter } from "../../src/main/ipc-router";
+import type { PiSessionManager } from "../../src/main/pi-session-manager";
+import { ChannelSessionsRepo } from "../../src/main/repos/channel-sessions";
+import { ChannelsRepo } from "../../src/main/repos/channels";
+
+vi.mock("electron", () => ({
+	ipcMain: { handle: vi.fn(), removeHandler: vi.fn() },
+}));
+
+let dir: string;
+let db: DbHandle;
+let router: IpcRouter;
+let piSessionManagerMock: {
+	createSession: ReturnType<typeof vi.fn>;
+	prompt: ReturnType<typeof vi.fn>;
+};
+
+beforeEach(() => {
+	process.env.MACPI_MIGRATIONS_DIR = path.resolve(
+		__dirname,
+		"../../src/main/db/migrations",
+	);
+	dir = fs.mkdtempSync(path.join(os.tmpdir(), "macpi-router-"));
+	db = openDb({ filename: path.join(dir, "test.db") });
+	runMigrations(db);
+	piSessionManagerMock = {
+		createSession: vi.fn(),
+		prompt: vi.fn(),
+	};
+	router = new IpcRouter({
+		channels: new ChannelsRepo(db),
+		channelSessions: new ChannelSessionsRepo(db),
+		piSessionManager: piSessionManagerMock as unknown as PiSessionManager,
+	});
+});
+
+afterEach(() => {
+	db.close();
+	fs.rmSync(dir, { recursive: true, force: true });
+});
+
+describe("IpcRouter", () => {
+	it("ping returns the echoed value", async () => {
+		const r = await router.dispatch("ping", { value: "hi" });
+		expect(r.ok).toBe(true);
+		if (r.ok) expect(r.data.value).toBe("hi");
+	});
+
+	it("channels.create then channels.list returns the new channel", async () => {
+		const r1 = await router.dispatch("channels.create", { name: "scratch" });
+		expect(r1.ok).toBe(true);
+		const r2 = await router.dispatch("channels.list", {});
+		expect(r2.ok).toBe(true);
+		if (r2.ok) {
+			expect(r2.data.channels.map((c) => c.name)).toEqual(["scratch"]);
+		}
+	});
+
+	it("session.create rejects unknown channel", async () => {
+		const r = await router.dispatch("session.create", {
+			channelId: "nope",
+			cwd: "/tmp",
+		});
+		expect(r.ok).toBe(false);
+		if (!r.ok) expect(r.error.code).toBe("not_found");
+	});
+
+	it("session.create attaches the returned pi session id to the channel", async () => {
+		const created = await router.dispatch("channels.create", { name: "x" });
+		if (!created.ok) throw new Error("setup: channel create failed");
+		piSessionManagerMock.createSession.mockResolvedValueOnce("sess-1");
+
+		const r = await router.dispatch("session.create", {
+			channelId: created.data.id,
+			cwd: "/tmp",
+		});
+		expect(r.ok).toBe(true);
+		if (r.ok) expect(r.data.piSessionId).toBe("sess-1");
+
+		const list = await router.dispatch("session.listForChannel", {
+			channelId: created.data.id,
+		});
+		expect(list.ok).toBe(true);
+		if (list.ok) expect(list.data.piSessionIds).toEqual(["sess-1"]);
+	});
+
+	it("unknown method returns an unknown_method error", async () => {
+		const r = await (
+			router as unknown as {
+				dispatch: (m: string, a: unknown) => Promise<unknown>;
+			}
+		).dispatch("does.not.exist", {});
+		expect((r as { ok: boolean; error?: { code: string } }).ok).toBe(false);
+		if (!(r as { ok: boolean }).ok) {
+			expect((r as { error: { code: string } }).error.code).toBe(
+				"unknown_method",
+			);
+		}
+	});
+
+	it("handler exceptions are caught and surfaced as `exception`", async () => {
+		piSessionManagerMock.createSession.mockRejectedValueOnce(new Error("boom"));
+		const c = await router.dispatch("channels.create", { name: "x" });
+		if (!c.ok) throw new Error("setup");
+		const r = await router.dispatch("session.create", {
+			channelId: c.data.id,
+			cwd: "/tmp",
+		});
+		expect(r.ok).toBe(false);
+		if (!r.ok) expect(r.error.code).toBe("exception");
+	});
+});
