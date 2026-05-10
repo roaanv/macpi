@@ -10,8 +10,13 @@ import { ChannelSessionsRepo } from "../../src/main/repos/channel-sessions";
 import { ChannelsRepo } from "../../src/main/repos/channels";
 import type { TimelineEntry } from "../../src/renderer/types/timeline";
 
+const { dialogShowOpenDialog } = vi.hoisted(() => ({
+	dialogShowOpenDialog: vi.fn(),
+}));
 vi.mock("electron", () => ({
 	ipcMain: { handle: vi.fn(), removeHandler: vi.fn() },
+	dialog: { showOpenDialog: dialogShowOpenDialog },
+	BrowserWindow: { getFocusedWindow: () => null },
 }));
 
 let dir: string;
@@ -25,6 +30,7 @@ let piSessionManagerMock: {
 	abort: ReturnType<typeof vi.fn>;
 	attachSession: ReturnType<typeof vi.fn>;
 	getHistory: ReturnType<typeof vi.fn>;
+	disposeSession: ReturnType<typeof vi.fn>;
 };
 
 beforeEach(() => {
@@ -35,6 +41,7 @@ beforeEach(() => {
 	dir = fs.mkdtempSync(path.join(os.tmpdir(), "macpi-router-"));
 	db = openDb({ filename: path.join(dir, "test.db") });
 	runMigrations(db);
+	dialogShowOpenDialog.mockReset();
 	piSessionManagerMock = {
 		createSession: vi.fn(),
 		prompt: vi.fn(),
@@ -43,11 +50,25 @@ beforeEach(() => {
 		abort: vi.fn(),
 		attachSession: vi.fn(),
 		getHistory: vi.fn(),
+		disposeSession: vi.fn(),
 	};
 	router = new IpcRouter({
 		channels: new ChannelsRepo(db),
 		channelSessions: new ChannelSessionsRepo(db),
 		piSessionManager: piSessionManagerMock as unknown as PiSessionManager,
+		dialog: {
+			openFolder: async ({ defaultPath }) => {
+				const result = await dialogShowOpenDialog({
+					properties: ["openDirectory"],
+					defaultPath,
+				});
+				if (result.canceled || result.filePaths.length === 0) {
+					return { path: null };
+				}
+				return { path: result.filePaths[0] };
+			},
+		},
+		getDefaultCwd: () => "/Users/test/home",
 	});
 });
 
@@ -270,5 +291,252 @@ describe("IpcRouter", () => {
 		if (!result.ok) {
 			expect(result.error.message).toContain("session file not found");
 		}
+	});
+
+	it("session.rename writes the user-set label", async () => {
+		const c = await router.dispatch("channels.create", { name: "x" });
+		if (!c.ok) throw new Error("setup");
+		piSessionManagerMock.createSession.mockResolvedValueOnce({
+			piSessionId: "s-rename",
+			sessionFilePath: null,
+		});
+		await router.dispatch("session.create", {
+			channelId: c.data.id,
+			cwd: "/tmp",
+		});
+
+		const r = await router.dispatch("session.rename", {
+			piSessionId: "s-rename",
+			label: "my work",
+		});
+
+		expect(r).toEqual({ ok: true, data: {} });
+		const repo = new ChannelSessionsRepo(db);
+		expect(repo.getMeta("s-rename")?.label).toBe("my work");
+		expect(repo.getMeta("s-rename")?.labelUserSet).toBe(true);
+	});
+
+	it("session.delete removes the row and disposes the active pi session", async () => {
+		const c = await router.dispatch("channels.create", { name: "x" });
+		if (!c.ok) throw new Error("setup");
+		piSessionManagerMock.createSession.mockResolvedValueOnce({
+			piSessionId: "s-del",
+			sessionFilePath: null,
+		});
+		await router.dispatch("session.create", {
+			channelId: c.data.id,
+			cwd: "/tmp",
+		});
+
+		const r = await router.dispatch("session.delete", { piSessionId: "s-del" });
+
+		expect(r).toEqual({ ok: true, data: {} });
+		expect(piSessionManagerMock.disposeSession).toHaveBeenCalledWith("s-del");
+		const list = await router.dispatch("session.listForChannel", {
+			channelId: c.data.id,
+		});
+		if (!list.ok) throw new Error("listForChannel failed");
+		expect(list.data.piSessionIds).toEqual([]);
+	});
+
+	it("channels.delete on a non-empty channel without force returns non_empty", async () => {
+		const c = await router.dispatch("channels.create", { name: "x" });
+		if (!c.ok) throw new Error("setup");
+		piSessionManagerMock.createSession.mockResolvedValueOnce({
+			piSessionId: "s1",
+			sessionFilePath: null,
+		});
+		await router.dispatch("session.create", {
+			channelId: c.data.id,
+			cwd: "/tmp",
+		});
+
+		const r = await router.dispatch("channels.delete", { id: c.data.id });
+
+		expect(r.ok).toBe(false);
+		if (!r.ok) {
+			expect(r.error.code).toBe("non_empty");
+			expect(r.error.message).toContain("1");
+		}
+	});
+
+	it("channels.delete with force=true cascades and disposes pi sessions", async () => {
+		const c = await router.dispatch("channels.create", { name: "x" });
+		if (!c.ok) throw new Error("setup");
+		piSessionManagerMock.createSession.mockResolvedValueOnce({
+			piSessionId: "s1",
+			sessionFilePath: null,
+		});
+		piSessionManagerMock.createSession.mockResolvedValueOnce({
+			piSessionId: "s2",
+			sessionFilePath: null,
+		});
+		await router.dispatch("session.create", {
+			channelId: c.data.id,
+			cwd: "/tmp",
+		});
+		await router.dispatch("session.create", {
+			channelId: c.data.id,
+			cwd: "/tmp",
+		});
+
+		const r = await router.dispatch("channels.delete", {
+			id: c.data.id,
+			force: true,
+		});
+
+		expect(r).toEqual({ ok: true, data: {} });
+		expect(piSessionManagerMock.disposeSession).toHaveBeenCalledWith("s1");
+		expect(piSessionManagerMock.disposeSession).toHaveBeenCalledWith("s2");
+		const list = await router.dispatch("channels.list", {});
+		if (!list.ok) throw new Error("list failed");
+		expect(list.data.channels).toHaveLength(0);
+	});
+
+	it("channels.delete on an empty channel succeeds without force", async () => {
+		const c = await router.dispatch("channels.create", { name: "empty" });
+		if (!c.ok) throw new Error("setup");
+
+		const r = await router.dispatch("channels.delete", { id: c.data.id });
+
+		expect(r).toEqual({ ok: true, data: {} });
+	});
+
+	it("session.getMeta returns the persisted label and cwd", async () => {
+		const c = await router.dispatch("channels.create", { name: "x" });
+		if (!c.ok) throw new Error("setup");
+		piSessionManagerMock.createSession.mockResolvedValueOnce({
+			piSessionId: "s-meta",
+			sessionFilePath: null,
+		});
+		await router.dispatch("session.create", {
+			channelId: c.data.id,
+			cwd: "/Users/x/repo",
+		});
+
+		const r = await router.dispatch("session.getMeta", {
+			piSessionId: "s-meta",
+		});
+
+		expect(r.ok).toBe(true);
+		if (r.ok) {
+			expect(r.data).toEqual({
+				piSessionId: "s-meta",
+				cwd: "/Users/x/repo",
+				label: null,
+			});
+		}
+	});
+
+	it("session.getMeta returns not_found for unknown session", async () => {
+		const r = await router.dispatch("session.getMeta", { piSessionId: "nope" });
+		expect(r.ok).toBe(false);
+		if (!r.ok) expect(r.error.code).toBe("not_found");
+	});
+
+	it("session.setFirstMessageLabel writes when label_user_set=0", async () => {
+		const c = await router.dispatch("channels.create", { name: "x" });
+		if (!c.ok) throw new Error("setup");
+		piSessionManagerMock.createSession.mockResolvedValueOnce({
+			piSessionId: "s-fm",
+			sessionFilePath: null,
+		});
+		await router.dispatch("session.create", {
+			channelId: c.data.id,
+			cwd: "/Users/x/macpi",
+		});
+
+		const r = await router.dispatch("session.setFirstMessageLabel", {
+			piSessionId: "s-fm",
+			text: "macpi: fix the build",
+		});
+
+		expect(r.ok).toBe(true);
+		if (r.ok) expect(r.data.applied).toBe(true);
+		const meta = await router.dispatch("session.getMeta", {
+			piSessionId: "s-fm",
+		});
+		if (!meta.ok) throw new Error("getMeta failed");
+		expect(meta.data.label).toBe("macpi: fix the build");
+	});
+
+	it("session.setFirstMessageLabel returns applied=false when user has set a label", async () => {
+		const c = await router.dispatch("channels.create", { name: "x" });
+		if (!c.ok) throw new Error("setup");
+		piSessionManagerMock.createSession.mockResolvedValueOnce({
+			piSessionId: "s-fm2",
+			sessionFilePath: null,
+		});
+		await router.dispatch("session.create", {
+			channelId: c.data.id,
+			cwd: "/x",
+		});
+		await router.dispatch("session.rename", {
+			piSessionId: "s-fm2",
+			label: "user named",
+		});
+
+		const r = await router.dispatch("session.setFirstMessageLabel", {
+			piSessionId: "s-fm2",
+			text: "ignored",
+		});
+
+		expect(r.ok).toBe(true);
+		if (r.ok) expect(r.data.applied).toBe(false);
+	});
+
+	it("dialog.openFolder returns the selected path", async () => {
+		dialogShowOpenDialog.mockResolvedValueOnce({
+			canceled: false,
+			filePaths: ["/Users/x/picked"],
+		});
+		const r = await router.dispatch("dialog.openFolder", {});
+		expect(r).toEqual({ ok: true, data: { path: "/Users/x/picked" } });
+	});
+
+	it("dialog.openFolder returns null when cancelled", async () => {
+		dialogShowOpenDialog.mockResolvedValueOnce({
+			canceled: true,
+			filePaths: [],
+		});
+		const r = await router.dispatch("dialog.openFolder", {});
+		expect(r).toEqual({ ok: true, data: { path: null } });
+	});
+
+	it("settings.getDefaultCwd returns a non-empty path", async () => {
+		const r = await router.dispatch("settings.getDefaultCwd", {});
+		expect(r.ok).toBe(true);
+		if (r.ok) {
+			expect(typeof r.data.cwd).toBe("string");
+			expect(r.data.cwd.length).toBeGreaterThan(0);
+		}
+	});
+
+	it("session.findChannel returns the owning channel id", async () => {
+		const c = await router.dispatch("channels.create", { name: "x" });
+		if (!c.ok) throw new Error("setup");
+		piSessionManagerMock.createSession.mockResolvedValueOnce({
+			piSessionId: "s-fc",
+			sessionFilePath: null,
+		});
+		await router.dispatch("session.create", {
+			channelId: c.data.id,
+			cwd: "/x",
+		});
+
+		const r = await router.dispatch("session.findChannel", {
+			piSessionId: "s-fc",
+		});
+
+		expect(r.ok).toBe(true);
+		if (r.ok) expect(r.data.channelId).toBe(c.data.id);
+	});
+
+	it("session.findChannel returns null for unknown session", async () => {
+		const r = await router.dispatch("session.findChannel", {
+			piSessionId: "no-such",
+		});
+		expect(r.ok).toBe(true);
+		if (r.ok) expect(r.data.channelId).toBeNull();
 	});
 });

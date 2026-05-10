@@ -59,6 +59,29 @@ describe("ChannelsRepo", () => {
 	it("getById returns null for unknown channel", () => {
 		expect(repo.getById("no-such-id")).toBeNull();
 	});
+
+	it("countSessions returns 0 for an empty channel", () => {
+		const c = repo.create({ name: "empty" });
+		expect(repo.countSessions(c.id)).toBe(0);
+	});
+
+	it("countSessions returns the number of attached sessions", () => {
+		const c = repo.create({ name: "busy" });
+		const sr = new ChannelSessionsRepo(db);
+		sr.attach({
+			channelId: c.id,
+			piSessionId: "s1",
+			cwd: null,
+			sessionFilePath: null,
+		});
+		sr.attach({
+			channelId: c.id,
+			piSessionId: "s2",
+			cwd: null,
+			sessionFilePath: null,
+		});
+		expect(repo.countSessions(c.id)).toBe(2);
+	});
 });
 
 describe("ChannelSessionsRepo", () => {
@@ -155,6 +178,8 @@ describe("ChannelSessionsRepo", () => {
 			piSessionId: "pi-1",
 			cwd: "/tmp/work",
 			sessionFilePath: "/Users/x/.pi/agent/sessions/abc/def.jsonl",
+			label: null,
+			labelUserSet: false,
 		});
 	});
 
@@ -174,5 +199,82 @@ describe("ChannelSessionsRepo", () => {
 
 	it("getMeta returns null for an unknown session", () => {
 		expect(sessionsRepo.getMeta("does-not-exist")).toBeNull();
+	});
+
+	it("setLabel stores a user-set label and flags label_user_set=1", () => {
+		sessionsRepo.attach({
+			channelId,
+			piSessionId: "pi-1",
+			cwd: "/tmp/work",
+			sessionFilePath: null,
+		});
+		sessionsRepo.setLabel("pi-1", "my session");
+		const meta = sessionsRepo.getMeta("pi-1");
+		expect(meta?.label).toBe("my session");
+		expect(meta?.labelUserSet).toBe(true);
+	});
+
+	it("setLabel with empty string clears the label and unsets the flag", () => {
+		sessionsRepo.attach({
+			channelId,
+			piSessionId: "pi-1",
+			cwd: null,
+			sessionFilePath: null,
+		});
+		sessionsRepo.setLabel("pi-1", "named");
+		sessionsRepo.setLabel("pi-1", "");
+		const meta = sessionsRepo.getMeta("pi-1");
+		expect(meta?.label).toBeNull();
+		expect(meta?.labelUserSet).toBe(false);
+	});
+
+	it("setFirstMessageLabel writes when label_user_set=0", () => {
+		sessionsRepo.attach({
+			channelId,
+			piSessionId: "pi-1",
+			cwd: "/Users/x/mycode/macpi",
+			sessionFilePath: null,
+		});
+		const applied = sessionsRepo.setFirstMessageLabel(
+			"pi-1",
+			"macpi: fix the build",
+		);
+		expect(applied).toBe(true);
+		const meta = sessionsRepo.getMeta("pi-1");
+		expect(meta?.label).toBe("macpi: fix the build");
+		expect(meta?.labelUserSet).toBe(false);
+	});
+
+	it("setFirstMessageLabel is a no-op when label_user_set=1", () => {
+		sessionsRepo.attach({
+			channelId,
+			piSessionId: "pi-1",
+			cwd: null,
+			sessionFilePath: null,
+		});
+		sessionsRepo.setLabel("pi-1", "user named me");
+		const applied = sessionsRepo.setFirstMessageLabel(
+			"pi-1",
+			"should be ignored",
+		);
+		expect(applied).toBe(false);
+		expect(sessionsRepo.getMeta("pi-1")?.label).toBe("user named me");
+	});
+
+	it("delete removes a single channel_sessions row", () => {
+		sessionsRepo.attach({
+			channelId,
+			piSessionId: "pi-1",
+			cwd: null,
+			sessionFilePath: null,
+		});
+		sessionsRepo.attach({
+			channelId,
+			piSessionId: "pi-2",
+			cwd: null,
+			sessionFilePath: null,
+		});
+		sessionsRepo.delete("pi-1");
+		expect(sessionsRepo.listByChannel(channelId)).toEqual(["pi-2"]);
 	});
 });

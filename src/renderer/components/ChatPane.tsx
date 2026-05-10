@@ -4,11 +4,17 @@
 import {
 	useAbortSession,
 	useAttachSession,
+	useChannels,
 	useClearQueue,
 	usePromptSession,
 	useRemoveFromQueue,
+	useSessionChannel,
+	useSessionMeta,
+	useSetFirstMessageLabel,
 } from "../queries";
 import { useTimeline } from "../state/timeline-state";
+import { computeSessionLabel, formatFirstMessageLabel } from "../utils/label";
+import { BreadcrumbBar } from "./BreadcrumbBar";
 import { CompactionBanner } from "./banners/CompactionBanner";
 import { QueuePills } from "./banners/QueuePills";
 import { RetryBanner } from "./banners/RetryBanner";
@@ -26,6 +32,13 @@ export function ChatPane({ piSessionId }: { piSessionId: string | null }) {
 	const clearQueueMutation = useClearQueue();
 	const abortMutation = useAbortSession();
 	const removeFromQueueMutation = useRemoveFromQueue();
+	const setFirstMessageLabelMutation = useSetFirstMessageLabel();
+	const sessionMeta = useSessionMeta(piSessionId);
+	const channels = useChannels();
+	const sessionChannel = useSessionChannel(piSessionId);
+	const channelName =
+		channels.data?.channels.find((c) => c.id === sessionChannel.data?.channelId)
+			?.name ?? null;
 
 	if (piSessionId && attachQuery.isLoading) {
 		return (
@@ -59,6 +72,20 @@ export function ChatPane({ piSessionId }: { piSessionId: string | null }) {
 	}
 
 	async function send(text: string, intent: SendIntent) {
+		const isFirstUserMessage = snapshot.timeline.every(
+			(entry) => entry.kind !== "user",
+		);
+		if (isFirstUserMessage && piSessionId) {
+			const basename = computeSessionLabel({
+				piSessionId,
+				cwd: sessionMeta.data?.cwd ?? null,
+				label: null,
+			});
+			setFirstMessageLabelMutation.mutate({
+				piSessionId,
+				text: formatFirstMessageLabel(basename, text),
+			});
+		}
 		appendUserMessage(text);
 		try {
 			if (intent === "steer") {
@@ -94,9 +121,12 @@ export function ChatPane({ piSessionId }: { piSessionId: string | null }) {
 
 	return (
 		<div className="flex flex-1 flex-col bg-[#1a1a1f] p-4">
-			<div className="border-b border-zinc-800 pb-2 text-xs text-zinc-500">
-				session {piSessionId}
-			</div>
+			<BreadcrumbBar
+				channelName={channelName}
+				piSessionId={piSessionId}
+				cwd={sessionMeta.data?.cwd ?? null}
+				label={sessionMeta.data?.label ?? null}
+			/>
 			<Timeline entries={snapshot.timeline} />
 			<div className="mt-2 space-y-2">
 				<RetryBanner retry={snapshot.retry} />

@@ -66,6 +66,15 @@ export class ChannelsRepo {
 		this.db.raw.prepare("DELETE FROM channels WHERE id = ?").run(id);
 	}
 
+	countSessions(channelId: string): number {
+		const row = this.db.raw
+			.prepare(
+				"SELECT COUNT(*) AS n FROM channel_sessions WHERE channel_id = ?",
+			)
+			.get(channelId) as unknown as { n: number };
+		return row.n;
+	}
+
 	private nextPosition(): number {
 		const row = this.db.raw
 			.prepare("SELECT MAX(position) AS max FROM channels")

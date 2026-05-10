@@ -5,6 +5,8 @@ import path from "node:path";
 import { app, BrowserWindow } from "electron";
 import { openDb } from "./db/connection";
 import { runMigrations } from "./db/migrations";
+import { getDefaultCwd } from "./default-cwd";
+import { electronDialogHandlers } from "./dialog-handlers";
 import { IpcRouter } from "./ipc-router";
 import { PiSessionManager } from "./pi-session-manager";
 import { ChannelSessionsRepo } from "./repos/channel-sessions";
@@ -58,7 +60,13 @@ app.whenReady().then(() => {
 		setSessionFilePath: (id, p) => channelSessions.setSessionFilePath(id, p),
 	});
 
-	router = new IpcRouter({ channels, channelSessions, piSessionManager });
+	router = new IpcRouter({
+		channels,
+		channelSessions,
+		piSessionManager,
+		dialog: electronDialogHandlers,
+		getDefaultCwd,
+	});
 	router.attach();
 
 	createWindow();

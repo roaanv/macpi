@@ -26,13 +26,13 @@ describe("migrations", () => {
 	it("starts at version 0 and applies 0001", () => {
 		expect(currentVersion(db)).toBe(0);
 		runMigrations(db);
-		expect(currentVersion(db)).toBe(2);
+		expect(currentVersion(db)).toBe(3);
 	});
 
 	it("is idempotent on re-run", () => {
 		runMigrations(db);
 		runMigrations(db);
-		expect(currentVersion(db)).toBe(2);
+		expect(currentVersion(db)).toBe(3);
 	});
 
 	it("creates the channels table", () => {
@@ -70,6 +70,20 @@ describe("migrations", () => {
 		).map((c) => c.name);
 		expect(cols).toContain("cwd");
 		expect(cols).toContain("session_file_path");
+		memDb.close();
+	});
+
+	it("003 adds label and label_user_set columns to channel_sessions", () => {
+		const memDb = openDb({ filename: ":memory:" });
+		runMigrations(memDb);
+		const cols = memDb.raw
+			.prepare("PRAGMA table_info(channel_sessions)")
+			.all() as unknown as Array<{ name: string; dflt_value: unknown }>;
+		const colNames = cols.map((c) => c.name);
+		expect(colNames).toContain("label");
+		expect(colNames).toContain("label_user_set");
+		const flag = cols.find((c) => c.name === "label_user_set");
+		expect(flag?.dflt_value).toBe("0");
 		memDb.close();
 	});
 });

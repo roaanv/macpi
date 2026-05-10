@@ -14,6 +14,8 @@ export interface SessionMeta {
 	piSessionId: string;
 	cwd: string | null;
 	sessionFilePath: string | null;
+	label: string | null;
+	labelUserSet: boolean;
 }
 
 export class ChannelSessionsRepo {
@@ -64,13 +66,15 @@ export class ChannelSessionsRepo {
 	getMeta(piSessionId: string): SessionMeta | null {
 		const row = this.db.raw
 			.prepare(
-				"SELECT pi_session_id AS piSessionId, cwd, session_file_path AS sessionFilePath FROM channel_sessions WHERE pi_session_id = ?",
+				"SELECT pi_session_id AS piSessionId, cwd, session_file_path AS sessionFilePath, label, label_user_set AS labelUserSet FROM channel_sessions WHERE pi_session_id = ?",
 			)
 			.get(piSessionId) as unknown as
 			| {
 					piSessionId: string;
 					cwd: string | null;
 					sessionFilePath: string | null;
+					label: string | null;
+					labelUserSet: number;
 			  }
 			| undefined;
 		if (!row) return null;
@@ -78,6 +82,8 @@ export class ChannelSessionsRepo {
 			piSessionId: row.piSessionId,
 			cwd: row.cwd,
 			sessionFilePath: row.sessionFilePath,
+			label: row.label,
+			labelUserSet: row.labelUserSet === 1,
 		};
 	}
 
@@ -87,6 +93,45 @@ export class ChannelSessionsRepo {
 				"UPDATE channel_sessions SET session_file_path = ? WHERE pi_session_id = ?",
 			)
 			.run(path, piSessionId);
+	}
+
+	/**
+	 * User-set label. Empty string clears the label and the user-set flag,
+	 * letting auto-labeling kick in again on the next first-message hook.
+	 */
+	setLabel(piSessionId: string, label: string): void {
+		if (label === "") {
+			this.db.raw
+				.prepare(
+					"UPDATE channel_sessions SET label = NULL, label_user_set = 0 WHERE pi_session_id = ?",
+				)
+				.run(piSessionId);
+			return;
+		}
+		this.db.raw
+			.prepare(
+				"UPDATE channel_sessions SET label = ?, label_user_set = 1 WHERE pi_session_id = ?",
+			)
+			.run(label, piSessionId);
+	}
+
+	/**
+	 * Auto-label hook: writes label only if label_user_set = 0. Returns true
+	 * if a write happened.
+	 */
+	setFirstMessageLabel(piSessionId: string, label: string): boolean {
+		const info = this.db.raw
+			.prepare(
+				"UPDATE channel_sessions SET label = ? WHERE pi_session_id = ? AND label_user_set = 0",
+			)
+			.run(label, piSessionId) as unknown as { changes: number };
+		return info.changes > 0;
+	}
+
+	delete(piSessionId: string): void {
+		this.db.raw
+			.prepare("DELETE FROM channel_sessions WHERE pi_session_id = ?")
+			.run(piSessionId);
 	}
 
 	private nextPosition(channelId: string): number {

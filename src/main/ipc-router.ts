@@ -10,6 +10,7 @@ import {
 	type IpcResult,
 	ok,
 } from "../shared/ipc-types";
+import type { DialogHandlers } from "./dialog-handlers";
 import type { PiSessionManager } from "./pi-session-manager";
 import type { ChannelSessionsRepo } from "./repos/channel-sessions";
 import type { ChannelsRepo } from "./repos/channels";
@@ -22,6 +23,8 @@ export interface RouterDeps {
 	channels: ChannelsRepo;
 	channelSessions: ChannelSessionsRepo;
 	piSessionManager: PiSessionManager;
+	dialog: DialogHandlers;
+	getDefaultCwd: () => string;
 }
 
 export class IpcRouter {
@@ -41,6 +44,16 @@ export class IpcRouter {
 			return ok({});
 		});
 		this.register("channels.delete", async (args) => {
+			const sessionIds = this.deps.channelSessions.listByChannel(args.id);
+			if (sessionIds.length > 0 && !args.force) {
+				return err(
+					"non_empty",
+					`channel has ${sessionIds.length} session(s); pass force:true to cascade`,
+				);
+			}
+			for (const id of sessionIds) {
+				this.deps.piSessionManager.disposeSession(id);
+			}
 			this.deps.channels.delete(args.id);
 			return ok({});
 		});
@@ -97,6 +110,45 @@ export class IpcRouter {
 			return ok({
 				piSessionIds: this.deps.channelSessions.listByChannel(args.channelId),
 			});
+		});
+		this.register("session.rename", async (args) => {
+			this.deps.channelSessions.setLabel(args.piSessionId, args.label);
+			return ok({});
+		});
+		this.register("session.delete", async (args) => {
+			this.deps.piSessionManager.disposeSession(args.piSessionId);
+			this.deps.channelSessions.delete(args.piSessionId);
+			return ok({});
+		});
+		this.register("session.getMeta", async (args) => {
+			const meta = this.deps.channelSessions.getMeta(args.piSessionId);
+			if (!meta)
+				return err("not_found", `session ${args.piSessionId} not found`);
+			return ok({
+				piSessionId: meta.piSessionId,
+				cwd: meta.cwd,
+				label: meta.label,
+			});
+		});
+		this.register("session.setFirstMessageLabel", async (args) => {
+			const applied = this.deps.channelSessions.setFirstMessageLabel(
+				args.piSessionId,
+				args.text,
+			);
+			return ok({ applied });
+		});
+		this.register("session.findChannel", async (args) => {
+			return ok({
+				channelId: this.deps.channelSessions.findChannelOf(args.piSessionId),
+			});
+		});
+		this.register("dialog.openFolder", async (args) => {
+			return ok(
+				await this.deps.dialog.openFolder({ defaultPath: args.defaultPath }),
+			);
+		});
+		this.register("settings.getDefaultCwd", async () => {
+			return ok({ cwd: this.deps.getDefaultCwd() });
 		});
 	}
 

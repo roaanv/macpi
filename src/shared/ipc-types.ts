@@ -45,7 +45,10 @@ export interface IpcMethods {
 		req: { id: string; name: string };
 		res: Record<string, never>;
 	};
-	"channels.delete": { req: { id: string }; res: Record<string, never> };
+	"channels.delete": {
+		req: { id: string; force?: boolean };
+		res: Record<string, never>;
+	};
 	"session.create": {
 		req: { channelId: string; cwd: string };
 		res: { piSessionId: string };
@@ -84,6 +87,40 @@ export interface IpcMethods {
 	"session.listForChannel": {
 		req: { channelId: string };
 		res: { piSessionIds: string[] };
+	};
+	"session.rename": {
+		req: { piSessionId: string; label: string };
+		res: Record<string, never>;
+	};
+	"session.delete": {
+		req: { piSessionId: string };
+		res: Record<string, never>;
+	};
+	"session.setFirstMessageLabel": {
+		req: { piSessionId: string; text: string };
+		/** applied=true when the auto-label was written; false when the user has already set a label. */
+		res: { applied: boolean };
+	};
+	"session.getMeta": {
+		req: { piSessionId: string };
+		res: {
+			piSessionId: string;
+			cwd: string | null;
+			label: string | null;
+		};
+	};
+	"session.findChannel": {
+		req: { piSessionId: string };
+		res: { channelId: string | null };
+	};
+	"dialog.openFolder": {
+		req: { defaultPath?: string };
+		/** path is null when the user cancelled the dialog. */
+		res: { path: string | null };
+	};
+	"settings.getDefaultCwd": {
+		req: Record<string, never>;
+		res: { cwd: string };
 	};
 }
 

@@ -88,3 +88,95 @@ export function useAttachSession(piSessionId: string | null) {
 		refetchOnWindowFocus: false,
 	});
 }
+
+export function useRenameChannel() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (input: { id: string; name: string }) =>
+			invoke("channels.rename", input),
+		onSuccess: () => qc.invalidateQueries({ queryKey: ["channels"] }),
+	});
+}
+
+export function useDeleteChannel() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (input: { id: string; force?: boolean }) =>
+			invoke("channels.delete", input),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["channels"] });
+			qc.invalidateQueries({ queryKey: ["sessions"] });
+		},
+	});
+}
+
+export function useRenameSession() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (input: { piSessionId: string; label: string }) =>
+			invoke("session.rename", input),
+		onSuccess: (_d, vars) => {
+			qc.invalidateQueries({ queryKey: ["session.meta", vars.piSessionId] });
+			qc.invalidateQueries({ queryKey: ["sessions"] });
+		},
+	});
+}
+
+export function useDeleteSession() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (input: { piSessionId: string }) =>
+			invoke("session.delete", input),
+		onSuccess: () => qc.invalidateQueries({ queryKey: ["sessions"] }),
+	});
+}
+
+export function useSetFirstMessageLabel() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (input: { piSessionId: string; text: string }) =>
+			invoke("session.setFirstMessageLabel", input),
+		onSuccess: (_d, vars) => {
+			qc.invalidateQueries({ queryKey: ["session.meta", vars.piSessionId] });
+			qc.invalidateQueries({ queryKey: ["sessions"] });
+		},
+	});
+}
+
+export function useSessionMeta(piSessionId: string | null) {
+	return useQuery({
+		queryKey: ["session.meta", piSessionId],
+		queryFn: () =>
+			piSessionId
+				? invoke("session.getMeta", { piSessionId })
+				: Promise.resolve(null),
+		enabled: !!piSessionId,
+	});
+}
+
+export function useSessionChannel(piSessionId: string | null) {
+	return useQuery({
+		queryKey: ["session.channel", piSessionId],
+		queryFn: () =>
+			piSessionId
+				? invoke("session.findChannel", { piSessionId })
+				: Promise.resolve({ channelId: null }),
+		enabled: !!piSessionId,
+		staleTime: Number.POSITIVE_INFINITY,
+	});
+}
+
+export function useOpenFolder() {
+	return useMutation({
+		mutationFn: (input: { defaultPath?: string } = {}) =>
+			invoke("dialog.openFolder", input),
+	});
+}
+
+export function useDefaultCwd() {
+	return useQuery({
+		queryKey: ["settings.defaultCwd"],
+		queryFn: () => invoke("settings.getDefaultCwd", {}),
+		staleTime: Number.POSITIVE_INFINITY,
+	});
+}
