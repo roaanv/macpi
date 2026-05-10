@@ -1,5 +1,7 @@
 
 .cache
+.claude/
+.claire/
 .DS_Store
 .dynamodb/
 .env
