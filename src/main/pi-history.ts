@@ -2,7 +2,7 @@
 // TimelineEntry[]. Used at session-restore time. Never imports SDK runtime
 // values — only types — so it can be unit-tested without standing up pi.
 
-import type { TimelineEntry } from "../renderer/types/timeline";
+import type { TimelineEntry } from "../shared/timeline-types";
 
 interface UserMessageLike {
 	role: "user";

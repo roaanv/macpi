@@ -2,7 +2,7 @@
 // Shows streaming text plus a collapsible "thinking" section when present.
 
 import React from "react";
-import type { AssistantTextEntry } from "../../types/timeline";
+import type { AssistantTextEntry } from "../../../shared/timeline-types";
 
 export function AssistantMessage({ entry }: { entry: AssistantTextEntry }) {
 	const [thinkingOpen, setThinkingOpen] = React.useState(false);

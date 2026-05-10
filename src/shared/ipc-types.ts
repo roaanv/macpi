@@ -1,6 +1,8 @@
 // IPC envelope used everywhere across renderer↔main and main↔pi-host boundaries.
 // We never throw across the wire — every call returns ok() or err().
 
+import type { TimelineEntry } from "./timeline-types";
+
 export type IpcResult<T> =
 	| { ok: true; data: T }
 	| { ok: false; error: { code: string; message: string } };
@@ -83,7 +85,7 @@ export interface IpcMethods {
 	"session.attach": {
 		req: { piSessionId: string };
 		/** History reconstructed from pi's persisted session log. */
-		res: { entries: import("../renderer/types/timeline").TimelineEntry[] };
+		res: { entries: TimelineEntry[] };
 	};
 	"session.listForChannel": {
 		req: { channelId: string };

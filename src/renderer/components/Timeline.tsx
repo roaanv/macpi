@@ -1,5 +1,5 @@
 import React from "react";
-import type { TimelineEntry } from "../types/timeline";
+import type { TimelineEntry } from "../../shared/timeline-types";
 import { AssistantMessage } from "./messages/AssistantMessage";
 import { ToolBlock } from "./messages/ToolBlock";
 import { UserMessage } from "./messages/UserMessage";

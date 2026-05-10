@@ -1,6 +1,6 @@
 // Presentational component for a user message entry in the timeline.
 
-import type { UserMessageEntry } from "../../types/timeline";
+import type { UserMessageEntry } from "../../../shared/timeline-types";
 
 export function UserMessage({ entry }: { entry: UserMessageEntry }) {
 	return (

@@ -5,7 +5,7 @@
 // long string output and bash stdout/stderr blobs via truncateOutput().
 
 import React from "react";
-import type { ToolCallEntry } from "../../types/timeline";
+import type { ToolCallEntry } from "../../../shared/timeline-types";
 import { truncateOutput } from "../../utils/truncate-output";
 import { type DiffLine, unifiedDiffLines } from "../../utils/unified-diff";
 

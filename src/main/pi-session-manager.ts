@@ -21,8 +21,8 @@ import type {
 	ResourceLoader,
 	SettingsManager,
 } from "@earendil-works/pi-coding-agent";
-import type { TimelineEntry } from "../renderer/types/timeline";
 import type { PiEvent } from "../shared/pi-events";
+import type { TimelineEntry } from "../shared/timeline-types";
 import { agentMessagesToTimeline } from "./pi-history";
 
 type PiCodingModule = typeof import("@earendil-works/pi-coding-agent");

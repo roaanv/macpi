@@ -9,7 +9,7 @@ import type { PiSessionManager } from "../../src/main/pi-session-manager";
 import { AppSettingsRepo } from "../../src/main/repos/app-settings";
 import { ChannelSessionsRepo } from "../../src/main/repos/channel-sessions";
 import { ChannelsRepo } from "../../src/main/repos/channels";
-import type { TimelineEntry } from "../../src/renderer/types/timeline";
+import type { TimelineEntry } from "../../src/shared/timeline-types";
 
 const { dialogShowOpenDialog } = vi.hoisted(() => ({
 	dialogShowOpenDialog: vi.fn(),

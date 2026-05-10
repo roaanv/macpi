@@ -5,12 +5,12 @@
 
 import React from "react";
 import type { PiEvent } from "../../shared/pi-events";
-import { onPiEvent } from "../ipc";
 import type {
 	AssistantTextEntry,
 	TimelineEntry,
 	ToolCallEntry,
-} from "../types/timeline";
+} from "../../shared/timeline-types";
+import { onPiEvent } from "../ipc";
 
 export interface QueueState {
 	steering: readonly string[];
