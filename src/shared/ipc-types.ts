@@ -64,6 +64,14 @@ export interface IpcMethods {
 		/** Returns the cleared messages so the renderer can stash them as drafts if it wants. */
 		res: { steering: string[]; followUp: string[] };
 	};
+	"session.removeFromQueue": {
+		req: {
+			piSessionId: string;
+			queue: "steering" | "followUp";
+			index: number;
+		};
+		res: Record<string, never>;
+	};
 	"session.abort": {
 		req: { piSessionId: string };
 		res: Record<string, never>;

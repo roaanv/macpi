@@ -165,6 +165,77 @@ describe("layer-3: composer follow-up queueing", () => {
 		expect(last?.followUp).not.toContain("queued thing");
 	});
 
+	it("removeFromQueue() removes a single queued item and preserves the rest in order", async () => {
+		const { fauxAssistantMessage, fauxText } = await fauxHelpers();
+
+		// Turn 1: held-open response so we can queue + remove before turn_end.
+		// Same Promise-delay pattern as the other tests above.
+		const message1 = fauxAssistantMessage(fauxText("first answer body"));
+		const factory1 = (() =>
+			new Promise<typeof message1>((resolve) =>
+				setTimeout(() => resolve(message1), 200),
+			)) as unknown as () => typeof message1;
+		harness.queueResponse(factory1);
+		// After turn 1 finishes, pi will drain survivors "first" and "third"
+		// — queue 2 quick responses for those.
+		harness.queueResponse(fauxAssistantMessage(fauxText("response to first")));
+		harness.queueResponse(fauxAssistantMessage(fauxText("response to third")));
+
+		const { piSessionId } = await harness.manager.createSession({
+			cwd: harness.cwd,
+		});
+		const events: PiEvent[] = [];
+		const off = harness.subscribe((e) => events.push(e));
+
+		const turn1 = harness.manager.prompt(piSessionId, "tell me");
+		await waitFor(events, (e) => e.type === "session.turn_start");
+		await harness.manager.prompt(piSessionId, "first", "followUp");
+		await harness.manager.prompt(piSessionId, "second", "followUp");
+		await harness.manager.prompt(piSessionId, "third", "followUp");
+		await waitFor(
+			events,
+			(e) =>
+				e.type === "session.queue_update" &&
+				e.followUp.includes("first") &&
+				e.followUp.includes("second") &&
+				e.followUp.includes("third"),
+		);
+
+		await harness.manager.removeFromQueue(piSessionId, "followUp", 1);
+
+		// After removal, a queue_update should reflect [first, third].
+		await waitFor(
+			events,
+			(e) =>
+				e.type === "session.queue_update" &&
+				e.followUp.length === 2 &&
+				e.followUp[0] === "first" &&
+				e.followUp[1] === "third" &&
+				!e.followUp.includes("second"),
+		);
+
+		await turn1;
+		// All 3 turns complete (turn 1 + survivors "first" + "third").
+		await waitForNTurnEnds(events, 3);
+		off();
+
+		// Inspect the final queue_update events: none should still carry "second".
+		const queueEvents = events.filter(
+			(e): e is Extract<PiEvent, { type: "session.queue_update" }> =>
+				e.type === "session.queue_update",
+		);
+		const indexOfRemoval = queueEvents.findIndex(
+			(e) =>
+				e.followUp.length === 2 &&
+				e.followUp[0] === "first" &&
+				e.followUp[1] === "third",
+		);
+		expect(indexOfRemoval).toBeGreaterThanOrEqual(0);
+		for (const e of queueEvents.slice(indexOfRemoval)) {
+			expect(e.followUp).not.toContain("second");
+		}
+	});
+
 	it("abort() ends the current turn promptly", async () => {
 		const { fauxAssistantMessage, fauxText } = await fauxHelpers();
 
@@ -230,14 +301,24 @@ function waitForTwoTurnEnds(
 	events: PiEvent[],
 	timeoutMs = 8_000,
 ): Promise<void> {
+	return waitForNTurnEnds(events, 2, timeoutMs);
+}
+
+function waitForNTurnEnds(
+	events: PiEvent[],
+	n: number,
+	timeoutMs = 12_000,
+): Promise<void> {
 	return new Promise<void>((resolve, reject) => {
 		const start = Date.now();
 		const tick = () => {
 			const ends = events.filter((e) => e.type === "session.turn_end").length;
-			if (ends >= 2) return resolve();
+			if (ends >= n) return resolve();
 			if (Date.now() - start > timeoutMs) {
 				return reject(
-					new Error(`waitForTwoTurnEnds: only saw ${ends} turn_end events`),
+					new Error(
+						`waitForNTurnEnds: wanted ${n} turn_end events, only saw ${ends}`,
+					),
 				);
 			}
 			setTimeout(tick, 10);

@@ -21,6 +21,7 @@ let piSessionManagerMock: {
 	createSession: ReturnType<typeof vi.fn>;
 	prompt: ReturnType<typeof vi.fn>;
 	clearQueue: ReturnType<typeof vi.fn>;
+	removeFromQueue: ReturnType<typeof vi.fn>;
 	abort: ReturnType<typeof vi.fn>;
 	attachSession: ReturnType<typeof vi.fn>;
 	getHistory: ReturnType<typeof vi.fn>;
@@ -38,6 +39,7 @@ beforeEach(() => {
 		createSession: vi.fn(),
 		prompt: vi.fn(),
 		clearQueue: vi.fn(),
+		removeFromQueue: vi.fn(),
 		abort: vi.fn(),
 		attachSession: vi.fn(),
 		getHistory: vi.fn(),
@@ -184,6 +186,40 @@ describe("IpcRouter", () => {
 
 		expect(result).toEqual({ ok: true, data: {} });
 		expect(piSessionManagerMock.abort).toHaveBeenCalledWith("s7");
+	});
+
+	it("session.removeFromQueue forwards (piSessionId, queue, index) to the manager", async () => {
+		piSessionManagerMock.removeFromQueue.mockResolvedValueOnce(undefined);
+
+		const result = await router.dispatch("session.removeFromQueue", {
+			piSessionId: "s1",
+			queue: "followUp",
+			index: 2,
+		});
+
+		expect(result).toEqual({ ok: true, data: {} });
+		expect(piSessionManagerMock.removeFromQueue).toHaveBeenCalledWith(
+			"s1",
+			"followUp",
+			2,
+		);
+	});
+
+	it("session.removeFromQueue surfaces manager errors as ipc errors", async () => {
+		piSessionManagerMock.removeFromQueue.mockRejectedValueOnce(
+			new Error("unknown session s1"),
+		);
+
+		const result = await router.dispatch("session.removeFromQueue", {
+			piSessionId: "s1",
+			queue: "steering",
+			index: 0,
+		});
+
+		expect(result.ok).toBe(false);
+		if (!result.ok) {
+			expect(result.error.message).toContain("unknown session s1");
+		}
 	});
 
 	it("session.clearQueue surfaces manager errors as ipc errors", async () => {

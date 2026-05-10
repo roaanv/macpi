@@ -57,6 +57,16 @@ export function useClearQueue() {
 	});
 }
 
+export function useRemoveFromQueue() {
+	return useMutation({
+		mutationFn: (input: {
+			piSessionId: string;
+			queue: "steering" | "followUp";
+			index: number;
+		}) => invoke("session.removeFromQueue", input),
+	});
+}
+
 export function useAbortSession() {
 	return useMutation({
 		mutationFn: (input: { piSessionId: string }) =>

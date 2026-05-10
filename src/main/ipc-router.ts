@@ -74,6 +74,14 @@ export class IpcRouter {
 			);
 			return ok(cleared);
 		});
+		this.register("session.removeFromQueue", async (args) => {
+			await this.deps.piSessionManager.removeFromQueue(
+				args.piSessionId,
+				args.queue,
+				args.index,
+			);
+			return ok({});
+		});
 		this.register("session.abort", async (args) => {
 			await this.deps.piSessionManager.abort(args.piSessionId);
 			return ok({});

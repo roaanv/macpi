@@ -176,6 +176,45 @@ export class PiSessionManager {
 		return active.session.clearQueue();
 	}
 
+	/**
+	 * Remove a single item from the steering or followUp queue. Pi has no
+	 * per-item remove API, so we reconcile: clearQueue() returns and empties
+	 * both queues atomically; we then re-queue every survivor via prompt()
+	 * with the matching streamingBehavior. The clear→re-queue gap is short
+	 * but technically a race — a turn could end between the two calls. For
+	 * macpi's single-user IPC pattern this is acceptable; if it ever becomes
+	 * a problem, swap to a renderer-side intent queue.
+	 */
+	async removeFromQueue(
+		piSessionId: string,
+		queue: "steering" | "followUp",
+		index: number,
+	): Promise<void> {
+		const active = this.active.get(piSessionId);
+		if (!active) throw new Error(`unknown session ${piSessionId}`);
+		const cleared = await active.session.clearQueue();
+		const steering =
+			queue === "steering"
+				? cleared.steering.filter((_, i) => i !== index)
+				: cleared.steering;
+		const followUp =
+			queue === "followUp"
+				? cleared.followUp.filter((_, i) => i !== index)
+				: cleared.followUp;
+		for (const text of steering) {
+			await active.session.prompt(text, {
+				source: "interactive",
+				streamingBehavior: "steer",
+			});
+		}
+		for (const text of followUp) {
+			await active.session.prompt(text, {
+				source: "interactive",
+				streamingBehavior: "followUp",
+			});
+		}
+	}
+
 	async abort(piSessionId: string): Promise<void> {
 		const active = this.active.get(piSessionId);
 		if (!active) throw new Error(`unknown session ${piSessionId}`);

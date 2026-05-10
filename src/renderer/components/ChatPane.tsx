@@ -6,6 +6,7 @@ import {
 	useAttachSession,
 	useClearQueue,
 	usePromptSession,
+	useRemoveFromQueue,
 } from "../queries";
 import { useTimeline } from "../state/timeline-state";
 import { CompactionBanner } from "./banners/CompactionBanner";
@@ -24,6 +25,7 @@ export function ChatPane({ piSessionId }: { piSessionId: string | null }) {
 	const promptMutation = usePromptSession();
 	const clearQueueMutation = useClearQueue();
 	const abortMutation = useAbortSession();
+	const removeFromQueueMutation = useRemoveFromQueue();
 
 	if (piSessionId && attachQuery.isLoading) {
 		return (
@@ -107,6 +109,10 @@ export function ChatPane({ piSessionId }: { piSessionId: string | null }) {
 					onClear={() => {
 						if (!piSessionId) return;
 						clearQueueMutation.mutate({ piSessionId });
+					}}
+					onRemove={(queue, index) => {
+						if (!piSessionId) return;
+						removeFromQueueMutation.mutate({ piSessionId, queue, index });
 					}}
 				/>
 			</div>
