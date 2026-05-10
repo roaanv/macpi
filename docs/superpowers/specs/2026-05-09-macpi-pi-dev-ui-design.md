@@ -373,7 +373,7 @@ Choices made during brainstorming with the user, in order:
 |---|---|---|
 | D1 | **Channel = free-form container** | Channel = project, channel = agent preset, hybrid project+preset. |
 | D2 | **Thread = branch in a session** | Thread = whole session, thread = topic group, no thread layer. |
-| D3 | **Pi runs in an Electron utility process (not main)** via the embedded SDK | Spawn pi CLI subprocess per session (RPC); single multiplexed pi subprocess; pi imported directly into main. |
+| D3 | **Pi runs embedded in the Electron main process** via the published SDK | Originally specced as a `utilityProcess` for crash isolation; reverted during foundation execution per user preference: "the whole reason I wanted to go with the pi sdk is to NOT start a real (OS) process." A buggy skill or runaway tool call can now block main's event loop — accepted trade-off; can wrap in a worker_thread later if it becomes a real problem. Other rejected options: spawning the pi CLI as a subprocess per session (RPC), single multiplexed pi subprocess. |
 | D4 | **MVP includes chat + full management surfaces** (skills + extensions + prompts) | Chat-first, chat + prompts only, settings-first. |
 | D5 | **Three-layer cascade** (global → channel → session) | Global + session only; channel + session only; reusable presets. |
 | D6 | **Three-pane shell** (mode rail / channels+sessions / chat / branches) | Two-pane (mode tabs in sidebar, branches inlined). |
