@@ -10,6 +10,9 @@
 // The module is externalized in vite.main.config.ts so it resolves to
 // node_modules at runtime and pi can find its own templates/themes/wasm.
 
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 import type { Api, Model } from "@earendil-works/pi-ai";
 import type {
 	AgentSession,
@@ -18,7 +21,9 @@ import type {
 	ResourceLoader,
 	SettingsManager,
 } from "@earendil-works/pi-coding-agent";
+import type { TimelineEntry } from "../renderer/types/timeline";
 import type { PiEvent } from "../shared/pi-events";
+import { agentMessagesToTimeline } from "./pi-history";
 
 type PiCodingModule = typeof import("@earendil-works/pi-coding-agent");
 
@@ -59,6 +64,11 @@ export interface PiTestOverrides {
 
 export type { PiEvent } from "../shared/pi-events";
 
+export interface SessionPathStore {
+	getSessionFilePath(piSessionId: string): string | null;
+	setSessionFilePath(piSessionId: string, path: string): void;
+}
+
 export class PiSessionManager {
 	private readonly active = new Map<string, ActiveSession>();
 	private readonly listeners = new Set<PiEventListener>();
@@ -68,6 +78,11 @@ export class PiSessionManager {
 	 * createSession to bypass the real auth/registry/resource discovery.
 	 */
 	__testOverrides: PiTestOverrides | undefined;
+	private pathStore?: SessionPathStore;
+
+	setPathStore(store: SessionPathStore): void {
+		this.pathStore = store;
+	}
 
 	onEvent(listener: PiEventListener): () => void {
 		this.listeners.add(listener);
@@ -76,7 +91,9 @@ export class PiSessionManager {
 		};
 	}
 
-	async createSession(opts: { cwd: string }): Promise<string> {
+	async createSession(opts: {
+		cwd: string;
+	}): Promise<{ piSessionId: string; sessionFilePath: string | null }> {
 		const ctx = await this.ensureContext();
 		const ov = this.__testOverrides;
 		const result = await ctx.mod.createAgentSession({
@@ -89,11 +106,53 @@ export class PiSessionManager {
 		});
 		const session = result.session;
 		const piSessionId = session.sessionId;
+		const sessionFilePath = session.sessionFile ?? null;
 		const unsubscribe = session.subscribe((event) =>
 			this.translate(piSessionId, event),
 		);
 		this.active.set(piSessionId, { piSessionId, session, unsubscribe });
-		return piSessionId;
+		return { piSessionId, sessionFilePath };
+	}
+
+	async attachSession(opts: { piSessionId: string }): Promise<void> {
+		if (this.active.has(opts.piSessionId)) return;
+		const ctx = await this.ensureContext();
+
+		let filePath = this.pathStore?.getSessionFilePath(opts.piSessionId) ?? null;
+		if (!filePath) {
+			filePath = discoverSessionFile(opts.piSessionId);
+			if (!filePath) {
+				throw new Error(
+					`session file not found on disk for ${opts.piSessionId}. ` +
+						`Tried ~/.pi/agent/sessions/**/<id>.jsonl.`,
+				);
+			}
+			this.pathStore?.setSessionFilePath(opts.piSessionId, filePath);
+		}
+
+		const ov = this.__testOverrides;
+		const sessionManager = ctx.mod.SessionManager.open(filePath);
+		const result = await ctx.mod.createAgentSession({
+			cwd: sessionManager.getCwd(),
+			authStorage: ov?.authStorage ?? ctx.auth,
+			modelRegistry: ov?.modelRegistry ?? ctx.registry,
+			resourceLoader: ov?.resourceLoader,
+			settingsManager: ov?.settingsManager,
+			model: ov?.model,
+			sessionManager,
+		});
+		const session = result.session;
+		const piSessionId = session.sessionId;
+		const unsubscribe = session.subscribe((event) =>
+			this.translate(piSessionId, event),
+		);
+		this.active.set(piSessionId, { piSessionId, session, unsubscribe });
+	}
+
+	getHistory(piSessionId: string): TimelineEntry[] {
+		const active = this.active.get(piSessionId);
+		if (!active) throw new Error(`unknown session ${piSessionId}`);
+		return agentMessagesToTimeline(active.session.messages);
 	}
 
 	async prompt(
@@ -246,4 +305,20 @@ export class PiSessionManager {
 	private emit(event: PiEvent) {
 		for (const l of this.listeners) l(event);
 	}
+}
+
+function discoverSessionFile(piSessionId: string): string | null {
+	const root = path.join(os.homedir(), ".pi", "agent", "sessions");
+	if (!fs.existsSync(root)) return null;
+	for (const dir of fs.readdirSync(root)) {
+		const dirPath = path.join(root, dir);
+		const stat = fs.statSync(dirPath);
+		if (!stat.isDirectory()) continue;
+		for (const file of fs.readdirSync(dirPath)) {
+			if (file.endsWith(`${piSessionId}.jsonl`)) {
+				return path.join(dirPath, file);
+			}
+		}
+	}
+	return null;
 }

@@ -55,7 +55,10 @@ const nextEntryId = () => `e${++entryIdCounter}`;
  *
  * Resets when piSessionId changes.
  */
-export function useTimeline(piSessionId: string | null): {
+export function useTimeline(
+	piSessionId: string | null,
+	initialTimeline?: TimelineEntry[],
+): {
 	snapshot: TimelineSnapshot;
 	appendUserMessage: (text: string) => void;
 } {
@@ -66,6 +69,11 @@ export function useTimeline(piSessionId: string | null): {
 	React.useEffect(() => {
 		setSnapshot(EMPTY);
 	}, [piSessionId]);
+
+	React.useEffect(() => {
+		if (!initialTimeline || initialTimeline.length === 0) return;
+		setSnapshot((prev) => ({ ...prev, timeline: initialTimeline }));
+	}, [initialTimeline]);
 
 	React.useEffect(() => {
 		if (!piSessionId) return;

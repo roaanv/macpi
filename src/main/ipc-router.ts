@@ -48,10 +48,16 @@ export class IpcRouter {
 			const channel = this.deps.channels.getById(args.channelId);
 			if (!channel)
 				return err("not_found", `channel ${args.channelId} not found`);
-			const piSessionId = await this.deps.piSessionManager.createSession({
+			const { piSessionId, sessionFilePath } =
+				await this.deps.piSessionManager.createSession({
+					cwd: args.cwd,
+				});
+			this.deps.channelSessions.attach({
+				channelId: args.channelId,
+				piSessionId,
 				cwd: args.cwd,
+				sessionFilePath,
 			});
-			this.deps.channelSessions.attach(args.channelId, piSessionId);
 			return ok({ piSessionId });
 		});
 		this.register("session.prompt", async (args) => {
@@ -71,6 +77,13 @@ export class IpcRouter {
 		this.register("session.abort", async (args) => {
 			await this.deps.piSessionManager.abort(args.piSessionId);
 			return ok({});
+		});
+		this.register("session.attach", async (args) => {
+			await this.deps.piSessionManager.attachSession({
+				piSessionId: args.piSessionId,
+			});
+			const entries = this.deps.piSessionManager.getHistory(args.piSessionId);
+			return ok({ entries });
 		});
 		this.register("session.listForChannel", async (args) => {
 			return ok({

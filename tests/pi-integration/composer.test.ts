@@ -34,7 +34,7 @@ describe("layer-3: composer follow-up queueing", () => {
 		// drive() doesn't time out waiting for the second turn_end.
 		harness.queueResponse(fauxAssistantMessage(fauxText("got the follow-up")));
 
-		const piSessionId = await harness.manager.createSession({
+		const { piSessionId } = await harness.manager.createSession({
 			cwd: harness.cwd,
 		});
 		const events: PiEvent[] = [];
@@ -83,7 +83,7 @@ describe("layer-3: composer follow-up queueing", () => {
 		// Turn 2 (after the steer): a quick literal response is fine.
 		harness.queueResponse(fauxAssistantMessage(fauxText("steered response")));
 
-		const piSessionId = await harness.manager.createSession({
+		const { piSessionId } = await harness.manager.createSession({
 			cwd: harness.cwd,
 		});
 		const events: PiEvent[] = [];
@@ -132,7 +132,7 @@ describe("layer-3: composer follow-up queueing", () => {
 		// cleared before turn 1 finishes consuming the queue. So we don't
 		// need a 2nd faux response.
 
-		const piSessionId = await harness.manager.createSession({
+		const { piSessionId } = await harness.manager.createSession({
 			cwd: harness.cwd,
 		});
 		const events: PiEvent[] = [];
@@ -181,7 +181,7 @@ describe("layer-3: composer follow-up queueing", () => {
 			)) as unknown as () => typeof longMessage;
 		harness.queueResponse(longFactory);
 
-		const piSessionId = await harness.manager.createSession({
+		const { piSessionId } = await harness.manager.createSession({
 			cwd: harness.cwd,
 		});
 		const events: PiEvent[] = [];

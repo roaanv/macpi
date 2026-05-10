@@ -71,34 +71,108 @@ describe("ChannelSessionsRepo", () => {
 	});
 
 	it("attaches a pi session to a channel", () => {
-		sessionsRepo.attach(channelId, "pi-session-abc");
+		sessionsRepo.attach({
+			channelId,
+			piSessionId: "pi-session-abc",
+			cwd: null,
+			sessionFilePath: null,
+		});
 		const ids = sessionsRepo.listByChannel(channelId);
 		expect(ids).toEqual(["pi-session-abc"]);
 	});
 
 	it("preserves attach order via position", () => {
-		sessionsRepo.attach(channelId, "s1");
-		sessionsRepo.attach(channelId, "s2");
-		sessionsRepo.attach(channelId, "s3");
+		sessionsRepo.attach({
+			channelId,
+			piSessionId: "s1",
+			cwd: null,
+			sessionFilePath: null,
+		});
+		sessionsRepo.attach({
+			channelId,
+			piSessionId: "s2",
+			cwd: null,
+			sessionFilePath: null,
+		});
+		sessionsRepo.attach({
+			channelId,
+			piSessionId: "s3",
+			cwd: null,
+			sessionFilePath: null,
+		});
 		expect(sessionsRepo.listByChannel(channelId)).toEqual(["s1", "s2", "s3"]);
 	});
 
 	it("findChannelOf returns the owning channel", () => {
-		sessionsRepo.attach(channelId, "s1");
+		sessionsRepo.attach({
+			channelId,
+			piSessionId: "s1",
+			cwd: null,
+			sessionFilePath: null,
+		});
 		expect(sessionsRepo.findChannelOf("s1")).toBe(channelId);
 		expect(sessionsRepo.findChannelOf("missing")).toBeNull();
 	});
 
 	it("detach removes the mapping", () => {
-		sessionsRepo.attach(channelId, "s1");
+		sessionsRepo.attach({
+			channelId,
+			piSessionId: "s1",
+			cwd: null,
+			sessionFilePath: null,
+		});
 		sessionsRepo.detach(channelId, "s1");
 		expect(sessionsRepo.listByChannel(channelId)).toEqual([]);
 	});
 
 	it("deleting a channel cascades to channel_sessions", () => {
-		sessionsRepo.attach(channelId, "s1");
-		sessionsRepo.attach(channelId, "s2");
+		sessionsRepo.attach({
+			channelId,
+			piSessionId: "s1",
+			cwd: null,
+			sessionFilePath: null,
+		});
+		sessionsRepo.attach({
+			channelId,
+			piSessionId: "s2",
+			cwd: null,
+			sessionFilePath: null,
+		});
 		repo.delete(channelId);
 		expect(sessionsRepo.listByChannel(channelId)).toEqual([]);
+	});
+
+	it("attach() persists cwd and session_file_path", () => {
+		sessionsRepo.attach({
+			channelId,
+			piSessionId: "pi-1",
+			cwd: "/tmp/work",
+			sessionFilePath: "/Users/x/.pi/agent/sessions/abc/def.jsonl",
+		});
+
+		const meta = sessionsRepo.getMeta("pi-1");
+		expect(meta).toEqual({
+			piSessionId: "pi-1",
+			cwd: "/tmp/work",
+			sessionFilePath: "/Users/x/.pi/agent/sessions/abc/def.jsonl",
+		});
+	});
+
+	it("setSessionFilePath updates the path for an existing session", () => {
+		sessionsRepo.attach({
+			channelId,
+			piSessionId: "pi-2",
+			cwd: "/tmp/work2",
+			sessionFilePath: null,
+		});
+
+		sessionsRepo.setSessionFilePath("pi-2", "/discovered/path.jsonl");
+		expect(sessionsRepo.getMeta("pi-2")?.sessionFilePath).toBe(
+			"/discovered/path.jsonl",
+		);
+	});
+
+	it("getMeta returns null for an unknown session", () => {
+		expect(sessionsRepo.getMeta("does-not-exist")).toBeNull();
 	});
 });

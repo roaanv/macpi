@@ -68,6 +68,11 @@ export interface IpcMethods {
 		req: { piSessionId: string };
 		res: Record<string, never>;
 	};
+	"session.attach": {
+		req: { piSessionId: string };
+		/** History reconstructed from pi's persisted session log. */
+		res: { entries: import("../renderer/types/timeline").TimelineEntry[] };
+	};
 	"session.listForChannel": {
 		req: { channelId: string };
 		res: { piSessionIds: string[] };

@@ -52,6 +52,11 @@ app.whenReady().then(() => {
 			w.webContents.send("macpi:pi-event", event);
 		}
 	});
+	piSessionManager.setPathStore({
+		getSessionFilePath: (id) =>
+			channelSessions.getMeta(id)?.sessionFilePath ?? null,
+		setSessionFilePath: (id, p) => channelSessions.setSessionFilePath(id, p),
+	});
 
 	router = new IpcRouter({ channels, channelSessions, piSessionManager });
 	router.attach();

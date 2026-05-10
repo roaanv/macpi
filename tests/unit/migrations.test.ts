@@ -26,13 +26,13 @@ describe("migrations", () => {
 	it("starts at version 0 and applies 0001", () => {
 		expect(currentVersion(db)).toBe(0);
 		runMigrations(db);
-		expect(currentVersion(db)).toBe(1);
+		expect(currentVersion(db)).toBe(2);
 	});
 
 	it("is idempotent on re-run", () => {
 		runMigrations(db);
 		runMigrations(db);
-		expect(currentVersion(db)).toBe(1);
+		expect(currentVersion(db)).toBe(2);
 	});
 
 	it("creates the channels table", () => {
@@ -58,5 +58,18 @@ describe("migrations", () => {
 			.get();
 		expect(row).toBeTruthy();
 		expect(currentVersion(db)).toBe(1);
+	});
+
+	it("002 adds cwd and session_file_path columns to channel_sessions", () => {
+		const memDb = openDb({ filename: ":memory:" });
+		runMigrations(memDb);
+		const cols = (
+			memDb.raw
+				.prepare("PRAGMA table_info(channel_sessions)")
+				.all() as unknown as Array<{ name: string }>
+		).map((c) => c.name);
+		expect(cols).toContain("cwd");
+		expect(cols).toContain("session_file_path");
+		memDb.close();
 	});
 });

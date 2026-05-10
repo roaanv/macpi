@@ -1,7 +1,12 @@
 // Main chat area. Subscribes to pi events via useTimeline() and renders the
 // resulting timeline. Banners and queue pills are wired in Phase E/F.
 
-import { useAbortSession, useClearQueue, usePromptSession } from "../queries";
+import {
+	useAbortSession,
+	useAttachSession,
+	useClearQueue,
+	usePromptSession,
+} from "../queries";
 import { useTimeline } from "../state/timeline-state";
 import { CompactionBanner } from "./banners/CompactionBanner";
 import { QueuePills } from "./banners/QueuePills";
@@ -10,10 +15,38 @@ import { Composer, type SendIntent } from "./Composer";
 import { Timeline } from "./Timeline";
 
 export function ChatPane({ piSessionId }: { piSessionId: string | null }) {
-	const { snapshot, appendUserMessage } = useTimeline(piSessionId);
+	const attachQuery = useAttachSession(piSessionId);
+	const initialTimeline = attachQuery.data?.entries;
+	const { snapshot, appendUserMessage } = useTimeline(
+		piSessionId,
+		initialTimeline,
+	);
 	const promptMutation = usePromptSession();
 	const clearQueueMutation = useClearQueue();
 	const abortMutation = useAbortSession();
+
+	if (piSessionId && attachQuery.isLoading) {
+		return (
+			<div className="flex flex-1 items-center justify-center text-zinc-500">
+				Loading session…
+			</div>
+		);
+	}
+	if (piSessionId && attachQuery.isError) {
+		const msg =
+			attachQuery.error instanceof Error
+				? attachQuery.error.message
+				: String(attachQuery.error);
+		return (
+			<div className="flex flex-1 items-center justify-center px-6 text-center text-zinc-500">
+				<div>
+					Couldn't attach to session{" "}
+					<code className="text-zinc-300">{piSessionId}</code>
+					<div className="mt-2 text-xs text-red-300">{msg}</div>
+				</div>
+			</div>
+		);
+	}
 
 	if (!piSessionId) {
 		return (

@@ -63,3 +63,18 @@ export function useAbortSession() {
 			invoke("session.abort", input),
 	});
 }
+
+export function useAttachSession(piSessionId: string | null) {
+	return useQuery({
+		queryKey: ["session.attach", piSessionId],
+		queryFn: () =>
+			piSessionId
+				? invoke("session.attach", { piSessionId })
+				: Promise.resolve({ entries: [] }),
+		enabled: !!piSessionId,
+		// Once we've attached, the renderer takes over via live PiEvents.
+		// No need to refetch on focus or interval.
+		staleTime: Number.POSITIVE_INFINITY,
+		refetchOnWindowFocus: false,
+	});
+}

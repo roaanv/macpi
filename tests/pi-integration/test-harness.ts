@@ -154,7 +154,9 @@ export async function drive(
 	options: { timeoutMs?: number } = {},
 ): Promise<{ piSessionId: string; events: PiEvent[] }> {
 	const before = harness.captured.length;
-	const piSessionId = await harness.manager.createSession({ cwd: harness.cwd });
+	const { piSessionId } = await harness.manager.createSession({
+		cwd: harness.cwd,
+	});
 	const turnEnd = waitForEvent(
 		harness,
 		(e) => e.type === "session.turn_end" && e.piSessionId === piSessionId,

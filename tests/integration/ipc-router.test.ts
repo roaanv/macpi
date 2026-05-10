@@ -8,6 +8,7 @@ import { IpcRouter } from "../../src/main/ipc-router";
 import type { PiSessionManager } from "../../src/main/pi-session-manager";
 import { ChannelSessionsRepo } from "../../src/main/repos/channel-sessions";
 import { ChannelsRepo } from "../../src/main/repos/channels";
+import type { TimelineEntry } from "../../src/renderer/types/timeline";
 
 vi.mock("electron", () => ({
 	ipcMain: { handle: vi.fn(), removeHandler: vi.fn() },
@@ -21,6 +22,8 @@ let piSessionManagerMock: {
 	prompt: ReturnType<typeof vi.fn>;
 	clearQueue: ReturnType<typeof vi.fn>;
 	abort: ReturnType<typeof vi.fn>;
+	attachSession: ReturnType<typeof vi.fn>;
+	getHistory: ReturnType<typeof vi.fn>;
 };
 
 beforeEach(() => {
@@ -36,6 +39,8 @@ beforeEach(() => {
 		prompt: vi.fn(),
 		clearQueue: vi.fn(),
 		abort: vi.fn(),
+		attachSession: vi.fn(),
+		getHistory: vi.fn(),
 	};
 	router = new IpcRouter({
 		channels: new ChannelsRepo(db),
@@ -78,7 +83,10 @@ describe("IpcRouter", () => {
 	it("session.create attaches the returned pi session id to the channel", async () => {
 		const created = await router.dispatch("channels.create", { name: "x" });
 		if (!created.ok) throw new Error("setup: channel create failed");
-		piSessionManagerMock.createSession.mockResolvedValueOnce("sess-1");
+		piSessionManagerMock.createSession.mockResolvedValueOnce({
+			piSessionId: "sess-1",
+			sessionFilePath: null,
+		});
 
 		const r = await router.dispatch("session.create", {
 			channelId: created.data.id,
@@ -190,6 +198,41 @@ describe("IpcRouter", () => {
 		expect(result.ok).toBe(false);
 		if (!result.ok) {
 			expect(result.error.message).toContain("unknown session s1");
+		}
+	});
+
+	it("session.attach calls attachSession then returns the translated history", async () => {
+		piSessionManagerMock.attachSession.mockResolvedValueOnce(undefined);
+		piSessionManagerMock.getHistory.mockReturnValueOnce([
+			{ kind: "user", id: "r1", text: "hi" },
+		] as TimelineEntry[]);
+
+		const result = await router.dispatch("session.attach", {
+			piSessionId: "s1",
+		});
+
+		expect(result).toEqual({
+			ok: true,
+			data: { entries: [{ kind: "user", id: "r1", text: "hi" }] },
+		});
+		expect(piSessionManagerMock.attachSession).toHaveBeenCalledWith({
+			piSessionId: "s1",
+		});
+		expect(piSessionManagerMock.getHistory).toHaveBeenCalledWith("s1");
+	});
+
+	it("session.attach surfaces attach errors as ipc errors", async () => {
+		piSessionManagerMock.attachSession.mockRejectedValueOnce(
+			new Error("session file not found on disk for s1"),
+		);
+
+		const result = await router.dispatch("session.attach", {
+			piSessionId: "s1",
+		});
+
+		expect(result.ok).toBe(false);
+		if (!result.ok) {
+			expect(result.error.message).toContain("session file not found");
 		}
 	});
 });
