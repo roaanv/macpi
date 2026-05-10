@@ -3,6 +3,8 @@
 // registry. Errors are caught and returned as structured IpcResult values.
 
 import { ipcMain } from "electron";
+import { getDefaultCwd as readDefaultCwdFromSettings } from "../shared/app-settings-keys";
+import { resolveCwd } from "../shared/cwd-resolver";
 import {
 	err,
 	type IpcMethodName,
@@ -12,6 +14,7 @@ import {
 } from "../shared/ipc-types";
 import type { DialogHandlers } from "./dialog-handlers";
 import type { PiSessionManager } from "./pi-session-manager";
+import type { AppSettingsRepo } from "./repos/app-settings";
 import type { ChannelSessionsRepo } from "./repos/channel-sessions";
 import type { ChannelsRepo } from "./repos/channels";
 
@@ -23,6 +26,7 @@ export interface RouterDeps {
 	channels: ChannelsRepo;
 	channelSessions: ChannelSessionsRepo;
 	piSessionManager: PiSessionManager;
+	appSettings: AppSettingsRepo;
 	dialog: DialogHandlers;
 	getDefaultCwd: () => string;
 }
@@ -36,7 +40,11 @@ export class IpcRouter {
 			ok({ channels: this.deps.channels.list() }),
 		);
 		this.register("channels.create", async (args) => {
-			const c = this.deps.channels.create({ name: args.name, icon: args.icon });
+			const c = this.deps.channels.create({
+				name: args.name,
+				icon: args.icon,
+				cwd: args.cwd ?? null,
+			});
 			return ok({ id: c.id });
 		});
 		this.register("channels.rename", async (args) => {
@@ -61,16 +69,27 @@ export class IpcRouter {
 			const channel = this.deps.channels.getById(args.channelId);
 			if (!channel)
 				return err("not_found", `channel ${args.channelId} not found`);
+
+			const settings = this.deps.appSettings.getAll();
+			const cwd = resolveCwd({
+				override: args.cwd,
+				channelCwd: channel.cwd,
+				defaultCwd: readDefaultCwdFromSettings(settings),
+				homeDir: this.deps.getDefaultCwd(),
+			});
+
 			const { piSessionId, sessionFilePath } =
-				await this.deps.piSessionManager.createSession({
-					cwd: args.cwd,
-				});
+				await this.deps.piSessionManager.createSession({ cwd });
 			this.deps.channelSessions.attach({
 				channelId: args.channelId,
 				piSessionId,
-				cwd: args.cwd,
+				cwd,
 				sessionFilePath,
 			});
+			const label = args.label?.trim();
+			if (label) {
+				this.deps.channelSessions.setLabel(piSessionId, label);
+			}
 			return ok({ piSessionId });
 		});
 		this.register("session.prompt", async (args) => {
@@ -148,7 +167,18 @@ export class IpcRouter {
 			);
 		});
 		this.register("settings.getDefaultCwd", async () => {
-			return ok({ cwd: this.deps.getDefaultCwd() });
+			const settings = this.deps.appSettings.getAll();
+			const configured = readDefaultCwdFromSettings(settings);
+			return ok({
+				cwd: configured.length > 0 ? configured : this.deps.getDefaultCwd(),
+			});
+		});
+		this.register("settings.getAll", async () => {
+			return ok({ settings: this.deps.appSettings.getAll() });
+		});
+		this.register("settings.set", async (args) => {
+			this.deps.appSettings.set(args.key, args.value);
+			return ok({});
 		});
 	}
 

@@ -46,14 +46,14 @@ export function RowMenu({ items, alwaysVisible }: RowMenuProps) {
 					setOpen((v) => !v);
 				}}
 				aria-label="row menu"
-				className={`rounded px-1 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-100 ${
+				className={`rounded px-1 text-muted hover:surface-row hover:text-primary ${
 					alwaysVisible ? "" : "opacity-0 group-hover:opacity-100"
 				}`}
 			>
 				⋮
 			</button>
 			{open && (
-				<div className="absolute right-0 top-full z-20 mt-1 w-32 overflow-hidden rounded bg-zinc-800 shadow-lg">
+				<div className="absolute right-0 top-full z-20 mt-1 w-32 overflow-hidden rounded surface-panel shadow-lg">
 					{items.map((item) => (
 						<button
 							key={item.label}
@@ -63,8 +63,8 @@ export function RowMenu({ items, alwaysVisible }: RowMenuProps) {
 								setOpen(false);
 								item.onClick();
 							}}
-							className={`block w-full px-3 py-1 text-left text-xs hover:bg-zinc-700 ${
-								item.destructive ? "text-red-300" : "text-zinc-200"
+							className={`block w-full px-3 py-1 text-left text-xs hover:surface-row ${
+								item.destructive ? "text-red-300" : "text-primary"
 							}`}
 						>
 							{item.label}

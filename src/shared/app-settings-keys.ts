@@ -1,0 +1,75 @@
+// Typed accessors and defaults for app-level (UI/UX) settings persisted in
+// the settings_global table. Distinct from src/main/settings/resolver.ts +
+// src/shared/settings-keys.ts which scaffold the pi-runtime cascade for a
+// future per-session settings UI.
+
+export type ThemeMode = "light" | "dark" | "auto";
+
+export type FontSizeRegion =
+	| "sidebar"
+	| "chatAssistant"
+	| "chatUser"
+	| "composer"
+	| "codeBlock";
+
+export const APP_SETTINGS_DEFAULTS = {
+	theme: "auto" as ThemeMode,
+	fontFamily: "system-ui",
+	fontFamilyMono: "ui-monospace, SFMono-Regular, monospace",
+	"fontSize.sidebar": 13,
+	"fontSize.chatAssistant": 14,
+	"fontSize.chatUser": 14,
+	"fontSize.composer": 14,
+	"fontSize.codeBlock": 13,
+	defaultCwd: "",
+} as const;
+
+export type AppSettingsKey = keyof typeof APP_SETTINGS_DEFAULTS;
+
+const THEME_VALUES: ReadonlySet<ThemeMode> = new Set(["light", "dark", "auto"]);
+
+export function getTheme(settings: Record<string, unknown>): ThemeMode {
+	const v = settings.theme;
+	if (typeof v === "string" && THEME_VALUES.has(v as ThemeMode)) {
+		return v as ThemeMode;
+	}
+	return APP_SETTINGS_DEFAULTS.theme;
+}
+
+export function getFontFamily(settings: Record<string, unknown>): string {
+	const v = settings.fontFamily;
+	return typeof v === "string" && v.length > 0
+		? v
+		: APP_SETTINGS_DEFAULTS.fontFamily;
+}
+
+export function getFontFamilyMono(settings: Record<string, unknown>): string {
+	const v = settings.fontFamilyMono;
+	return typeof v === "string" && v.length > 0
+		? v
+		: APP_SETTINGS_DEFAULTS.fontFamilyMono;
+}
+
+const FONT_SIZE_KEY: Record<FontSizeRegion, AppSettingsKey> = {
+	sidebar: "fontSize.sidebar",
+	chatAssistant: "fontSize.chatAssistant",
+	chatUser: "fontSize.chatUser",
+	composer: "fontSize.composer",
+	codeBlock: "fontSize.codeBlock",
+};
+
+export function getFontSize(
+	settings: Record<string, unknown>,
+	region: FontSizeRegion,
+): number {
+	const key = FONT_SIZE_KEY[region];
+	const v = settings[key];
+	return typeof v === "number" && Number.isFinite(v)
+		? v
+		: (APP_SETTINGS_DEFAULTS[key] as number);
+}
+
+export function getDefaultCwd(settings: Record<string, unknown>): string {
+	const v = settings.defaultCwd;
+	return typeof v === "string" ? v : APP_SETTINGS_DEFAULTS.defaultCwd;
+}

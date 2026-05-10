@@ -26,13 +26,13 @@ describe("migrations", () => {
 	it("starts at version 0 and applies 0001", () => {
 		expect(currentVersion(db)).toBe(0);
 		runMigrations(db);
-		expect(currentVersion(db)).toBe(3);
+		expect(currentVersion(db)).toBe(4);
 	});
 
 	it("is idempotent on re-run", () => {
 		runMigrations(db);
 		runMigrations(db);
-		expect(currentVersion(db)).toBe(3);
+		expect(currentVersion(db)).toBe(4);
 	});
 
 	it("creates the channels table", () => {
@@ -84,6 +84,17 @@ describe("migrations", () => {
 		expect(colNames).toContain("label_user_set");
 		const flag = cols.find((c) => c.name === "label_user_set");
 		expect(flag?.dflt_value).toBe("0");
+		memDb.close();
+	});
+
+	it("004 adds cwd column to channels", () => {
+		const memDb = openDb({ filename: ":memory:" });
+		runMigrations(memDb);
+		const cols = memDb.raw
+			.prepare("PRAGMA table_info(channels)")
+			.all() as unknown as Array<{ name: string }>;
+		const colNames = cols.map((c) => c.name);
+		expect(colNames).toContain("cwd");
 		memDb.close();
 	});
 });

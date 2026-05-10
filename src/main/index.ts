@@ -9,6 +9,7 @@ import { getDefaultCwd } from "./default-cwd";
 import { electronDialogHandlers } from "./dialog-handlers";
 import { IpcRouter } from "./ipc-router";
 import { PiSessionManager } from "./pi-session-manager";
+import { AppSettingsRepo } from "./repos/app-settings";
 import { ChannelSessionsRepo } from "./repos/channel-sessions";
 import { ChannelsRepo } from "./repos/channels";
 
@@ -47,6 +48,7 @@ app.whenReady().then(() => {
 
 	const channels = new ChannelsRepo(db);
 	const channelSessions = new ChannelSessionsRepo(db);
+	const appSettings = new AppSettingsRepo(db);
 
 	piSessionManager = new PiSessionManager();
 	piSessionManager.onEvent((event) => {
@@ -64,6 +66,7 @@ app.whenReady().then(() => {
 		channels,
 		channelSessions,
 		piSessionManager,
+		appSettings,
 		dialog: electronDialogHandlers,
 		getDefaultCwd,
 	});

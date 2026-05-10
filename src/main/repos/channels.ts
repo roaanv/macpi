@@ -9,12 +9,14 @@ export interface Channel {
 	name: string;
 	position: number;
 	icon: string | null;
+	cwd: string | null;
 	createdAt: number;
 }
 
 export interface CreateChannelInput {
 	name: string;
 	icon?: string;
+	cwd?: string | null;
 }
 
 export class ChannelsRepo {
@@ -24,16 +26,18 @@ export class ChannelsRepo {
 		const id = randomUUID();
 		const now = Date.now();
 		const nextPos = this.nextPosition();
+		const cwd = input.cwd ?? null;
 		this.db.raw
 			.prepare(
-				"INSERT INTO channels (id, name, position, icon, created_at) VALUES (?, ?, ?, ?, ?)",
+				"INSERT INTO channels (id, name, position, icon, cwd, created_at) VALUES (?, ?, ?, ?, ?, ?)",
 			)
-			.run(id, input.name, nextPos, input.icon ?? null, now);
+			.run(id, input.name, nextPos, input.icon ?? null, cwd, now);
 		return {
 			id,
 			name: input.name,
 			position: nextPos,
 			icon: input.icon ?? null,
+			cwd,
 			createdAt: now,
 		};
 	}
@@ -41,7 +45,7 @@ export class ChannelsRepo {
 	list(): Channel[] {
 		const rows = this.db.raw
 			.prepare(
-				"SELECT id, name, position, icon, created_at as createdAt FROM channels ORDER BY position ASC",
+				"SELECT id, name, position, icon, cwd, created_at as createdAt FROM channels ORDER BY position ASC",
 			)
 			.all() as unknown as Channel[];
 		return rows;
@@ -50,7 +54,7 @@ export class ChannelsRepo {
 	getById(id: string): Channel | null {
 		const row = this.db.raw
 			.prepare(
-				"SELECT id, name, position, icon, created_at as createdAt FROM channels WHERE id = ?",
+				"SELECT id, name, position, icon, cwd, created_at as createdAt FROM channels WHERE id = ?",
 			)
 			.get(id) as unknown as Channel | undefined;
 		return row ?? null;
@@ -64,6 +68,12 @@ export class ChannelsRepo {
 
 	delete(id: string): void {
 		this.db.raw.prepare("DELETE FROM channels WHERE id = ?").run(id);
+	}
+
+	setCwd(id: string, cwd: string | null): void {
+		this.db.raw
+			.prepare("UPDATE channels SET cwd = ? WHERE id = ?")
+			.run(cwd, id);
 	}
 
 	countSessions(channelId: string): number {

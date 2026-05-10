@@ -43,7 +43,7 @@ export function ConfirmDialog({
 			role="presentation"
 		>
 			<div
-				className="w-80 rounded bg-zinc-800 p-4 text-zinc-100 shadow-xl"
+				className="w-80 rounded surface-panel p-4 text-primary shadow-xl"
 				onClick={(e) => e.stopPropagation()}
 				onKeyDown={() => undefined}
 				role="dialog"
@@ -51,12 +51,12 @@ export function ConfirmDialog({
 				aria-label={title}
 			>
 				<div className="mb-2 text-sm font-semibold">{title}</div>
-				<div className="mb-4 text-xs text-zinc-300">{body}</div>
+				<div className="mb-4 text-xs text-primary">{body}</div>
 				<div className="flex justify-end gap-2">
 					<button
 						type="button"
 						onClick={onCancel}
-						className="rounded bg-zinc-700 px-3 py-1 text-xs hover:bg-zinc-600"
+						className="rounded surface-row px-3 py-1 text-xs hover:opacity-80"
 					>
 						{cancelLabel}
 					</button>

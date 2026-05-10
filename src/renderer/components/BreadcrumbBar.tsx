@@ -20,14 +20,14 @@ export function BreadcrumbBar({
 	const display = computeSessionLabel({ piSessionId, cwd, label });
 	const shortId = `sess-${piSessionId.slice(0, 8)}`;
 	return (
-		<div className="flex items-center gap-1 overflow-hidden whitespace-nowrap border-b border-zinc-800 pb-2 text-xs text-zinc-500">
+		<div className="flex items-center gap-1 overflow-hidden whitespace-nowrap border-b border-divider pb-2 text-xs text-muted">
 			{channelName && (
 				<>
-					<span className="text-zinc-400">#&nbsp;{channelName}</span>
+					<span className="text-muted">#&nbsp;{channelName}</span>
 					<span>›</span>
 				</>
 			)}
-			<span className="text-zinc-300">{display}</span>
+			<span className="text-primary">{display}</span>
 			{cwd && (
 				<>
 					<span>·</span>
@@ -37,7 +37,7 @@ export function BreadcrumbBar({
 				</>
 			)}
 			<span>·</span>
-			<span className="text-zinc-600" title={piSessionId}>
+			<span className="text-faint" title={piSessionId}>
 				{shortId}
 			</span>
 		</div>

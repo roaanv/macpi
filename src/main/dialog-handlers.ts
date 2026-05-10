@@ -11,7 +11,7 @@ export interface DialogHandlers {
 export const electronDialogHandlers: DialogHandlers = {
 	async openFolder({ defaultPath }) {
 		const result = await dialog.showOpenDialog({
-			properties: ["openDirectory"],
+			properties: ["openDirectory", "createDirectory"],
 			defaultPath,
 		});
 		if (result.canceled || result.filePaths.length === 0) {

@@ -1,32 +1,33 @@
-// Vertical icon rail on the far left that switches between top-level modes.
-// Only "chat" is enabled in plan 1; the rest are scaffolded but disabled.
+// Vertical icon rail on the far left. Top section: top-level mode
+// switcher (only "chat" enabled in current scope). Bottom section:
+// settings gear that opens the global settings dialog.
 
-type Mode = "chat" | "skills" | "extensions" | "prompts" | "settings";
+type Mode = "chat" | "skills" | "extensions" | "prompts";
 
 const ICONS: Record<Mode, string> = {
 	chat: "💬",
 	skills: "🧩",
 	extensions: "🧪",
 	prompts: "📜",
-	settings: "⚙️",
 };
 
 export function ModeRail({
 	mode,
 	onSelect,
+	onOpenSettings,
 }: {
 	mode: Mode;
 	onSelect: (m: Mode) => void;
+	onOpenSettings: () => void;
 }) {
 	const items: { mode: Mode; enabled: boolean }[] = [
 		{ mode: "chat", enabled: true },
 		{ mode: "skills", enabled: false },
 		{ mode: "extensions", enabled: false },
 		{ mode: "prompts", enabled: false },
-		{ mode: "settings", enabled: false },
 	];
 	return (
-		<div className="flex w-12 flex-col items-center gap-2 bg-[#1f1f24] py-2 text-zinc-300">
+		<div className="flex w-12 flex-col items-center gap-2 surface-rail py-2 text-primary">
 			{items.map((it) => (
 				<button
 					key={it.mode}
@@ -38,13 +39,23 @@ export function ModeRail({
 					className={`h-8 w-8 rounded-md text-base transition disabled:opacity-30 ${
 						mode === it.mode
 							? "bg-indigo-600 text-white"
-							: "bg-zinc-800 hover:bg-zinc-700"
+							: "surface-row hover:opacity-80"
 					}`}
 					title={it.mode}
 				>
 					{ICONS[it.mode]}
 				</button>
 			))}
+			<div className="mt-auto" />
+			<button
+				type="button"
+				onClick={onOpenSettings}
+				className="h-8 w-8 rounded-md text-base surface-row hover:opacity-80"
+				title="Settings"
+				aria-label="Open settings"
+			>
+				⚙️
+			</button>
 		</div>
 	);
 }

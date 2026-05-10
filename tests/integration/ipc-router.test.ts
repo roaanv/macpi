@@ -6,6 +6,7 @@ import { type DbHandle, openDb } from "../../src/main/db/connection";
 import { runMigrations } from "../../src/main/db/migrations";
 import { IpcRouter } from "../../src/main/ipc-router";
 import type { PiSessionManager } from "../../src/main/pi-session-manager";
+import { AppSettingsRepo } from "../../src/main/repos/app-settings";
 import { ChannelSessionsRepo } from "../../src/main/repos/channel-sessions";
 import { ChannelsRepo } from "../../src/main/repos/channels";
 import type { TimelineEntry } from "../../src/renderer/types/timeline";
@@ -56,6 +57,7 @@ beforeEach(() => {
 		channels: new ChannelsRepo(db),
 		channelSessions: new ChannelSessionsRepo(db),
 		piSessionManager: piSessionManagerMock as unknown as PiSessionManager,
+		appSettings: new AppSettingsRepo(db),
 		dialog: {
 			openFolder: async ({ defaultPath }) => {
 				const result = await dialogShowOpenDialog({
@@ -538,5 +540,133 @@ describe("IpcRouter", () => {
 		});
 		expect(r.ok).toBe(true);
 		if (r.ok) expect(r.data.channelId).toBeNull();
+	});
+
+	it("settings.getAll returns the stored settings", async () => {
+		const setR = await router.dispatch("settings.set", {
+			key: "theme",
+			value: "light",
+		});
+		expect(setR).toEqual({ ok: true, data: {} });
+
+		const r = await router.dispatch("settings.getAll", {});
+		expect(r.ok).toBe(true);
+		if (r.ok) expect(r.data.settings).toEqual({ theme: "light" });
+	});
+
+	it("settings.set with a number round-trips", async () => {
+		await router.dispatch("settings.set", {
+			key: "fontSize.sidebar",
+			value: 16,
+		});
+		const r = await router.dispatch("settings.getAll", {});
+		expect(r.ok).toBe(true);
+		if (r.ok) expect(r.data.settings["fontSize.sidebar"]).toBe(16);
+	});
+
+	it("channels.create persists cwd when provided", async () => {
+		const c = await router.dispatch("channels.create", {
+			name: "x",
+			cwd: "/Users/x/code",
+		});
+		if (!c.ok) throw new Error("setup");
+
+		const list = await router.dispatch("channels.list", {});
+		if (!list.ok) throw new Error("list failed");
+		const ch = list.data.channels.find((x) => x.id === c.data.id);
+		expect(ch?.cwd).toBe("/Users/x/code");
+	});
+
+	it("channels.create stores null cwd when not provided", async () => {
+		const c = await router.dispatch("channels.create", { name: "x" });
+		if (!c.ok) throw new Error("setup");
+
+		const list = await router.dispatch("channels.list", {});
+		if (!list.ok) throw new Error("list failed");
+		const ch = list.data.channels.find((x) => x.id === c.data.id);
+		expect(ch?.cwd).toBeNull();
+	});
+
+	it("session.create resolves cwd from channel.cwd when override absent", async () => {
+		const c = await router.dispatch("channels.create", {
+			name: "x",
+			cwd: "/from-channel",
+		});
+		if (!c.ok) throw new Error("setup");
+		piSessionManagerMock.createSession.mockResolvedValueOnce({
+			piSessionId: "s-cwd",
+			sessionFilePath: null,
+		});
+
+		const r = await router.dispatch("session.create", {
+			channelId: c.data.id,
+		});
+		expect(r.ok).toBe(true);
+		expect(piSessionManagerMock.createSession).toHaveBeenCalledWith({
+			cwd: "/from-channel",
+		});
+	});
+
+	it("session.create resolves cwd from defaultCwd when channel.cwd null", async () => {
+		const c = await router.dispatch("channels.create", { name: "x" });
+		if (!c.ok) throw new Error("setup");
+		await router.dispatch("settings.set", {
+			key: "defaultCwd",
+			value: "/from-default",
+		});
+		piSessionManagerMock.createSession.mockResolvedValueOnce({
+			piSessionId: "s-cwd2",
+			sessionFilePath: null,
+		});
+
+		const r = await router.dispatch("session.create", {
+			channelId: c.data.id,
+		});
+		expect(r.ok).toBe(true);
+		expect(piSessionManagerMock.createSession).toHaveBeenCalledWith({
+			cwd: "/from-default",
+		});
+	});
+
+	it("session.create explicit override beats channel + default", async () => {
+		const c = await router.dispatch("channels.create", {
+			name: "x",
+			cwd: "/channel",
+		});
+		if (!c.ok) throw new Error("setup");
+		await router.dispatch("settings.set", {
+			key: "defaultCwd",
+			value: "/default",
+		});
+		piSessionManagerMock.createSession.mockResolvedValueOnce({
+			piSessionId: "s-cwd3",
+			sessionFilePath: null,
+		});
+
+		const r = await router.dispatch("session.create", {
+			channelId: c.data.id,
+			cwd: "/explicit",
+		});
+		expect(r.ok).toBe(true);
+		expect(piSessionManagerMock.createSession).toHaveBeenCalledWith({
+			cwd: "/explicit",
+		});
+	});
+
+	it("settings.getDefaultCwd returns the user-set defaultCwd when present", async () => {
+		await router.dispatch("settings.set", {
+			key: "defaultCwd",
+			value: "/Users/x/configured",
+		});
+
+		const r = await router.dispatch("settings.getDefaultCwd", {});
+		expect(r.ok).toBe(true);
+		if (r.ok) expect(r.data.cwd).toBe("/Users/x/configured");
+	});
+
+	it("settings.getDefaultCwd falls back to homeDir when defaultCwd unset", async () => {
+		const r = await router.dispatch("settings.getDefaultCwd", {});
+		expect(r.ok).toBe(true);
+		if (r.ok) expect(r.data.cwd).toBe("/Users/test/home");
 	});
 });

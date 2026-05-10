@@ -11,20 +11,20 @@ export function AssistantMessage({ entry }: { entry: AssistantTextEntry }) {
 		thinkingOpen || (hasThinking && entry.streaming && !entry.text);
 
 	return (
-		<div className="text-sm leading-relaxed">
+		<div className="text-[length:var(--font-size-chat-assistant)] leading-relaxed">
 			<span className="text-amber-300">pi</span>
-			<span className="text-zinc-500"> · </span>
+			<span className="text-muted"> · </span>
 			{hasThinking && (
 				<button
 					type="button"
 					onClick={() => setThinkingOpen((open) => !open)}
-					className="mr-2 rounded border border-zinc-700 px-1.5 py-0.5 text-[10px] text-zinc-400 hover:bg-zinc-800"
+					className="mr-2 rounded border border-zinc-700 px-1.5 py-0.5 text-[10px] text-muted hover:surface-row"
 				>
 					{showThinking ? "▾ thinking" : "▸ thinking"}
 				</button>
 			)}
 			{showThinking && (
-				<div className="my-1 border-l-2 border-zinc-700 pl-2 text-xs italic text-zinc-400 whitespace-pre-wrap">
+				<div className="my-1 border-l-2 border-zinc-700 pl-2 text-xs italic text-muted whitespace-pre-wrap">
 					{entry.thinking}
 				</div>
 			)}

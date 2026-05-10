@@ -35,10 +35,10 @@ export function Composer({ streaming, onSend }: ComposerProps) {
 	return (
 		<form
 			onSubmit={onFormSubmit}
-			className="flex gap-2 rounded bg-zinc-900 p-2"
+			className="flex gap-2 rounded surface-app p-2"
 		>
 			<input
-				className="flex-1 bg-transparent text-zinc-100 placeholder-zinc-500 outline-none"
+				className="flex-1 bg-transparent text-[length:var(--font-size-composer)] text-primary placeholder-faint outline-none"
 				placeholder={
 					streaming ? "Steer or queue while streaming…" : "Type a message"
 				}

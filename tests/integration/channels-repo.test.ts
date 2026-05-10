@@ -82,6 +82,33 @@ describe("ChannelsRepo", () => {
 		});
 		expect(repo.countSessions(c.id)).toBe(2);
 	});
+
+	it("create returns cwd as null by default", () => {
+		const c = repo.create({ name: "x" });
+		expect(c.cwd).toBeNull();
+	});
+
+	it("setCwd persists the cwd value", () => {
+		const c = repo.create({ name: "x" });
+		repo.setCwd(c.id, "/Users/x/code/macpi");
+		expect(repo.getById(c.id)?.cwd).toBe("/Users/x/code/macpi");
+	});
+
+	it("setCwd with null clears the cwd", () => {
+		const c = repo.create({ name: "x" });
+		repo.setCwd(c.id, "/Users/x/code/macpi");
+		repo.setCwd(c.id, null);
+		expect(repo.getById(c.id)?.cwd).toBeNull();
+	});
+
+	it("list includes cwd on each channel", () => {
+		const a = repo.create({ name: "a" });
+		const b = repo.create({ name: "b" });
+		repo.setCwd(b.id, "/path");
+		const all = repo.list();
+		expect(all.find((c) => c.id === a.id)?.cwd).toBeNull();
+		expect(all.find((c) => c.id === b.id)?.cwd).toBe("/path");
+	});
 });
 
 describe("ChannelSessionsRepo", () => {

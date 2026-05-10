@@ -42,7 +42,7 @@ export function ChatPane({ piSessionId }: { piSessionId: string | null }) {
 
 	if (piSessionId && attachQuery.isLoading) {
 		return (
-			<div className="flex flex-1 items-center justify-center text-zinc-500">
+			<div className="flex flex-1 items-center justify-center text-muted">
 				Loading session…
 			</div>
 		);
@@ -53,10 +53,10 @@ export function ChatPane({ piSessionId }: { piSessionId: string | null }) {
 				? attachQuery.error.message
 				: String(attachQuery.error);
 		return (
-			<div className="flex flex-1 items-center justify-center px-6 text-center text-zinc-500">
+			<div className="flex flex-1 items-center justify-center px-6 text-center text-muted">
 				<div>
 					Couldn't attach to session{" "}
-					<code className="text-zinc-300">{piSessionId}</code>
+					<code className="text-primary">{piSessionId}</code>
 					<div className="mt-2 text-xs text-red-300">{msg}</div>
 				</div>
 			</div>
@@ -65,7 +65,7 @@ export function ChatPane({ piSessionId }: { piSessionId: string | null }) {
 
 	if (!piSessionId) {
 		return (
-			<div className="flex flex-1 items-center justify-center text-zinc-500">
+			<div className="flex flex-1 items-center justify-center text-muted">
 				Select a session, or create one in the sidebar.
 			</div>
 		);
@@ -120,7 +120,7 @@ export function ChatPane({ piSessionId }: { piSessionId: string | null }) {
 	}
 
 	return (
-		<div className="flex flex-1 flex-col bg-[#1a1a1f] p-4">
+		<div className="flex flex-1 flex-col surface-app p-4">
 			<BreadcrumbBar
 				channelName={channelName}
 				piSessionId={piSessionId}

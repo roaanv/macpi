@@ -9,7 +9,41 @@ body,
 }
 body {
 	margin: 0;
+	font-family: var(--font-family, ui-sans-serif), system-ui, sans-serif;
+}
+
+html {
+	background: #ffffff;
+	color: #18181b;
+}
+html.dark {
 	background: #1a1a1f;
-	color: #eee;
-	font-family: ui-sans-serif, system-ui, sans-serif;
+	color: #eeeeee;
+}
+
+@layer components {
+	.surface-app {
+		@apply bg-white dark:bg-[#1a1a1f];
+	}
+	.surface-panel {
+		@apply bg-zinc-100 dark:bg-zinc-800;
+	}
+	.surface-row {
+		@apply bg-zinc-200 dark:bg-zinc-700;
+	}
+	.surface-rail {
+		@apply bg-zinc-100 dark:bg-[#1f1f24];
+	}
+	.text-primary {
+		@apply text-zinc-900 dark:text-zinc-100;
+	}
+	.text-muted {
+		@apply text-zinc-500 dark:text-zinc-400;
+	}
+	.text-faint {
+		@apply text-zinc-400 dark:text-zinc-500;
+	}
+	.border-divider {
+		@apply border-zinc-200 dark:border-zinc-800;
+	}
 }

@@ -50,7 +50,7 @@ export function ToolBlock({ entry }: { entry: ToolCallEntry }) {
 
 	return (
 		<div
-			className={`rounded border-l-2 ${BORDERS[entry.state]} bg-zinc-900/40 px-2 py-1 font-mono text-[11px] text-zinc-300`}
+			className={`rounded border-l-2 ${BORDERS[entry.state]} bg-zinc-900/40 px-2 py-1 font-[family-name:var(--font-family-mono)] text-[length:var(--font-size-code-block)] text-primary`}
 		>
 			<button
 				type="button"
@@ -58,11 +58,11 @@ export function ToolBlock({ entry }: { entry: ToolCallEntry }) {
 				className="flex w-full items-center gap-2 text-left"
 			>
 				<span>{open ? "▾" : "▸"}</span>
-				<span className="text-zinc-400">🔧 {entry.toolName}:</span>
-				<span className="text-zinc-300 truncate">
+				<span className="text-muted">🔧 {entry.toolName}:</span>
+				<span className="text-primary truncate">
 					{summarize(entry.toolName, entry.args)}
 				</span>
-				<span className="ml-auto text-zinc-500">
+				<span className="ml-auto text-muted">
 					{entry.state === "pending" && "running…"}
 					{entry.state === "ok" && "✓"}
 					{entry.state === "error" && "✘"}
@@ -81,7 +81,7 @@ export function ToolBlock({ entry }: { entry: ToolCallEntry }) {
 						}
 						return (
 							<DetailSection label="args">
-								<pre className="whitespace-pre-wrap text-zinc-400">
+								<pre className="whitespace-pre-wrap text-muted">
 									{JSON.stringify(entry.args, null, 2)}
 								</pre>
 							</DetailSection>
@@ -90,7 +90,7 @@ export function ToolBlock({ entry }: { entry: ToolCallEntry }) {
 					{entry.state !== "pending" && (
 						<DetailSection label={entry.state === "ok" ? "result" : "error"}>
 							<pre
-								className={`whitespace-pre-wrap ${entry.state === "error" ? "text-red-300" : "text-zinc-300"}`}
+								className={`whitespace-pre-wrap ${entry.state === "error" ? "text-red-300" : "text-primary"}`}
 							>
 								{(() => {
 									if (typeof entry.result === "string") {
@@ -135,7 +135,7 @@ function DetailSection({
 }) {
 	return (
 		<div>
-			<div className="text-[9px] uppercase tracking-widest text-zinc-500">
+			<div className="text-[9px] uppercase tracking-widest text-muted">
 				{label}
 			</div>
 			<div className="mt-0.5">{children}</div>
@@ -160,7 +160,7 @@ function diffFromArgs(toolName: string, args: unknown): DiffLine[] | null {
 
 function DiffView({ lines }: { lines: DiffLine[] }) {
 	return (
-		<div className="overflow-x-auto rounded bg-zinc-950/40 p-2 font-mono text-[10px] leading-relaxed">
+		<div className="overflow-x-auto rounded bg-zinc-950/40 p-2 font-[family-name:var(--font-family-mono)] text-[length:var(--font-size-code-block)] leading-relaxed">
 			{lines.map((line, i) => (
 				<div
 					// biome-ignore lint/suspicious/noArrayIndexKey: diff lines have no stable id
@@ -170,10 +170,10 @@ function DiffView({ lines }: { lines: DiffLine[] }) {
 							? "bg-emerald-900/30 text-emerald-200"
 							: line.kind === "remove"
 								? "bg-red-900/30 text-red-200"
-								: "text-zinc-400"
+								: "text-muted"
 					}
 				>
-					<span className="mr-2 text-zinc-500">
+					<span className="mr-2 text-muted">
 						{line.kind === "add" ? "+" : line.kind === "remove" ? "-" : " "}
 					</span>
 					{line.text || " "}

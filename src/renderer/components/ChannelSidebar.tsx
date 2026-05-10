@@ -1,13 +1,11 @@
-// Left sidebar showing channels and sessions within the selected channel.
-// Per-row hover-revealed ⋮ menus expose Rename and Delete. New session
-// creation lives in NewSessionForm (cwd picker).
+// Left sidebar: channels (with hover ⋮ menu + right-click for new session)
+// and sessions in the selected channel. Channel + session creation
+// happens via dialogs hosted in App.tsx.
 
 import React from "react";
 import { IpcError } from "../ipc";
 import {
 	useChannels,
-	useCreateChannel,
-	useCreateSession,
 	useDeleteChannel,
 	useDeleteSession,
 	useRenameChannel,
@@ -15,8 +13,8 @@ import {
 	useSessionsForChannel,
 } from "../queries";
 import { ConfirmDialog } from "./ConfirmDialog";
-import { NewSessionForm } from "./NewSessionForm";
-import { RowMenu } from "./RowMenu";
+import { ContextMenu } from "./ContextMenu";
+import { RowMenu, type RowMenuItem } from "./RowMenu";
 import { SessionRow } from "./SessionRow";
 
 export function ChannelSidebar({
@@ -24,22 +22,23 @@ export function ChannelSidebar({
 	selectedSessionId,
 	onSelectChannel,
 	onSelectSession,
+	onOpenCreateChannel,
+	onOpenCreateSession,
 }: {
 	selectedChannelId: string | null;
 	selectedSessionId: string | null;
 	onSelectChannel: (id: string | null) => void;
 	onSelectSession: (id: string | null) => void;
+	onOpenCreateChannel: () => void;
+	onOpenCreateSession: (channelId: string) => void;
 }) {
 	const channels = useChannels();
-	const createChannel = useCreateChannel();
 	const renameChannel = useRenameChannel();
 	const deleteChannel = useDeleteChannel();
-	const createSession = useCreateSession();
 	const renameSession = useRenameSession();
 	const deleteSession = useDeleteSession();
 	const sessions = useSessionsForChannel(selectedChannelId);
 
-	const [newName, setNewName] = React.useState("");
 	const [editingChannelId, setEditingChannelId] = React.useState<string | null>(
 		null,
 	);
@@ -52,24 +51,11 @@ export function ChannelSidebar({
 	const [confirmSessionDelete, setConfirmSessionDelete] = React.useState<{
 		piSessionId: string;
 	} | null>(null);
-
-	const handleCreateChannel = async (e: React.FormEvent) => {
-		e.preventDefault();
-		const name = newName.trim();
-		if (!name) return;
-		const result = await createChannel.mutateAsync({ name });
-		setNewName("");
-		onSelectChannel(result.id);
-	};
-
-	const handleCreateSession = async (cwd: string) => {
-		if (!selectedChannelId) return;
-		const result = await createSession.mutateAsync({
-			channelId: selectedChannelId,
-			cwd,
-		});
-		onSelectSession(result.piSessionId);
-	};
+	const [channelContextMenu, setChannelContextMenu] = React.useState<{
+		channelId: string;
+		x: number;
+		y: number;
+	} | null>(null);
 
 	const handleDeleteChannelForce = async () => {
 		if (!confirmChannelDelete) return;
@@ -100,10 +86,42 @@ export function ChannelSidebar({
 		}
 	};
 
+	const channelMenuItems = (id: string, name: string): RowMenuItem[] => [
+		{
+			label: "New session…",
+			onClick: () => onOpenCreateSession(id),
+		},
+		{
+			label: "Rename",
+			onClick: () => {
+				setEditingChannelDraft(name);
+				setEditingChannelId(id);
+			},
+		},
+		{
+			label: "Delete",
+			destructive: true,
+			onClick: () => handleRequestDeleteChannel(id, name),
+		},
+	];
+
+	const contextMenuChannel = channelContextMenu
+		? channels.data?.channels.find((c) => c.id === channelContextMenu.channelId)
+		: null;
+
 	return (
-		<div className="flex w-60 flex-col gap-1 bg-[#26262b] p-3 text-sm text-zinc-200">
-			<div className="mb-1 text-[10px] uppercase tracking-widest text-zinc-500">
-				Channels
+		<div className="flex w-60 flex-col gap-1 surface-panel p-3 text-[length:var(--font-size-sidebar)] text-primary">
+			<div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-widest text-muted">
+				<span>Channels</span>
+				<button
+					type="button"
+					onClick={onOpenCreateChannel}
+					title="New channel"
+					aria-label="New channel"
+					className="rounded surface-row px-1.5 text-xs hover:opacity-80"
+				>
+					+
+				</button>
 			</div>
 			{channels.data?.channels.map((c) =>
 				editingChannelId === c.id ? (
@@ -127,16 +145,26 @@ export function ChannelSidebar({
 								setEditingChannelId(null);
 							}
 						}}
-						className="rounded bg-zinc-800 px-2 py-1 text-zinc-200 outline-none"
+						className="rounded surface-panel px-2 py-1 text-primary outline-none"
 					/>
 				) : (
+					// biome-ignore lint/a11y/noStaticElementInteractions: right-click opens the same menu the ⋮ button shows; keyboard-accessible via that button
 					<div
 						key={c.id}
 						className={`group flex items-center gap-1 rounded ${
 							selectedChannelId === c.id
-								? "bg-zinc-700 text-white"
-								: "text-zinc-400 hover:bg-zinc-800"
+								? "surface-row text-white"
+								: "text-muted hover:surface-row"
 						}`}
+						title={`# ${c.name}\n${c.cwd ?? "(global default)"}`}
+						onContextMenu={(e) => {
+							e.preventDefault();
+							setChannelContextMenu({
+								channelId: c.id,
+								x: e.clientX,
+								y: e.clientY,
+							});
+						}}
 					>
 						<button
 							type="button"
@@ -145,43 +173,14 @@ export function ChannelSidebar({
 						>
 							# {c.name}
 						</button>
-						<RowMenu
-							items={[
-								{
-									label: "Rename",
-									onClick: () => {
-										setEditingChannelDraft(c.name);
-										setEditingChannelId(c.id);
-									},
-								},
-								{
-									label: "Delete",
-									destructive: true,
-									onClick: () => handleRequestDeleteChannel(c.id, c.name),
-								},
-							]}
-						/>
+						<RowMenu items={channelMenuItems(c.id, c.name)} />
 					</div>
 				),
 			)}
-			<form className="mt-2 flex gap-1" onSubmit={handleCreateChannel}>
-				<input
-					className="flex-1 rounded bg-zinc-800 px-2 py-1 text-zinc-200 placeholder-zinc-500 outline-none"
-					placeholder="new channel"
-					value={newName}
-					onChange={(e) => setNewName(e.target.value)}
-				/>
-				<button
-					type="submit"
-					className="rounded bg-zinc-700 px-2 hover:bg-zinc-600"
-				>
-					+
-				</button>
-			</form>
 
 			{selectedChannelId && (
 				<>
-					<div className="mt-3 text-[10px] uppercase tracking-widest text-zinc-500">
+					<div className="mt-3 text-[10px] uppercase tracking-widest text-muted">
 						Sessions
 					</div>
 					{sessions.data?.piSessionIds.map((id) => (
@@ -198,14 +197,22 @@ export function ChannelSidebar({
 							}
 						/>
 					))}
-					<NewSessionForm
-						pending={createSession.isPending}
-						error={createSession.error ? createSession.error.message : null}
-						onSubmit={handleCreateSession}
-					/>
 				</>
 			)}
 
+			<ContextMenu
+				items={
+					contextMenuChannel
+						? channelMenuItems(contextMenuChannel.id, contextMenuChannel.name)
+						: []
+				}
+				position={
+					contextMenuChannel && channelContextMenu
+						? { x: channelContextMenu.x, y: channelContextMenu.y }
+						: null
+				}
+				onClose={() => setChannelContextMenu(null)}
+			/>
 			<ConfirmDialog
 				open={!!confirmChannelDelete}
 				title="Delete channel?"

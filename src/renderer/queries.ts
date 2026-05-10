@@ -14,7 +14,8 @@ export function useChannels() {
 export function useCreateChannel() {
 	const qc = useQueryClient();
 	return useMutation({
-		mutationFn: (input: { name: string }) => invoke("channels.create", input),
+		mutationFn: (input: { name: string; cwd?: string | null }) =>
+			invoke("channels.create", input),
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["channels"] }),
 	});
 }
@@ -33,7 +34,7 @@ export function useSessionsForChannel(channelId: string | null) {
 export function useCreateSession() {
 	const qc = useQueryClient();
 	return useMutation({
-		mutationFn: (input: { channelId: string; cwd: string }) =>
+		mutationFn: (input: { channelId: string; cwd?: string; label?: string }) =>
 			invoke("session.create", input),
 		onSuccess: (_data, vars) =>
 			qc.invalidateQueries({ queryKey: ["sessions", vars.channelId] }),
@@ -178,5 +179,26 @@ export function useDefaultCwd() {
 		queryKey: ["settings.defaultCwd"],
 		queryFn: () => invoke("settings.getDefaultCwd", {}),
 		staleTime: Number.POSITIVE_INFINITY,
+	});
+}
+
+export function useSettings() {
+	return useQuery({
+		queryKey: ["settings"],
+		queryFn: () => invoke("settings.getAll", {}),
+		staleTime: Number.POSITIVE_INFINITY,
+		refetchOnWindowFocus: false,
+	});
+}
+
+export function useSetSetting() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (input: { key: string; value: unknown }) =>
+			invoke("settings.set", input),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["settings"] });
+			qc.invalidateQueries({ queryKey: ["settings.defaultCwd"] });
+		},
 	});
 }

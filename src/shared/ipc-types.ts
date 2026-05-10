@@ -33,12 +33,13 @@ export interface IpcMethods {
 				name: string;
 				position: number;
 				icon: string | null;
+				cwd: string | null;
 				createdAt: number;
 			}[];
 		};
 	};
 	"channels.create": {
-		req: { name: string; icon?: string };
+		req: { name: string; icon?: string; cwd?: string | null };
 		res: { id: string };
 	};
 	"channels.rename": {
@@ -50,7 +51,7 @@ export interface IpcMethods {
 		res: Record<string, never>;
 	};
 	"session.create": {
-		req: { channelId: string; cwd: string };
+		req: { channelId: string; cwd?: string; label?: string };
 		res: { piSessionId: string };
 	};
 	"session.prompt": {
@@ -112,6 +113,14 @@ export interface IpcMethods {
 	"session.findChannel": {
 		req: { piSessionId: string };
 		res: { channelId: string | null };
+	};
+	"settings.getAll": {
+		req: Record<string, never>;
+		res: { settings: Record<string, unknown> };
+	};
+	"settings.set": {
+		req: { key: string; value: unknown };
+		res: Record<string, never>;
 	};
 	"dialog.openFolder": {
 		req: { defaultPath?: string };

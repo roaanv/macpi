@@ -5,7 +5,8 @@
 import React from "react";
 import { useSessionMeta } from "../queries";
 import { computeSessionLabel } from "../utils/label";
-import { RowMenu } from "./RowMenu";
+import { ContextMenu } from "./ContextMenu";
+import { RowMenu, type RowMenuItem } from "./RowMenu";
 
 export interface SessionRowProps {
 	piSessionId: string;
@@ -25,12 +26,31 @@ export function SessionRow({
 	const meta = useSessionMeta(piSessionId);
 	const [editing, setEditing] = React.useState(false);
 	const [draft, setDraft] = React.useState("");
+	const [contextPos, setContextPos] = React.useState<{
+		x: number;
+		y: number;
+	} | null>(null);
 
 	const label = computeSessionLabel({
 		piSessionId,
 		cwd: meta.data?.cwd ?? null,
 		label: meta.data?.label ?? null,
 	});
+
+	const menuItems: RowMenuItem[] = [
+		{
+			label: "Rename",
+			onClick: () => {
+				setDraft(label);
+				setEditing(true);
+			},
+		},
+		{
+			label: "Delete",
+			destructive: true,
+			onClick: onRequestDelete,
+		},
+	];
 
 	if (editing) {
 		return (
@@ -53,17 +73,22 @@ export function SessionRow({
 						setEditing(false);
 					}
 				}}
-				className="rounded bg-zinc-800 px-2 py-1 text-xs text-zinc-200 outline-none"
+				className="rounded surface-panel px-2 py-1 text-[length:var(--font-size-sidebar)] text-primary outline-none"
 			/>
 		);
 	}
 
 	return (
+		// biome-ignore lint/a11y/noStaticElementInteractions: right-click opens the same menu the ⋮ button shows; keyboard-accessible via that button
 		<div
-			className={`group flex items-center gap-1 rounded text-xs ${
-				selected ? "bg-zinc-700 text-white" : "text-zinc-400 hover:bg-zinc-800"
+			className={`group flex items-center gap-1 rounded text-[length:var(--font-size-sidebar)] ${
+				selected ? "surface-row text-white" : "text-muted hover:surface-row"
 			}`}
 			title={meta.data?.cwd ?? piSessionId}
+			onContextMenu={(e) => {
+				e.preventDefault();
+				setContextPos({ x: e.clientX, y: e.clientY });
+			}}
 		>
 			<button
 				type="button"
@@ -72,21 +97,11 @@ export function SessionRow({
 			>
 				▸ {label}
 			</button>
-			<RowMenu
-				items={[
-					{
-						label: "Rename",
-						onClick: () => {
-							setDraft(label);
-							setEditing(true);
-						},
-					},
-					{
-						label: "Delete",
-						destructive: true,
-						onClick: onRequestDelete,
-					},
-				]}
+			<RowMenu items={menuItems} />
+			<ContextMenu
+				items={menuItems}
+				position={contextPos}
+				onClose={() => setContextPos(null)}
 			/>
 		</div>
 	);
