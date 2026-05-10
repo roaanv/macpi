@@ -3,42 +3,39 @@
 // calls from the IPC router — no wire format, no correlation IDs, no
 // subprocess.
 //
-// Trade-off accepted (decision D3, revised): a buggy skill or runaway tool
-// call can block main's event loop. We prioritize "no separate process" —
-// the user's original choice — over crash isolation. Crash isolation can be
-// added back later via a worker_thread or utilityProcess if it becomes a
-// real problem.
-//
 // Loading note: pi-coding-agent's package.json exports only the "import"
 // (ESM) condition — there is no "require" entry. Our Forge main bundle is
 // CJS, so we cannot use a static `import` of value bindings. Instead we
-// pull the module in via dynamic `import()`, cached behind ensurePi(). The
-// module is externalized in vite.main.config.ts so it resolves to
+// pull the module in via dynamic `import()`, cached behind ensureContext().
+// The module is externalized in vite.main.config.ts so it resolves to
 // node_modules at runtime and pi can find its own templates/themes/wasm.
 
+import type { Api, Model } from "@earendil-works/pi-ai";
 import type {
 	AgentSession,
 	AuthStorage,
 	ModelRegistry,
+	ResourceLoader,
+	SettingsManager,
 } from "@earendil-works/pi-coding-agent";
+import type { PiEvent } from "../shared/pi-events";
 
-type PiModule = typeof import("@earendil-works/pi-coding-agent");
+type PiCodingModule = typeof import("@earendil-works/pi-coding-agent");
 
 interface PiContext {
-	mod: PiModule;
+	mod: PiCodingModule;
 	auth: AuthStorage;
 	registry: ModelRegistry;
+	resourceLoader?: ResourceLoader;
+	settingsManager?: SettingsManager;
+	model?: Model<Api>;
 }
 
-let piPromise: Promise<PiModule> | null = null;
-function loadPi(): Promise<PiModule> {
+let piPromise: Promise<PiCodingModule> | null = null;
+function loadPi(): Promise<PiCodingModule> {
 	if (!piPromise) piPromise = import("@earendil-works/pi-coding-agent");
 	return piPromise;
 }
-
-export type PiEvent =
-	| { type: "session.token"; piSessionId: string; delta: string }
-	| { type: "session.turn_end"; piSessionId: string };
 
 export type PiEventListener = (event: PiEvent) => void;
 
@@ -48,10 +45,29 @@ interface ActiveSession {
 	unsubscribe: () => void;
 }
 
+/**
+ * Test-only override container. Production code always leaves this empty;
+ * the layer-3 harness sets it to inject in-memory pi dependencies.
+ */
+export interface PiTestOverrides {
+	authStorage: AuthStorage;
+	modelRegistry: ModelRegistry;
+	resourceLoader: ResourceLoader;
+	settingsManager: SettingsManager;
+	model: Model<Api>;
+}
+
+export type { PiEvent } from "../shared/pi-events";
+
 export class PiSessionManager {
 	private readonly active = new Map<string, ActiveSession>();
 	private readonly listeners = new Set<PiEventListener>();
 	private ctx: PiContext | null = null;
+	/**
+	 * Test-only hook. The layer-3 harness sets this before calling
+	 * createSession to bypass the real auth/registry/resource discovery.
+	 */
+	__testOverrides: PiTestOverrides | undefined;
 
 	onEvent(listener: PiEventListener): () => void {
 		this.listeners.add(listener);
@@ -62,27 +78,20 @@ export class PiSessionManager {
 
 	async createSession(opts: { cwd: string }): Promise<string> {
 		const ctx = await this.ensureContext();
+		const ov = this.__testOverrides;
 		const result = await ctx.mod.createAgentSession({
 			cwd: opts.cwd,
-			authStorage: ctx.auth,
-			modelRegistry: ctx.registry,
+			authStorage: ov?.authStorage ?? ctx.auth,
+			modelRegistry: ov?.modelRegistry ?? ctx.registry,
+			resourceLoader: ov?.resourceLoader,
+			settingsManager: ov?.settingsManager,
+			model: ov?.model,
 		});
 		const session = result.session;
 		const piSessionId = session.sessionId;
-		const unsubscribe = session.subscribe((event) => {
-			// Foundation milestone forwards only token deltas and turn_end.
-			if (event.type === "message_update") {
-				const ame = event.assistantMessageEvent;
-				if (ame.type === "text_delta" && typeof ame.delta === "string") {
-					this.emit({ type: "session.token", piSessionId, delta: ame.delta });
-				}
-				return;
-			}
-			if (event.type === "turn_end") {
-				this.emit({ type: "session.turn_end", piSessionId });
-				return;
-			}
-		});
+		const unsubscribe = session.subscribe((event) =>
+			this.translate(piSessionId, event),
+		);
 		this.active.set(piSessionId, { piSessionId, session, unsubscribe });
 		return piSessionId;
 	}
@@ -106,6 +115,111 @@ export class PiSessionManager {
 		const registry = mod.ModelRegistry.create(auth);
 		this.ctx = { mod, auth, registry };
 		return this.ctx;
+	}
+
+	private translate(piSessionId: string, event: unknown): void {
+		const e = event as { type: string } & Record<string, unknown>;
+		switch (e.type) {
+			case "turn_start":
+				this.emit({ type: "session.turn_start", piSessionId });
+				return;
+			case "turn_end":
+				this.emit({ type: "session.turn_end", piSessionId });
+				return;
+			case "message_update": {
+				// We forward only the delta-bearing AssistantMessageEvent variants
+				// (text_delta, thinking_delta). Other inner variants (text_start/end,
+				// thinking_start/end, tool_call_*, error) are intentionally dropped —
+				// the renderer reconstructs the message from delta sequences alone.
+				const ame = (
+					e as { assistantMessageEvent?: { type?: string; delta?: string } }
+				).assistantMessageEvent;
+				if (!ame || typeof ame.delta !== "string") return;
+				if (ame.type === "text_delta") {
+					this.emit({
+						type: "session.text_delta",
+						piSessionId,
+						delta: ame.delta,
+					});
+				} else if (ame.type === "thinking_delta") {
+					this.emit({
+						type: "session.thinking_delta",
+						piSessionId,
+						delta: ame.delta,
+					});
+				}
+				return;
+			}
+			case "tool_execution_start":
+				this.emit({
+					type: "session.tool_start",
+					piSessionId,
+					toolCallId: String(e.toolCallId ?? ""),
+					toolName: String(e.toolName ?? ""),
+					args: e.args,
+				});
+				return;
+			case "tool_execution_end":
+				this.emit({
+					type: "session.tool_end",
+					piSessionId,
+					toolCallId: String(e.toolCallId ?? ""),
+					result: e.result,
+					isError: Boolean(e.isError),
+				});
+				return;
+			case "compaction_start": {
+				const raw = e.reason;
+				const reason: "manual" | "threshold" | "overflow" =
+					raw === "threshold" || raw === "overflow" ? raw : "manual";
+				this.emit({
+					type: "session.compaction_start",
+					piSessionId,
+					reason,
+				});
+				return;
+			}
+			case "compaction_end":
+				this.emit({
+					type: "session.compaction_end",
+					piSessionId,
+					aborted: Boolean(e.aborted),
+					willRetry: Boolean(e.willRetry),
+					errorMessage: e.errorMessage as string | undefined,
+				});
+				return;
+			case "auto_retry_start":
+				this.emit({
+					type: "session.retry_start",
+					piSessionId,
+					attempt: Number(e.attempt ?? 0),
+					maxAttempts: Number(e.maxAttempts ?? 0),
+					delayMs: Number(e.delayMs ?? 0),
+					errorMessage: String(e.errorMessage ?? ""),
+				});
+				return;
+			case "auto_retry_end":
+				this.emit({
+					type: "session.retry_end",
+					piSessionId,
+					success: Boolean(e.success),
+					attempt: Number(e.attempt ?? 0),
+					finalError: e.finalError as string | undefined,
+				});
+				return;
+			case "queue_update":
+				this.emit({
+					type: "session.queue_update",
+					piSessionId,
+					steering: (e.steering as readonly string[]) ?? [],
+					followUp: (e.followUp as readonly string[]) ?? [],
+				});
+				return;
+			// Other AgentSessionEvent kinds (agent_start, agent_end, message_start,
+			// message_end, tool_execution_update, session_info_changed,
+			// thinking_level_changed) are intentionally ignored. Plan 3+ may
+			// surface session_info_changed for the breadcrumb.
+		}
 	}
 
 	private emit(event: PiEvent) {

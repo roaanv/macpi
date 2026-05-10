@@ -3,8 +3,13 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
 	test: {
 		environment: "node",
-		include: ["tests/unit/**/*.test.ts", "tests/integration/**/*.test.ts"],
+		include: [
+			"tests/unit/**/*.test.ts",
+			"tests/integration/**/*.test.ts",
+			"tests/pi-integration/**/*.test.ts",
+		],
 		passWithNoTests: true,
 		coverage: { provider: "v8", reporter: ["text", "html"] },
+		testTimeout: 15_000,
 	},
 });
