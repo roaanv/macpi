@@ -186,6 +186,39 @@ export class PiSessionManager {
 		}>;
 	}
 
+	/**
+	 * Constructs a one-shot DefaultResourceLoader using the configured
+	 * resourceRoot and returns the discovered extensions and any load errors.
+	 * Used by ExtensionsService for list/read calls outside an active session.
+	 */
+	async loadExtensions(): Promise<{
+		extensions: Array<{ path: string; resolvedPath: string; sourceInfo: { source: string } }>;
+		errors: Array<{ path: string; error: string }>;
+	}> {
+		if (!this.deps) {
+			throw new Error("PiSessionManager requires deps for loadExtensions");
+		}
+		const ctx = await this.ensureContext();
+		const agentDir = ensureResourceRoot(
+			this.deps.appSettings.getAll(),
+			this.deps.homeDir,
+		);
+		// No extensionsOverride here — UI shows ALL extensions (incl. disabled).
+		const loader = new ctx.mod.DefaultResourceLoader({
+			cwd: this.deps.homeDir,
+			agentDir,
+		});
+		const result = loader.getExtensions();
+		return {
+			extensions: result.extensions as Array<{
+				path: string;
+				resolvedPath: string;
+				sourceInfo: { source: string };
+			}>,
+			errors: result.errors,
+		};
+	}
+
 	/** Re-broadcasts an event to all subscribed listeners. Used by services
 	 *  outside the SDK turn loop (e.g., package installs) to surface progress. */
 	broadcastEvent(event: PiEvent): void {

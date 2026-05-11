@@ -1,6 +1,11 @@
 // IPC envelope used everywhere across renderer↔main and main↔pi-host boundaries.
 // We never throw across the wire — every call returns ok() or err().
 
+import type {
+	ExtensionLoadError,
+	ExtensionManifest,
+	ExtensionSummary,
+} from "./extensions-types";
 import type { SkillManifest, SkillSummary } from "./skills-types";
 import type { TimelineEntry } from "./timeline-types";
 
@@ -177,6 +182,30 @@ export interface IpcMethods {
 	"skills.importFromPi": {
 		req: Record<string, never>;
 		res: { copied: number; skipped: number };
+	};
+	"extensions.list": {
+		req: Record<string, never>;
+		res: { extensions: ExtensionSummary[]; loadErrors: ExtensionLoadError[] };
+	};
+	"extensions.read": {
+		req: { id: string };
+		res: { manifest: ExtensionManifest; body: string };
+	};
+	"extensions.save": {
+		req: { id: string; body: string };
+		res: Record<string, never>;
+	};
+	"extensions.setEnabled": {
+		req: { id: string; enabled: boolean };
+		res: Record<string, never>;
+	};
+	"extensions.install": {
+		req: { source: string };
+		res: Record<string, never>;
+	};
+	"extensions.remove": {
+		req: { source: string };
+		res: Record<string, never>;
 	};
 }
 

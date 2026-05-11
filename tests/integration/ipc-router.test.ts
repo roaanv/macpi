@@ -10,6 +10,7 @@ import type { PiSessionManager } from "../../src/main/pi-session-manager";
 import { AppSettingsRepo } from "../../src/main/repos/app-settings";
 import { ChannelSessionsRepo } from "../../src/main/repos/channel-sessions";
 import { ChannelsRepo } from "../../src/main/repos/channels";
+import type { ExtensionsService } from "../../src/main/extensions-service";
 import type { SkillsService } from "../../src/main/skills-service";
 import type { TimelineEntry } from "../../src/shared/timeline-types";
 
@@ -80,12 +81,24 @@ beforeEach(() => {
 		remove: vi.fn().mockResolvedValue(undefined),
 		importFromPi: vi.fn().mockResolvedValue({ copied: 0, skipped: 0 }),
 	};
+	const extensionsServiceStub = {
+		list: vi.fn().mockResolvedValue({ extensions: [], loadErrors: [] }),
+		read: vi.fn().mockResolvedValue({
+			manifest: { name: "x", source: "local", relativePath: "x.ts", path: "" },
+			body: "",
+		}),
+		save: vi.fn().mockResolvedValue(undefined),
+		setEnabled: vi.fn().mockResolvedValue(undefined),
+		install: vi.fn().mockResolvedValue(undefined),
+		remove: vi.fn().mockResolvedValue(undefined),
+	};
 	router = new IpcRouter({
 		channels: new ChannelsRepo(db),
 		channelSessions: new ChannelSessionsRepo(db),
 		piSessionManager: piSessionManagerMock as unknown as PiSessionManager,
 		appSettings: new AppSettingsRepo(db),
 		skillsService: skillsServiceStub as unknown as SkillsService,
+		extensionsService: extensionsServiceStub as unknown as ExtensionsService,
 		dialog: {
 			openFolder: async ({ defaultPath }) => {
 				const result = await dialogShowOpenDialog({

@@ -13,6 +13,7 @@ import {
 	ok,
 } from "../shared/ipc-types";
 import type { DialogHandlers } from "./dialog-handlers";
+import type { ExtensionsService } from "./extensions-service";
 import type { Logger } from "./logger";
 import type { PiSessionManager } from "./pi-session-manager";
 import type { AppSettingsRepo } from "./repos/app-settings";
@@ -30,6 +31,7 @@ export interface RouterDeps {
 	piSessionManager: PiSessionManager;
 	appSettings: AppSettingsRepo;
 	skillsService: SkillsService;
+	extensionsService: ExtensionsService;
 	dialog: DialogHandlers;
 	getDefaultCwd: () => string;
 	mainLogger: Logger;
@@ -260,6 +262,48 @@ export class IpcRouter {
 			} catch (e) {
 				const msg = e instanceof Error ? e.message : String(e);
 				return err("import_failed", msg);
+			}
+		});
+		this.register("extensions.list", async () => {
+			return ok(await this.deps.extensionsService.list());
+		});
+		this.register("extensions.read", async (args) => {
+			try {
+				return ok(await this.deps.extensionsService.read(args.id));
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				if (msg.includes("not found")) return err("not_found", msg);
+				throw e;
+			}
+		});
+		this.register("extensions.save", async (args) => {
+			try {
+				await this.deps.extensionsService.save(args.id, args.body);
+				return ok({});
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				if (msg.includes("not found")) return err("not_found", msg);
+				throw e;
+			}
+		});
+		this.register("extensions.setEnabled", async (args) => {
+			await this.deps.extensionsService.setEnabled(args.id, args.enabled);
+			return ok({});
+		});
+		this.register("extensions.install", async (args) => {
+			try {
+				await this.deps.extensionsService.install(args.source);
+				return ok({});
+			} catch (e) {
+				return err("install_failed", e instanceof Error ? e.message : String(e));
+			}
+		});
+		this.register("extensions.remove", async (args) => {
+			try {
+				await this.deps.extensionsService.remove(args.source);
+				return ok({});
+			} catch (e) {
+				return err("remove_failed", e instanceof Error ? e.message : String(e));
 			}
 		});
 	}

@@ -7,6 +7,7 @@ import { app, BrowserWindow } from "electron";
 import { installCrashHandler } from "./crash-handler";
 import { getDefaultCwd } from "./default-cwd";
 import { electronDialogHandlers } from "./dialog-handlers";
+import { ExtensionsService } from "./extensions-service";
 import { IpcRouter } from "./ipc-router";
 import { createLogger, type Logger } from "./logger";
 import { PiSessionManager } from "./pi-session-manager";
@@ -84,12 +85,22 @@ app.whenReady().then(async () => {
 		emitEvent: (event) => manager.broadcastEvent(event),
 	});
 
+	const extensionsService = new ExtensionsService({
+		appSettings,
+		homeDir: os.homedir(),
+		loadExtensions: () => manager.loadExtensions(),
+		loadPackageManager: () => manager.loadPackageManager(),
+		emitEvent: (event) => manager.broadcastEvent(event),
+		runBiome: () => Promise.resolve([]), // stub until Task 8
+	});
+
 	router = new IpcRouter({
 		channels,
 		channelSessions,
 		piSessionManager: manager,
 		appSettings,
 		skillsService,
+		extensionsService,
 		dialog: electronDialogHandlers,
 		getDefaultCwd,
 		mainLogger,
