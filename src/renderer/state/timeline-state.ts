@@ -27,6 +27,11 @@ export interface CompactionState {
 	reason: "manual" | "threshold" | "overflow";
 }
 
+export interface ErrorBannerState {
+	code: "auth" | "model" | "transient" | "unknown";
+	message: string;
+}
+
 export interface TimelineSnapshot {
 	timeline: TimelineEntry[];
 	streaming: boolean;
@@ -34,6 +39,7 @@ export interface TimelineSnapshot {
 	retry: RetryState | null;
 	compaction: CompactionState | null;
 	lastCompactionResult: { ok: boolean; message?: string } | null;
+	errorBanner: ErrorBannerState | null;
 }
 
 const EMPTY: TimelineSnapshot = {
@@ -43,6 +49,7 @@ const EMPTY: TimelineSnapshot = {
 	retry: null,
 	compaction: null,
 	lastCompactionResult: null,
+	errorBanner: null,
 };
 
 let entryIdCounter = 0;
@@ -98,7 +105,7 @@ export function useTimeline(
 function reduce(prev: TimelineSnapshot, event: PiEvent): TimelineSnapshot {
 	switch (event.type) {
 		case "session.turn_start":
-			return { ...prev, streaming: true };
+			return { ...prev, streaming: true, errorBanner: null };
 		case "session.turn_end":
 			return {
 				...prev,
@@ -157,6 +164,12 @@ function reduce(prev: TimelineSnapshot, event: PiEvent): TimelineSnapshot {
 			};
 		case "session.retry_end":
 			return { ...prev, retry: null };
+		case "session.error":
+			return {
+				...prev,
+				errorBanner: { code: event.code, message: event.message },
+				streaming: false,
+			};
 		case "session.compaction_start":
 			return {
 				...prev,
@@ -201,3 +214,8 @@ function appendOrPatchAssistantText(
 	};
 	return { ...prev, timeline: [...prev.timeline, created] };
 }
+
+// Test-only export — the React hook above is the production API. Exposing
+// the pure reducer here lets unit tests verify state transitions without a
+// React renderer.
+export const __reduceForTesting = { reduce, empty: EMPTY };
