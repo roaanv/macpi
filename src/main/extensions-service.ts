@@ -137,4 +137,32 @@ export class ExtensionsService {
 		const next = { ...current, [id]: enabled };
 		this.deps.appSettings.set("resourceEnabled", next);
 	}
+
+	async install(source: string): Promise<void> {
+		const pm = await this.deps.loadPackageManager();
+		pm.setProgressCallback((e) => {
+			this.deps.emitEvent({
+				type: "package.progress",
+				action: e.action as
+					| "install"
+					| "remove"
+					| "update"
+					| "clone"
+					| "pull",
+				source: e.source,
+				phase: e.type as "start" | "progress" | "complete" | "error",
+				message: e.message,
+			});
+		});
+		try {
+			await pm.installAndPersist(source, { local: false });
+		} finally {
+			pm.setProgressCallback(undefined);
+		}
+	}
+
+	async remove(source: string): Promise<void> {
+		const pm = await this.deps.loadPackageManager();
+		await pm.removeAndPersist(source, { local: false });
+	}
 }
