@@ -137,6 +137,7 @@ export function ChatPane({
 			<Timeline entries={snapshot.timeline} />
 			<div className="mt-2 space-y-2">
 				<ErrorBanner
+					key={piSessionId ?? "no-session"}
 					state={snapshot.errorBanner}
 					onOpenSettings={onOpenGlobalSettings}
 				/>

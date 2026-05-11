@@ -27,7 +27,11 @@ export function ErrorBanner({ state, onOpenSettings }: ErrorBannerProps) {
 	}
 
 	return (
-		<div className="flex items-start gap-2 rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+		<div
+			role="alert"
+			aria-live="assertive"
+			className="flex items-start gap-2 rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200"
+		>
 			<span className="font-semibold uppercase tracking-wide text-[10px] text-red-300">
 				{state.code}
 			</span>
