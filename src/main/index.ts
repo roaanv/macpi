@@ -13,6 +13,7 @@ import { PiSessionManager } from "./pi-session-manager";
 import { AppSettingsRepo } from "./repos/app-settings";
 import { ChannelSessionsRepo } from "./repos/channel-sessions";
 import { ChannelsRepo } from "./repos/channels";
+import { SkillsService } from "./skills-service";
 import { startupWithRecovery } from "./startup-recovery";
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
@@ -59,26 +60,34 @@ app.whenReady().then(async () => {
 	const channelSessions = new ChannelSessionsRepo(db);
 	const appSettings = new AppSettingsRepo(db);
 
-	piSessionManager = new PiSessionManager({
+	const manager = new PiSessionManager({
 		appSettings,
 		homeDir: os.homedir(),
 	});
-	piSessionManager.onEvent((event) => {
+	piSessionManager = manager;
+	manager.onEvent((event) => {
 		for (const w of BrowserWindow.getAllWindows()) {
 			w.webContents.send("macpi:pi-event", event);
 		}
 	});
-	piSessionManager.setPathStore({
+	manager.setPathStore({
 		getSessionFilePath: (id) =>
 			channelSessions.getMeta(id)?.sessionFilePath ?? null,
 		setSessionFilePath: (id, p) => channelSessions.setSessionFilePath(id, p),
 	});
 
+	const skillsService = new SkillsService({
+		appSettings,
+		homeDir: os.homedir(),
+		loadSkills: () => manager.loadSkills(),
+	});
+
 	router = new IpcRouter({
 		channels,
 		channelSessions,
-		piSessionManager,
+		piSessionManager: manager,
 		appSettings,
+		skillsService,
 		dialog: electronDialogHandlers,
 		getDefaultCwd,
 		mainLogger,

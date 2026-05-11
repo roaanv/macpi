@@ -18,6 +18,7 @@ import type { PiSessionManager } from "./pi-session-manager";
 import type { AppSettingsRepo } from "./repos/app-settings";
 import type { ChannelSessionsRepo } from "./repos/channel-sessions";
 import type { ChannelsRepo } from "./repos/channels";
+import type { SkillsService } from "./skills-service";
 
 type Handler<M extends IpcMethodName> = (
 	args: IpcMethods[M]["req"],
@@ -28,6 +29,7 @@ export interface RouterDeps {
 	channelSessions: ChannelSessionsRepo;
 	piSessionManager: PiSessionManager;
 	appSettings: AppSettingsRepo;
+	skillsService: SkillsService;
 	dialog: DialogHandlers;
 	getDefaultCwd: () => string;
 	mainLogger: Logger;
@@ -194,6 +196,20 @@ export class IpcRouter {
 		this.register("settings.set", async (args) => {
 			this.deps.appSettings.set(args.key, args.value);
 			return ok({});
+		});
+		this.register("skills.list", async () => {
+			const skills = await this.deps.skillsService.list();
+			return ok({ skills });
+		});
+		this.register("skills.read", async (args) => {
+			try {
+				const detail = await this.deps.skillsService.read(args.id);
+				return ok(detail);
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				if (msg.includes("not found")) return err("not_found", msg);
+				throw e;
+			}
 		});
 	}
 

@@ -1,6 +1,7 @@
 // IPC envelope used everywhere across renderer↔main and main↔pi-host boundaries.
 // We never throw across the wire — every call returns ok() or err().
 
+import type { SkillManifest, SkillSummary } from "./skills-types";
 import type { TimelineEntry } from "./timeline-types";
 
 export type IpcResult<T> =
@@ -144,6 +145,14 @@ export interface IpcMethods {
 	"system.openLogsFolder": {
 		req: Record<string, never>;
 		res: Record<string, never>;
+	};
+	"skills.list": {
+		req: Record<string, never>;
+		res: { skills: SkillSummary[] };
+	};
+	"skills.read": {
+		req: { id: string };
+		res: { manifest: SkillManifest; body: string };
 	};
 }
 

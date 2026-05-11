@@ -119,6 +119,34 @@ export class PiSessionManager {
 		};
 	}
 
+	/**
+	 * Constructs a one-shot DefaultResourceLoader using the configured
+	 * resourceRoot and returns the discovered skills. Used by SkillsService
+	 * for list/read calls outside an active session.
+	 */
+	async loadSkills(): Promise<
+		Array<{ name: string; source?: { id?: string }; filePath?: string }>
+	> {
+		if (!this.deps) {
+			throw new Error("PiSessionManager requires deps for loadSkills");
+		}
+		const ctx = await this.ensureContext();
+		const agentDir = ensureResourceRoot(
+			this.deps.appSettings.getAll(),
+			this.deps.homeDir,
+		);
+		const loader = new ctx.mod.DefaultResourceLoader({
+			cwd: this.deps.homeDir,
+			agentDir,
+		});
+		const result = loader.getSkills();
+		return result.skills as Array<{
+			name: string;
+			source?: { id?: string };
+			filePath?: string;
+		}>;
+	}
+
 	async createSession(opts: {
 		cwd: string;
 	}): Promise<{ piSessionId: string; sessionFilePath: string | null }> {

@@ -10,6 +10,7 @@ import type { PiSessionManager } from "../../src/main/pi-session-manager";
 import { AppSettingsRepo } from "../../src/main/repos/app-settings";
 import { ChannelSessionsRepo } from "../../src/main/repos/channel-sessions";
 import { ChannelsRepo } from "../../src/main/repos/channels";
+import type { SkillsService } from "../../src/main/skills-service";
 import type { TimelineEntry } from "../../src/shared/timeline-types";
 
 const { dialogShowOpenDialog } = vi.hoisted(() => ({
@@ -67,11 +68,19 @@ beforeEach(() => {
 		getHistory: vi.fn(),
 		disposeSession: vi.fn(),
 	};
+	const skillsServiceStub = {
+		list: vi.fn().mockResolvedValue([]),
+		read: vi.fn().mockResolvedValue({
+			manifest: { name: "x", source: "local", relativePath: "x.md" },
+			body: "",
+		}),
+	};
 	router = new IpcRouter({
 		channels: new ChannelsRepo(db),
 		channelSessions: new ChannelSessionsRepo(db),
 		piSessionManager: piSessionManagerMock as unknown as PiSessionManager,
 		appSettings: new AppSettingsRepo(db),
+		skillsService: skillsServiceStub as unknown as SkillsService,
 		dialog: {
 			openFolder: async ({ defaultPath }) => {
 				const result = await dialogShowOpenDialog({
