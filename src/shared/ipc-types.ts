@@ -141,6 +141,10 @@ export interface IpcMethods {
 		};
 		res: Record<string, never>;
 	};
+	"system.openLogsFolder": {
+		req: Record<string, never>;
+		res: Record<string, never>;
+	};
 }
 
 export type IpcMethodName = keyof IpcMethods;

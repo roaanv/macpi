@@ -2,7 +2,7 @@
 // Each method is registered in the constructor with full type safety via the IpcMethods
 // registry. Errors are caught and returned as structured IpcResult values.
 
-import { ipcMain } from "electron";
+import { app, ipcMain, shell } from "electron";
 import { getDefaultCwd as readDefaultCwdFromSettings } from "../shared/app-settings-keys";
 import { resolveCwd } from "../shared/cwd-resolver";
 import {
@@ -45,6 +45,10 @@ export class IpcRouter {
 					? this.deps.rendererLogger
 					: this.deps.mainLogger;
 			target[args.level](args.message);
+			return ok({});
+		});
+		this.register("system.openLogsFolder", async () => {
+			await shell.openPath(app.getPath("logs"));
 			return ok({});
 		});
 		this.register("channels.list", async () =>

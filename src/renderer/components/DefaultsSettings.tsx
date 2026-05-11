@@ -3,6 +3,7 @@
 
 import React from "react";
 import { getDefaultCwd } from "../../shared/app-settings-keys";
+import { invoke } from "../ipc";
 import {
 	useDefaultCwd,
 	useOpenFolder,
@@ -66,6 +67,19 @@ export function DefaultsSettings() {
 						📁
 					</button>
 				</div>
+			</div>
+
+			<div>
+				<div className="mb-1 text-sm font-medium">Logs</div>
+				<button
+					type="button"
+					onClick={() => {
+						void invoke("system.openLogsFolder", {}).catch(() => {});
+					}}
+					className="text-blue-400 hover:underline text-sm"
+				>
+					Open logs folder
+				</button>
 			</div>
 		</div>
 	);

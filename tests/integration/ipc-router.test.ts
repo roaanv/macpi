@@ -19,6 +19,8 @@ vi.mock("electron", () => ({
 	ipcMain: { handle: vi.fn(), removeHandler: vi.fn() },
 	dialog: { showOpenDialog: dialogShowOpenDialog },
 	BrowserWindow: { getFocusedWindow: () => null },
+	shell: { openPath: vi.fn() },
+	app: { getPath: vi.fn(() => "/tmp/macpi-logs-test") },
 }));
 
 function makeStubLogger(): Logger {
