@@ -2,7 +2,7 @@
 // settings_global.defaultCwd; new channels with no cwd inherit it.
 
 import React from "react";
-import { getDefaultCwd } from "../../shared/app-settings-keys";
+import { getDefaultCwd, getResourceRoot } from "../../shared/app-settings-keys";
 import { invoke } from "../ipc";
 import {
 	useDefaultCwd,
@@ -39,6 +39,34 @@ export function DefaultsSettings() {
 		}
 	};
 
+	const storedResourceRoot = getResourceRoot(
+		settings,
+		homeFallback.data?.cwd ?? "/",
+	);
+	const [resourceRootDraft, setResourceRootDraft] =
+		React.useState(storedResourceRoot);
+
+	React.useEffect(() => {
+		setResourceRootDraft(storedResourceRoot);
+	}, [storedResourceRoot]);
+
+	const handleResourceRootBrowse = async () => {
+		const r = await openFolder.mutateAsync({
+			defaultPath: resourceRootDraft || undefined,
+		});
+		if (r.path) {
+			setResourceRootDraft(r.path);
+			setSetting.mutate({ key: "resourceRoot", value: r.path });
+		}
+	};
+
+	const handleResourceRootBlur = () => {
+		const trimmed = resourceRootDraft.trim();
+		if (trimmed !== storedResourceRoot) {
+			setSetting.mutate({ key: "resourceRoot", value: trimmed });
+		}
+	};
+
 	return (
 		<div className="flex flex-col gap-3">
 			<h2 className="text-base font-semibold">Defaults</h2>
@@ -61,6 +89,34 @@ export function DefaultsSettings() {
 					<button
 						type="button"
 						onClick={handleBrowse}
+						title="Browse for folder"
+						className="surface-row rounded px-2 hover:opacity-80"
+					>
+						📁
+					</button>
+				</div>
+			</div>
+
+			<div>
+				<div className="mb-1 text-sm font-medium">Resource root</div>
+				<div className="mb-1 text-xs text-muted">
+					Where macpi stores its skills, prompts, and extensions. Isolated from
+					~/.pi by default. Changes take effect for new sessions.
+				</div>
+				<div className="flex gap-2">
+					<input
+						type="text"
+						value={resourceRootDraft}
+						onChange={(e) => setResourceRootDraft(e.target.value)}
+						onBlur={handleResourceRootBlur}
+						placeholder={
+							homeFallback.data ? `${homeFallback.data.cwd}/.macpi` : ""
+						}
+						className="flex-1 surface-row rounded px-2 py-1 text-sm"
+					/>
+					<button
+						type="button"
+						onClick={handleResourceRootBrowse}
 						title="Browse for folder"
 						className="surface-row rounded px-2 hover:opacity-80"
 					>
