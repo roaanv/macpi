@@ -305,3 +305,32 @@ export function useReloadSession() {
 		},
 	});
 }
+
+export function useExtensionDetail(id: string | null) {
+	return useQuery({
+		queryKey: ["extensions.read", id],
+		queryFn: () =>
+			id
+				? invoke("extensions.read", { id })
+				: Promise.reject(new Error("no id")),
+		enabled: id !== null,
+	});
+}
+
+export function useSaveExtension() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (input: { id: string; body: string }) =>
+			invoke("extensions.save", input),
+		onSuccess: (_d, vars) => {
+			qc.invalidateQueries({ queryKey: ["extensions.read", vars.id] });
+			window.dispatchEvent(new CustomEvent("macpi:extensions-changed"));
+		},
+	});
+}
+
+export function useLintExtension() {
+	return useMutation({
+		mutationFn: (input: { id: string }) => invoke("extensions.lint", input),
+	});
+}
