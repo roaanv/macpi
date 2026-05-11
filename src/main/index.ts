@@ -3,6 +3,7 @@
 
 import path from "node:path";
 import { app, BrowserWindow } from "electron";
+import { installCrashHandler } from "./crash-handler";
 import { getDefaultCwd } from "./default-cwd";
 import { electronDialogHandlers } from "./dialog-handlers";
 import { IpcRouter } from "./ipc-router";
@@ -47,6 +48,7 @@ app.whenReady().then(async () => {
 	mainLogger = createLogger({ dir: logsDir, stream: "main" });
 	rendererLogger = createLogger({ dir: logsDir, stream: "renderer" });
 	mainLogger.info(`macpi starting; userData=${app.getPath("userData")}`);
+	installCrashHandler(mainLogger, logsDir);
 
 	const dbPath = path.join(app.getPath("userData"), "macpi.db");
 	process.env.MACPI_MIGRATIONS_DIR = path.join(__dirname, "migrations");
