@@ -4,6 +4,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { type DbHandle, tx } from "./connection";
+import { DbMigrationError } from "./errors";
 
 export interface MigrationFile {
 	version: number;
@@ -54,11 +55,19 @@ export function runMigrations(
 	const have = currentVersion(db);
 	for (const m of fsImpl.list()) {
 		if (m.version <= have) continue;
-		tx(db, () => {
-			db.raw.exec(m.sql);
-			db.raw
-				.prepare("INSERT INTO _migrations (version, applied) VALUES (?, ?)")
-				.run(m.version, Date.now());
-		});
+		try {
+			tx(db, () => {
+				db.raw.exec(m.sql);
+				db.raw
+					.prepare("INSERT INTO _migrations (version, applied) VALUES (?, ?)")
+					.run(m.version, Date.now());
+			});
+		} catch (e) {
+			throw new DbMigrationError(
+				`migration ${m.version} failed: ${(e as Error).message}`,
+				m.version,
+				e,
+			);
+		}
 	}
 }
