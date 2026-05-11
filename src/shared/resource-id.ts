@@ -21,6 +21,13 @@ export function skillResourceId(opts: {
 	return `skill:${opts.source}:${opts.relativePath}`;
 }
 
+export function extensionResourceId(opts: {
+	source: string;
+	relativePath: string;
+}): string {
+	return `extension:${opts.source}:${opts.relativePath}`;
+}
+
 export function parseResourceId(id: string): ResourceIdParts | null {
 	const firstColon = id.indexOf(":");
 	if (firstColon < 0) return null;
