@@ -2,6 +2,9 @@
 // Format: `<type>:<source>:<relative-path-from-source-root>`.
 // Source MAY contain colons (e.g., git@host:path); we split on the FIRST
 // colon for type, then the LAST colon to separate source from path.
+// Relative paths MUST NOT contain `:` — that would collide with the
+// source/path separator and break the roundtrip. Pi-discovered paths don't
+// produce these.
 
 export type ResourceType = "skill" | "extension" | "prompt";
 
