@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { runMigrations } from "../../src/main/db/migrations";
 import { ExtensionsService } from "../../src/main/extensions-service";
 import { AppSettingsRepo } from "../../src/main/repos/app-settings";
@@ -134,5 +134,44 @@ describe("ExtensionsService", () => {
 		expect(
 			after.extensions.find((e) => e.id === result.extensions[0].id)?.enabled,
 		).toBe(false);
+	});
+
+	it("lint forwards to the injected biome runner", async () => {
+		writeFileSync(path.join(dir, ".macpi/extensions/a.ts"), "const x = 1;");
+		const db = makeDb();
+		const appSettings = new AppSettingsRepo(db);
+		appSettings.set("resourceRoot", path.join(dir, ".macpi"));
+		const runBiome = vi.fn().mockResolvedValue([
+			{
+				severity: "warn",
+				line: 1,
+				column: 7,
+				message: "Unused variable",
+				rule: "lint/correctness/noUnusedVariables",
+			},
+		]);
+		const svc = new ExtensionsService({
+			appSettings,
+			homeDir: dir,
+			loadExtensions: async () => ({
+				extensions: [
+					{
+						path: "a.ts",
+						resolvedPath: path.join(dir, ".macpi/extensions/a.ts"),
+						sourceInfo: { source: "local" },
+					},
+				],
+				errors: [],
+			}),
+			loadPackageManager: () => { throw new Error("not exercised"); },
+			emitEvent: () => undefined,
+			runBiome,
+		});
+		const result = await svc.list();
+		const diags = await svc.lint(result.extensions[0].id);
+		expect(runBiome).toHaveBeenCalledWith(
+			path.join(dir, ".macpi/extensions/a.ts"),
+		);
+		expect(diags).toHaveLength(1);
 	});
 });

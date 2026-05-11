@@ -2,6 +2,7 @@
 // We never throw across the wire — every call returns ok() or err().
 
 import type {
+	ExtensionDiagnostic,
 	ExtensionLoadError,
 	ExtensionManifest,
 	ExtensionSummary,
@@ -206,6 +207,10 @@ export interface IpcMethods {
 	"extensions.remove": {
 		req: { source: string };
 		res: Record<string, never>;
+	};
+	"extensions.lint": {
+		req: { id: string };
+		res: { diagnostics: ExtensionDiagnostic[] };
 	};
 }
 

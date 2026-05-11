@@ -165,4 +165,13 @@ export class ExtensionsService {
 		const pm = await this.deps.loadPackageManager();
 		await pm.removeAndPersist(source, { local: false });
 	}
+
+	async lint(id: string): Promise<ExtensionDiagnostic[]> {
+		const result = await this.deps.loadExtensions();
+		const target = result.extensions.find((e) => this.idFor(e).id === id);
+		if (!target?.resolvedPath) {
+			throw new Error(`extension not found or has no file: ${id}`);
+		}
+		return this.deps.runBiome(target.resolvedPath);
+	}
 }

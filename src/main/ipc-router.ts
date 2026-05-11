@@ -306,6 +306,16 @@ export class IpcRouter {
 				return err("remove_failed", e instanceof Error ? e.message : String(e));
 			}
 		});
+		this.register("extensions.lint", async (args) => {
+			try {
+				const diagnostics = await this.deps.extensionsService.lint(args.id);
+				return ok({ diagnostics });
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				if (msg.includes("not found")) return err("not_found", msg);
+				throw e;
+			}
+		});
 	}
 
 	async dispatch<M extends IpcMethodName>(
