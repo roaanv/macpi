@@ -16,12 +16,19 @@ import { useTimeline } from "../state/timeline-state";
 import { computeSessionLabel, formatFirstMessageLabel } from "../utils/label";
 import { BreadcrumbBar } from "./BreadcrumbBar";
 import { CompactionBanner } from "./banners/CompactionBanner";
+import { ErrorBanner } from "./banners/ErrorBanner";
 import { QueuePills } from "./banners/QueuePills";
 import { RetryBanner } from "./banners/RetryBanner";
 import { Composer, type SendIntent } from "./Composer";
 import { Timeline } from "./Timeline";
 
-export function ChatPane({ piSessionId }: { piSessionId: string | null }) {
+export function ChatPane({
+	piSessionId,
+	onOpenGlobalSettings,
+}: {
+	piSessionId: string | null;
+	onOpenGlobalSettings?: () => void;
+}) {
 	const attachQuery = useAttachSession(piSessionId);
 	const initialTimeline = attachQuery.data?.entries;
 	const { snapshot, appendUserMessage } = useTimeline(
@@ -129,6 +136,10 @@ export function ChatPane({ piSessionId }: { piSessionId: string | null }) {
 			/>
 			<Timeline entries={snapshot.timeline} />
 			<div className="mt-2 space-y-2">
+				<ErrorBanner
+					state={snapshot.errorBanner}
+					onOpenSettings={onOpenGlobalSettings}
+				/>
 				<RetryBanner retry={snapshot.retry} />
 				<CompactionBanner
 					compaction={snapshot.compaction}

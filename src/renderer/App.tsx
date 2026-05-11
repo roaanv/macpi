@@ -42,7 +42,10 @@ export function App() {
 					onOpenCreateChannel={() => setCreateChannelOpen(true)}
 					onOpenCreateSession={setCreateSessionInChannel}
 				/>
-				<ChatPane piSessionId={sessionId} />
+				<ChatPane
+					piSessionId={sessionId}
+					onOpenGlobalSettings={() => setGlobalSettingsOpen(true)}
+				/>
 				<BranchPanel />
 			</div>
 			<GlobalSettingsDialog
