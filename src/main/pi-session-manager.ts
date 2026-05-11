@@ -18,10 +18,14 @@ import type {
 	AgentSession,
 	AuthStorage,
 	ModelRegistry,
+	ResourceDiagnostic,
 	ResourceLoader,
 	SettingsManager,
+	Skill,
 } from "@earendil-works/pi-coding-agent";
+import { getResourceEnabled } from "../shared/app-settings-keys";
 import type { PiEvent } from "../shared/pi-events";
+import { skillResourceId } from "../shared/resource-id";
 import type { TimelineEntry } from "../shared/timeline-types";
 import { agentMessagesToTimeline } from "./pi-history";
 import type { AppSettingsRepo } from "./repos/app-settings";
@@ -109,6 +113,42 @@ export class PiSessionManager {
 		return new ctx.mod.DefaultResourceLoader({
 			cwd,
 			agentDir,
+			skillsOverride: this.buildSkillsEnabledFilter(agentDir),
+		});
+	}
+
+	/**
+	 * Returns a skillsOverride callback that filters out skills whose id is
+	 * marked disabled in the global `resourceEnabled` settings map. Called by
+	 * both the per-session loader and the one-shot loader in loadSkills() so
+	 * the UI's checkbox state actually controls what pi loads. Captures
+	 * settings at call time, so a session reload picks up fresh values.
+	 */
+	private buildSkillsEnabledFilter(agentDir: string): (base: {
+		skills: Skill[];
+		diagnostics: ResourceDiagnostic[];
+	}) => {
+		skills: Skill[];
+		diagnostics: ResourceDiagnostic[];
+	} {
+		const settings = this.deps?.appSettings.getAll() ?? {};
+		const enabled = getResourceEnabled(settings);
+		const skillsRoot = path.join(agentDir, "skills");
+		return (base) => ({
+			skills: base.skills.filter((s) => {
+				// NOTE: SkillsService.idFor uses skill.source?.id ?? "local"
+				// against a narrower shape. The real SDK Skill has
+				// sourceInfo.source — both currently produce the same id key
+				// for phase-1 (local) skills, but a follow-up should unify the
+				// shape so package-installed skills get correct labels too.
+				const source = s.sourceInfo?.source ?? "local";
+				const relativePath = s.filePath
+					? path.relative(skillsRoot, s.filePath)
+					: s.name;
+				const id = skillResourceId({ source, relativePath });
+				return enabled[id] !== false;
+			}),
+			diagnostics: base.diagnostics,
 		});
 	}
 
@@ -135,6 +175,10 @@ export class PiSessionManager {
 			this.deps.appSettings.getAll(),
 			this.deps.homeDir,
 		);
+		// loadSkills is used by the UI list — it should show ALL discovered
+		// skills (even disabled ones) so the checkbox reflects current state.
+		// No skillsOverride here; the filter only applies to the per-session
+		// loader so disabled skills don't reach the agent.
 		const loader = new ctx.mod.DefaultResourceLoader({
 			cwd: this.deps.homeDir,
 			agentDir,
