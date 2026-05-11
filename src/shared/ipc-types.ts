@@ -88,6 +88,10 @@ export interface IpcMethods {
 		/** History reconstructed from pi's persisted session log. */
 		res: { entries: TimelineEntry[] };
 	};
+	"session.reload": {
+		req: { piSessionId: string };
+		res: Record<string, never>;
+	};
 	"session.listForChannel": {
 		req: { channelId: string };
 		res: { piSessionIds: string[] };

@@ -142,6 +142,16 @@ export class IpcRouter {
 			const entries = this.deps.piSessionManager.getHistory(args.piSessionId);
 			return ok({ entries });
 		});
+		this.register("session.reload", async (args) => {
+			try {
+				await this.deps.piSessionManager.reloadSession(args.piSessionId);
+				return ok({});
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				if (msg.includes("unknown session")) return err("not_found", msg);
+				return err("reload_failed", msg);
+			}
+		});
 		this.register("session.listForChannel", async (args) => {
 			return ok({
 				piSessionIds: this.deps.channelSessions.listByChannel(args.channelId),

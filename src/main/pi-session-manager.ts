@@ -335,6 +335,24 @@ export class PiSessionManager {
 		await active.session.abort();
 	}
 
+	/**
+	 * Abort the active turn (if any), dispose the in-process session, and
+	 * reattach via attachSession. The fresh attach constructs a new
+	 * ResourceLoader so on-disk skill changes take effect.
+	 */
+	async reloadSession(piSessionId: string): Promise<void> {
+		if (!this.active.has(piSessionId)) {
+			throw new Error(`unknown session ${piSessionId}`);
+		}
+		try {
+			await this.abort(piSessionId);
+		} catch {
+			// If abort fails (e.g., not currently streaming), continue.
+		}
+		this.disposeSession(piSessionId);
+		await this.attachSession({ piSessionId });
+	}
+
 	shutdown(): void {
 		for (const a of this.active.values()) a.unsubscribe();
 		this.active.clear();
