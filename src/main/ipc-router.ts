@@ -243,6 +243,10 @@ export class IpcRouter {
 				return err("remove_failed", msg);
 			}
 		});
+		this.register("skills.importFromPi", async () => {
+			const r = await this.deps.skillsService.importFromPi();
+			return ok(r);
+		});
 	}
 
 	async dispatch<M extends IpcMethodName>(

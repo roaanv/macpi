@@ -78,6 +78,7 @@ beforeEach(() => {
 		setEnabled: vi.fn().mockResolvedValue(undefined),
 		install: vi.fn().mockResolvedValue(undefined),
 		remove: vi.fn().mockResolvedValue(undefined),
+		importFromPi: vi.fn().mockResolvedValue({ copied: 0, skipped: 0 }),
 	};
 	router = new IpcRouter({
 		channels: new ChannelsRepo(db),

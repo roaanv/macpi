@@ -170,6 +170,10 @@ export interface IpcMethods {
 		req: { source: string };
 		res: Record<string, never>;
 	};
+	"skills.importFromPi": {
+		req: Record<string, never>;
+		res: { copied: number; skipped: number };
+	};
 }
 
 export type IpcMethodName = keyof IpcMethods;

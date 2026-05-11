@@ -11,6 +11,7 @@ import {
 import type { PiEvent } from "../shared/pi-events";
 import { skillResourceId } from "../shared/resource-id";
 import type { SkillManifest, SkillSummary } from "../shared/skills-types";
+import { importSkillsFromPi, type PiImportResult } from "./pi-import";
 import type { AppSettingsRepo } from "./repos/app-settings";
 
 interface PiSkill {
@@ -143,5 +144,12 @@ export class SkillsService {
 	async remove(source: string): Promise<void> {
 		const pm = await this.deps.loadPackageManager();
 		await pm.removeAndPersist(source, { local: false });
+	}
+
+	async importFromPi(): Promise<PiImportResult> {
+		return importSkillsFromPi({
+			piRoot: path.join(this.deps.homeDir, ".pi"),
+			macpiRoot: this.resourceRoot(),
+		});
 	}
 }
