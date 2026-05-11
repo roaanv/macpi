@@ -1,0 +1,45 @@
+import { DatabaseSync } from "node:sqlite";
+import { describe, expect, it } from "vitest";
+import {
+	assertSchemaCompatible,
+	KNOWN_MAX_VERSION,
+} from "../../src/main/db/schema-version";
+
+describe("schema-version", () => {
+	function makeDb(maxApplied: number) {
+		const raw = new DatabaseSync(":memory:");
+		raw.exec(
+			`CREATE TABLE _migrations (version INTEGER PRIMARY KEY, applied INTEGER NOT NULL)`,
+		);
+		if (maxApplied > 0) {
+			raw
+				.prepare("INSERT INTO _migrations VALUES (?, ?)")
+				.run(maxApplied, Date.now());
+		}
+		return { raw, close: () => raw.close() };
+	}
+
+	it("passes when applied == known max", () => {
+		const db = makeDb(KNOWN_MAX_VERSION);
+		expect(() => assertSchemaCompatible(db)).not.toThrow();
+		db.close();
+	});
+
+	it("passes when applied < known max (we'll migrate)", () => {
+		const db = makeDb(0);
+		expect(() => assertSchemaCompatible(db)).not.toThrow();
+		db.close();
+	});
+
+	it("throws DbSchemaNewerError when applied > known max", () => {
+		const db = makeDb(KNOWN_MAX_VERSION + 1);
+		expect(() => assertSchemaCompatible(db)).toThrow(/schema/i);
+		db.close();
+	});
+
+	it("passes when _migrations table is empty (fresh DB)", () => {
+		const db = makeDb(0);
+		expect(() => assertSchemaCompatible(db)).not.toThrow();
+		db.close();
+	});
+});
