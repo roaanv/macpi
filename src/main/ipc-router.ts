@@ -225,6 +225,24 @@ export class IpcRouter {
 			await this.deps.skillsService.setEnabled(args.id, args.enabled);
 			return ok({});
 		});
+		this.register("skills.install", async (args) => {
+			try {
+				await this.deps.skillsService.install(args.source);
+				return ok({});
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				return err("install_failed", msg);
+			}
+		});
+		this.register("skills.remove", async (args) => {
+			try {
+				await this.deps.skillsService.remove(args.source);
+				return ok({});
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				return err("remove_failed", msg);
+			}
+		});
 	}
 
 	async dispatch<M extends IpcMethodName>(

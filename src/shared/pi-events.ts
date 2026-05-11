@@ -62,6 +62,13 @@ export type PiEvent =
 			piSessionId: string;
 			code: "auth" | "model" | "transient" | "unknown";
 			message: string;
+	  }
+	| {
+			type: "package.progress";
+			action: "install" | "remove" | "update" | "clone" | "pull";
+			source: string;
+			phase: "start" | "progress" | "complete" | "error";
+			message?: string;
 	  };
 
 export type PiEventType = PiEvent["type"];

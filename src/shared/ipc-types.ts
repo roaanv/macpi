@@ -162,6 +162,14 @@ export interface IpcMethods {
 		req: { id: string; enabled: boolean };
 		res: Record<string, never>;
 	};
+	"skills.install": {
+		req: { source: string };
+		res: Record<string, never>;
+	};
+	"skills.remove": {
+		req: { source: string };
+		res: Record<string, never>;
+	};
 }
 
 export type IpcMethodName = keyof IpcMethods;

@@ -80,6 +80,8 @@ app.whenReady().then(async () => {
 		appSettings,
 		homeDir: os.homedir(),
 		loadSkills: () => manager.loadSkills(),
+		loadPackageManager: () => manager.loadPackageManager(),
+		emitEvent: (event) => manager.broadcastEvent(event),
 	});
 
 	router = new IpcRouter({

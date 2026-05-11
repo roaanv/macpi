@@ -147,6 +147,56 @@ export class PiSessionManager {
 		}>;
 	}
 
+	/** Re-broadcasts an event to all subscribed listeners. Used by services
+	 *  outside the SDK turn loop (e.g., package installs) to surface progress. */
+	broadcastEvent(event: PiEvent): void {
+		this.emit(event);
+	}
+
+	/** Constructs a one-shot DefaultPackageManager using the configured
+	 *  resourceRoot. Caller is responsible for setProgressCallback lifecycle. */
+	async loadPackageManager(): Promise<{
+		installAndPersist: (
+			source: string,
+			options?: { local?: boolean },
+		) => Promise<void>;
+		removeAndPersist: (
+			source: string,
+			options?: { local?: boolean },
+		) => Promise<boolean>;
+		setProgressCallback: (
+			cb:
+				| ((e: {
+						type: string;
+						action: string;
+						source: string;
+						message?: string;
+				  }) => void)
+				| undefined,
+		) => void;
+	}> {
+		if (!this.deps) {
+			throw new Error("PiSessionManager requires deps for loadPackageManager");
+		}
+		const ctx = await this.ensureContext();
+		const agentDir = ensureResourceRoot(
+			this.deps.appSettings.getAll(),
+			this.deps.homeDir,
+		);
+		// Pi exports SettingsManager (with a static `create` factory) rather than a
+		// DefaultSettingsManager class. Construct it pointed at the same agentDir
+		// so package state lands in resourceRoot.
+		const settingsManager = ctx.mod.SettingsManager.create(
+			this.deps.homeDir,
+			agentDir,
+		);
+		return new ctx.mod.DefaultPackageManager({
+			cwd: this.deps.homeDir,
+			agentDir,
+			settingsManager,
+		});
+	}
+
 	async createSession(opts: {
 		cwd: string;
 	}): Promise<{ piSessionId: string; sessionFilePath: string | null }> {

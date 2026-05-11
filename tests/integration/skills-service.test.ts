@@ -56,6 +56,10 @@ describe("SkillsService", () => {
 					filePath: path.join(dir, ".macpi/skills/b.md"),
 				},
 			],
+			loadPackageManager: async () => {
+				throw new Error("not used in this test");
+			},
+			emitEvent: () => {},
 		});
 	}
 
@@ -112,6 +116,10 @@ describe("SkillsService", () => {
 			appSettings,
 			homeDir: dir,
 			loadSkills: async () => [{ name: "ghost", source: { id: "local" } }],
+			loadPackageManager: async () => {
+				throw new Error("not used in this test");
+			},
+			emitEvent: () => {},
 		});
 		const skills = await svc.list();
 		await expect(svc.save(skills[0].id, "x")).rejects.toThrow();

@@ -86,6 +86,9 @@ export function useTimeline(
 		if (!piSessionId) return;
 		return onPiEvent((raw) => {
 			const e = raw as PiEvent;
+			// package.progress is a session-independent event; the timeline only
+			// cares about events scoped to its own pi session id.
+			if (!("piSessionId" in e)) return;
 			if (e.piSessionId !== piSessionId) return;
 			setSnapshot((prev) => reduce(prev, e));
 		});

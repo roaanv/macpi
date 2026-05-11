@@ -8,6 +8,7 @@ import {
 	getResourceEnabled,
 	getResourceRoot,
 } from "../shared/app-settings-keys";
+import type { PiEvent } from "../shared/pi-events";
 import { skillResourceId } from "../shared/resource-id";
 import type { SkillManifest, SkillSummary } from "../shared/skills-types";
 import type { AppSettingsRepo } from "./repos/app-settings";
@@ -22,6 +23,27 @@ export interface SkillsServiceDeps {
 	appSettings: AppSettingsRepo;
 	homeDir: string;
 	loadSkills: () => Promise<PiSkill[]>;
+	loadPackageManager: () => Promise<{
+		installAndPersist: (
+			source: string,
+			options?: { local?: boolean },
+		) => Promise<void>;
+		removeAndPersist: (
+			source: string,
+			options?: { local?: boolean },
+		) => Promise<boolean>;
+		setProgressCallback: (
+			cb:
+				| ((e: {
+						type: string;
+						action: string;
+						source: string;
+						message?: string;
+				  }) => void)
+				| undefined,
+		) => void;
+	}>;
+	emitEvent: (e: PiEvent) => void;
 }
 
 export class SkillsService {
@@ -98,5 +120,28 @@ export class SkillsService {
 		const current = getResourceEnabled(this.deps.appSettings.getAll());
 		const next = { ...current, [id]: enabled };
 		this.deps.appSettings.set("resourceEnabled", next);
+	}
+
+	async install(source: string): Promise<void> {
+		const pm = await this.deps.loadPackageManager();
+		pm.setProgressCallback((e) => {
+			this.deps.emitEvent({
+				type: "package.progress",
+				action: e.action as "install" | "remove" | "update" | "clone" | "pull",
+				source: e.source,
+				phase: e.type as "start" | "progress" | "complete" | "error",
+				message: e.message,
+			});
+		});
+		try {
+			await pm.installAndPersist(source, { local: false });
+		} finally {
+			pm.setProgressCallback(undefined);
+		}
+	}
+
+	async remove(source: string): Promise<void> {
+		const pm = await this.deps.loadPackageManager();
+		await pm.removeAndPersist(source, { local: false });
 	}
 }
