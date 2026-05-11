@@ -162,10 +162,18 @@ export class PiSessionManager {
 	): Promise<void> {
 		const active = this.active.get(piSessionId);
 		if (!active) throw new Error(`unknown session ${piSessionId}`);
-		await active.session.prompt(text, {
-			source: "interactive",
-			streamingBehavior,
-		});
+		try {
+			await active.session.prompt(text, {
+				source: "interactive",
+				streamingBehavior,
+			});
+		} catch (e) {
+			const message = e instanceof Error ? e.message : String(e);
+			const code = classifyError(message);
+			this.emit({ type: "session.error", piSessionId, code, message });
+			// Do not rethrow: the IPC layer treats prompt delivery as successful
+			// (pi received the prompt); the error is surfaced as a banner event.
+		}
 	}
 
 	async clearQueue(
@@ -356,6 +364,31 @@ export class PiSessionManager {
 	private emit(event: PiEvent) {
 		for (const l of this.listeners) l(event);
 	}
+}
+
+export function classifyError(
+	message: string,
+): "auth" | "model" | "transient" | "unknown" {
+	const lower = message.toLowerCase();
+	if (
+		lower.includes("auth") ||
+		lower.includes("401") ||
+		lower.includes("403") ||
+		lower.includes("unauthorized")
+	) {
+		return "auth";
+	}
+	if (lower.includes("model") && lower.includes("not found")) {
+		return "model";
+	}
+	if (
+		lower.includes("timeout") ||
+		lower.includes("econnreset") ||
+		lower.includes("etimedout")
+	) {
+		return "transient";
+	}
+	return "unknown";
 }
 
 function discoverSessionFile(piSessionId: string): string | null {

@@ -56,6 +56,12 @@ export type PiEvent =
 			piSessionId: string;
 			steering: readonly string[];
 			followUp: readonly string[];
+	  }
+	| {
+			type: "session.error";
+			piSessionId: string;
+			code: "auth" | "model" | "transient" | "unknown";
+			message: string;
 	  };
 
 export type PiEventType = PiEvent["type"];
