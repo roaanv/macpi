@@ -122,4 +122,19 @@ export class ExtensionsService {
 			body,
 		};
 	}
+
+	async save(id: string, body: string): Promise<void> {
+		const result = await this.deps.loadExtensions();
+		const target = result.extensions.find((e) => this.idFor(e).id === id);
+		if (!target?.resolvedPath) {
+			throw new Error(`extension not found or has no file: ${id}`);
+		}
+		fs.writeFileSync(target.resolvedPath, body);
+	}
+
+	async setEnabled(id: string, enabled: boolean): Promise<void> {
+		const current = getResourceEnabled(this.deps.appSettings.getAll());
+		const next = { ...current, [id]: enabled };
+		this.deps.appSettings.set("resourceEnabled", next);
+	}
 }

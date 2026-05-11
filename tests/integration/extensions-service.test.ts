@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -95,5 +95,44 @@ describe("ExtensionsService", () => {
 	it("read throws on unknown id", async () => {
 		const svc = makeService({});
 		await expect(svc.read("extension:local:nope.ts")).rejects.toThrow();
+	});
+
+	it("save writes the body to resolvedPath", async () => {
+		writeFileSync(path.join(dir, ".macpi/extensions/a.ts"), "old");
+		const svc = makeService({});
+		const result = await svc.list();
+		await svc.save(result.extensions[0].id, "new body");
+		expect(
+			readFileSync(path.join(dir, ".macpi/extensions/a.ts"), "utf8"),
+		).toBe("new body");
+	});
+
+	it("save throws when the extension has no resolved path", async () => {
+		const db = makeDb();
+		const appSettings = new AppSettingsRepo(db);
+		appSettings.set("resourceRoot", path.join(dir, ".macpi"));
+		const svc = new ExtensionsService({
+			appSettings,
+			homeDir: dir,
+			loadExtensions: async () => ({
+				extensions: [{ path: "ghost.ts", resolvedPath: "", sourceInfo: { source: "local" } }],
+				errors: [],
+			}),
+			loadPackageManager: () => { throw new Error("not exercised"); },
+			emitEvent: () => undefined,
+			runBiome: () => Promise.resolve([]),
+		});
+		const result = await svc.list();
+		await expect(svc.save(result.extensions[0].id, "x")).rejects.toThrow();
+	});
+
+	it("setEnabled persists the flag", async () => {
+		const svc = makeService({});
+		const result = await svc.list();
+		await svc.setEnabled(result.extensions[0].id, false);
+		const after = await svc.list();
+		expect(
+			after.extensions.find((e) => e.id === result.extensions[0].id)?.enabled,
+		).toBe(false);
 	});
 });
