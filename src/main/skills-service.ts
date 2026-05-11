@@ -36,6 +36,10 @@ export class SkillsService {
 		source: string;
 		relativePath: string;
 	} {
+		// relativePath is computed against the skills *subdirectory* of the
+		// resource root, not the resource root itself, so ids look like
+		// `skill:local:my-skill.md` instead of `skill:local:skills/my-skill.md`.
+		// Extensions and prompts services should mirror this (their own subdir).
 		const source = skill.source?.id ?? "local";
 		const skillsRoot = path.join(this.resourceRoot(), "skills");
 		const relativePath = skill.filePath
