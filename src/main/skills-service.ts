@@ -16,7 +16,7 @@ import type { AppSettingsRepo } from "./repos/app-settings";
 
 interface PiSkill {
 	name: string;
-	source?: { id?: string };
+	sourceInfo: { source: string };
 	filePath?: string;
 }
 
@@ -63,7 +63,7 @@ export class SkillsService {
 		// resource root, not the resource root itself, so ids look like
 		// `skill:local:my-skill.md` instead of `skill:local:skills/my-skill.md`.
 		// Extensions and prompts services should mirror this (their own subdir).
-		const source = skill.source?.id ?? "local";
+		const source = skill.sourceInfo.source;
 		const skillsRoot = path.join(this.resourceRoot(), "skills");
 		const relativePath = skill.filePath
 			? path.relative(skillsRoot, skill.filePath)

@@ -136,11 +136,6 @@ export class PiSessionManager {
 		const skillsRoot = path.join(agentDir, "skills");
 		return (base) => ({
 			skills: base.skills.filter((s) => {
-				// NOTE: SkillsService.idFor uses skill.source?.id ?? "local"
-				// against a narrower shape. The real SDK Skill has
-				// sourceInfo.source — both currently produce the same id key
-				// for phase-1 (local) skills, but a follow-up should unify the
-				// shape so package-installed skills get correct labels too.
 				const source = s.sourceInfo?.source ?? "local";
 				const relativePath = s.filePath
 					? path.relative(skillsRoot, s.filePath)
@@ -165,7 +160,7 @@ export class PiSessionManager {
 	 * for list/read calls outside an active session.
 	 */
 	async loadSkills(): Promise<
-		Array<{ name: string; source?: { id?: string }; filePath?: string }>
+		Array<{ name: string; sourceInfo: { source: string }; filePath?: string }>
 	> {
 		if (!this.deps) {
 			throw new Error("PiSessionManager requires deps for loadSkills");
@@ -186,7 +181,7 @@ export class PiSessionManager {
 		const result = loader.getSkills();
 		return result.skills as Array<{
 			name: string;
-			source?: { id?: string };
+			sourceInfo: { source: string };
 			filePath?: string;
 		}>;
 	}

@@ -47,12 +47,12 @@ describe("SkillsService", () => {
 			loadSkills: async () => [
 				{
 					name: "a",
-					source: { id: "local" },
+					sourceInfo: { source: "local" },
 					filePath: path.join(dir, ".macpi/skills/a.md"),
 				},
 				{
 					name: "b",
-					source: { id: "local" },
+					sourceInfo: { source: "local" },
 					filePath: path.join(dir, ".macpi/skills/b.md"),
 				},
 			],
@@ -115,7 +115,9 @@ describe("SkillsService", () => {
 		const svc = new SkillsService({
 			appSettings,
 			homeDir: dir,
-			loadSkills: async () => [{ name: "ghost", source: { id: "local" } }],
+			loadSkills: async () => [
+				{ name: "ghost", sourceInfo: { source: "local" } },
+			],
 			loadPackageManager: async () => {
 				throw new Error("not used in this test");
 			},
