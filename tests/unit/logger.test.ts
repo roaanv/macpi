@@ -9,19 +9,29 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createLogger } from "../../src/main/logger";
+import { createLogger, type Logger } from "../../src/main/logger";
 
 describe("logger", () => {
 	let dir: string;
+	let loggers: Logger[];
+
+	function makeLogger(...args: Parameters<typeof createLogger>): Logger {
+		const log = createLogger(...args);
+		loggers.push(log);
+		return log;
+	}
+
 	beforeEach(() => {
 		dir = mkdtempSync(path.join(tmpdir(), "macpi-log-"));
+		loggers = [];
 	});
 	afterEach(() => {
+		for (const log of loggers) log.close();
 		rmSync(dir, { recursive: true, force: true });
 	});
 
 	it("writes a line to today's log file", () => {
-		const log = createLogger({
+		const log = makeLogger({
 			dir,
 			stream: "main",
 			now: () => new Date("2026-05-11T10:00:00Z"),
@@ -34,7 +44,7 @@ describe("logger", () => {
 
 	it("rotates to a new file on a new day", () => {
 		let now = new Date("2026-05-11T23:59:00Z");
-		const log = createLogger({ dir, stream: "main", now: () => now });
+		const log = makeLogger({ dir, stream: "main", now: () => now });
 		log.info("day1");
 		now = new Date("2026-05-12T00:01:00Z");
 		log.info("day2");
@@ -48,21 +58,28 @@ describe("logger", () => {
 	});
 
 	it("prunes files older than 7 days on init", () => {
-		// Touch a stale file at day -10
+		// Stale file: 10 days before "now". Also backdate mtime so this test
+		// still catches a regression to mtime-based pruning.
 		const stale = path.join(dir, "main-2026-05-01.log");
 		writeFileSync(stale, "old\n");
-		const tenDaysOld = new Date("2026-05-01T00:00:00Z").getTime();
-		utimesSync(stale, tenDaysOld / 1000, tenDaysOld / 1000);
-		createLogger({
+		const tenDaysAgo = new Date("2026-05-01T00:00:00Z").getTime();
+		utimesSync(stale, tenDaysAgo / 1000, tenDaysAgo / 1000);
+
+		// In-retention file (1 day before "now") must survive.
+		const fresh = path.join(dir, "main-2026-05-10.log");
+		writeFileSync(fresh, "recent\n");
+
+		makeLogger({
 			dir,
 			stream: "main",
 			now: () => new Date("2026-05-11T10:00:00Z"),
 		});
 		expect(existsSync(stale)).toBe(false);
+		expect(existsSync(fresh)).toBe(true);
 	});
 
 	it("readRecent returns the last N lines", () => {
-		const log = createLogger({
+		const log = makeLogger({
 			dir,
 			stream: "main",
 			now: () => new Date("2026-05-11T10:00:00Z"),

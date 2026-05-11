@@ -20,6 +20,7 @@ export interface Logger {
 	warn(message: string): void;
 	error(message: string): void;
 	flush(): void;
+	close(): void;
 	readRecent(n: number): string[];
 }
 
@@ -32,19 +33,22 @@ export function createLogger(opts: LoggerOptions): Logger {
 	const retentionDays = opts.retentionDays ?? 7;
 	fs.mkdirSync(opts.dir, { recursive: true });
 
-	// Prune files older than retentionDays.
+	// Prune files older than retentionDays based on the date encoded in the
+	// filename (`<stream>-YYYY-MM-DD.log`). Filename date is the source of
+	// truth because mtime can drift (touch, restore-from-backup, etc.).
 	const cutoff = now().getTime() - retentionDays * 24 * 60 * 60 * 1000;
 	for (const name of fs.readdirSync(opts.dir)) {
 		if (!name.startsWith(`${opts.stream}-`) || !name.endsWith(".log")) continue;
-		const full = path.join(opts.dir, name);
-		const stat = fs.statSync(full);
-		if (stat.mtimeMs < cutoff) fs.unlinkSync(full);
+		const match = name.match(/^[^-]+-(\d{4}-\d{2}-\d{2})\.log$/);
+		if (!match) continue;
+		const fileDate = new Date(match[1]).getTime();
+		if (fileDate < cutoff) fs.unlinkSync(path.join(opts.dir, name));
 	}
 
 	let currentDay = "";
 	let fd: number | null = null;
 
-	function ensureOpen(): { fd: number; file: string } {
+	function ensureOpen(): number {
 		const day = dayString(now());
 		if (day !== currentDay) {
 			if (fd !== null) {
@@ -53,15 +57,15 @@ export function createLogger(opts: LoggerOptions): Logger {
 			}
 			currentDay = day;
 		}
-		const file = path.join(opts.dir, `${opts.stream}-${day}.log`);
 		if (fd === null) {
+			const file = path.join(opts.dir, `${opts.stream}-${day}.log`);
 			fd = fs.openSync(file, "a");
 		}
-		return { fd, file };
+		return fd;
 	}
 
 	function write(level: LogLevel, message: string) {
-		const { fd: handle } = ensureOpen();
+		const handle = ensureOpen();
 		const line = `${now().toISOString()} ${level.toUpperCase()} ${message}\n`;
 		fs.writeSync(handle, line);
 	}
@@ -73,7 +77,16 @@ export function createLogger(opts: LoggerOptions): Logger {
 		flush() {
 			if (fd !== null) fs.fsyncSync(fd);
 		},
+		close() {
+			if (fd !== null) {
+				fs.closeSync(fd);
+				fd = null;
+			}
+		},
 		readRecent(n: number): string[] {
+			// fsync any buffered writes so callers (e.g. the crash reporter)
+			// see the most recent lines, not a stale on-disk tail.
+			if (fd !== null) fs.fsyncSync(fd);
 			const day = dayString(now());
 			const file = path.join(opts.dir, `${opts.stream}-${day}.log`);
 			if (!fs.existsSync(file)) return [];
