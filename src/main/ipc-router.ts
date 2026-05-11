@@ -244,8 +244,13 @@ export class IpcRouter {
 			}
 		});
 		this.register("skills.importFromPi", async () => {
-			const r = await this.deps.skillsService.importFromPi();
-			return ok(r);
+			try {
+				const r = await this.deps.skillsService.importFromPi();
+				return ok(r);
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				return err("import_failed", msg);
+			}
 		});
 	}
 
