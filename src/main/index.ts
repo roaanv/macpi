@@ -3,8 +3,6 @@
 
 import path from "node:path";
 import { app, BrowserWindow } from "electron";
-import { openDb } from "./db/connection";
-import { runMigrations } from "./db/migrations";
 import { getDefaultCwd } from "./default-cwd";
 import { electronDialogHandlers } from "./dialog-handlers";
 import { IpcRouter } from "./ipc-router";
@@ -13,6 +11,7 @@ import { PiSessionManager } from "./pi-session-manager";
 import { AppSettingsRepo } from "./repos/app-settings";
 import { ChannelSessionsRepo } from "./repos/channel-sessions";
 import { ChannelsRepo } from "./repos/channels";
+import { startupWithRecovery } from "./startup-recovery";
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const MAIN_WINDOW_VITE_NAME: string;
@@ -43,7 +42,7 @@ function createWindow() {
 	}
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
 	const logsDir = app.getPath("logs");
 	mainLogger = createLogger({ dir: logsDir, stream: "main" });
 	rendererLogger = createLogger({ dir: logsDir, stream: "renderer" });
@@ -51,8 +50,7 @@ app.whenReady().then(() => {
 
 	const dbPath = path.join(app.getPath("userData"), "macpi.db");
 	process.env.MACPI_MIGRATIONS_DIR = path.join(__dirname, "migrations");
-	const db = openDb({ filename: dbPath });
-	runMigrations(db);
+	const { db } = await startupWithRecovery(dbPath, mainLogger);
 
 	const channels = new ChannelsRepo(db);
 	const channelSessions = new ChannelSessionsRepo(db);
