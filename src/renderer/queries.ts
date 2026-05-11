@@ -254,6 +254,11 @@ export function useInstallSkill() {
 	});
 }
 
+// queries.ts — placeholder until Task 12 wires the list invalidation
+export function useInstallExtension() {
+	return useInstallSkill();
+}
+
 export function useImportSkillsFromPi() {
 	const qc = useQueryClient();
 	return useMutation({

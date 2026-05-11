@@ -5,11 +5,12 @@
 
 import React from "react";
 import { onPiEvent } from "../../ipc";
-import { useInstallSkill } from "../../queries";
+import { useInstallExtension, useInstallSkill } from "../../queries";
 
 interface InstallSkillDialogProps {
 	open: boolean;
 	onClose: () => void;
+	resourceKind?: "skill" | "extension";
 }
 
 interface ProgressLine {
@@ -17,10 +18,17 @@ interface ProgressLine {
 	message: string;
 }
 
-export function InstallSkillDialog({ open, onClose }: InstallSkillDialogProps) {
+export function InstallSkillDialog({
+	open,
+	onClose,
+	resourceKind = "skill",
+}: InstallSkillDialogProps) {
 	const [source, setSource] = React.useState("");
 	const [progress, setProgress] = React.useState<ProgressLine[]>([]);
-	const install = useInstallSkill();
+	const installSkill = useInstallSkill();
+	const installExtension = useInstallExtension();
+	const install =
+		resourceKind === "extension" ? installExtension : installSkill;
 
 	React.useEffect(() => {
 		if (!open) return;
@@ -72,9 +80,9 @@ export function InstallSkillDialog({ open, onClose }: InstallSkillDialogProps) {
 				onKeyDown={() => undefined}
 				role="dialog"
 				aria-modal="true"
-				aria-label="Install skill"
+				aria-label={`Install ${resourceKind}`}
 			>
-				<div className="text-sm font-semibold">Install skill</div>
+				<div className="text-sm font-semibold">Install {resourceKind}</div>
 				<input
 					type="text"
 					value={source}

@@ -11,6 +11,7 @@ import { CreateSessionDialog } from "./components/CreateSessionDialog";
 import { GlobalSettingsDialog } from "./components/GlobalSettingsDialog";
 import { type Mode, ModeRail } from "./components/ModeRail";
 import { SettingsApplier } from "./components/SettingsApplier";
+import { ExtensionsMode } from "./components/ExtensionsMode";
 import { SkillsMode } from "./components/SkillsMode";
 
 export function App() {
@@ -52,6 +53,7 @@ export function App() {
 					</>
 				)}
 				{mode === "skills" && <SkillsMode />}
+				{mode === "extensions" && <ExtensionsMode />}
 				<BranchPanel />
 			</div>
 			<GlobalSettingsDialog
