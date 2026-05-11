@@ -254,9 +254,35 @@ export function useInstallSkill() {
 	});
 }
 
-// queries.ts — placeholder until Task 12 wires the list invalidation
+export function useExtensions() {
+	return useQuery({
+		queryKey: ["extensions.list"],
+		queryFn: () => invoke("extensions.list", {}),
+	});
+}
+
+export function useSetExtensionEnabled() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (input: { id: string; enabled: boolean }) =>
+			invoke("extensions.setEnabled", input),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["extensions.list"] });
+			window.dispatchEvent(new CustomEvent("macpi:extensions-changed"));
+		},
+	});
+}
+
 export function useInstallExtension() {
-	return useInstallSkill();
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (input: { source: string }) =>
+			invoke("extensions.install", input),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["extensions.list"] });
+			window.dispatchEvent(new CustomEvent("macpi:extensions-changed"));
+		},
+	});
 }
 
 export function useImportSkillsFromPi() {
