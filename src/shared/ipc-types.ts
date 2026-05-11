@@ -154,6 +154,14 @@ export interface IpcMethods {
 		req: { id: string };
 		res: { manifest: SkillManifest; body: string };
 	};
+	"skills.save": {
+		req: { id: string; body: string };
+		res: Record<string, never>;
+	};
+	"skills.setEnabled": {
+		req: { id: string; enabled: boolean };
+		res: Record<string, never>;
+	};
 }
 
 export type IpcMethodName = keyof IpcMethods;

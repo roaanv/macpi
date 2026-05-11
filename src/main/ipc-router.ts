@@ -211,6 +211,20 @@ export class IpcRouter {
 				throw e;
 			}
 		});
+		this.register("skills.save", async (args) => {
+			try {
+				await this.deps.skillsService.save(args.id, args.body);
+				return ok({});
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				if (msg.includes("not found")) return err("not_found", msg);
+				throw e;
+			}
+		});
+		this.register("skills.setEnabled", async (args) => {
+			await this.deps.skillsService.setEnabled(args.id, args.enabled);
+			return ok({});
+		});
 	}
 
 	async dispatch<M extends IpcMethodName>(

@@ -74,6 +74,8 @@ beforeEach(() => {
 			manifest: { name: "x", source: "local", relativePath: "x.md" },
 			body: "",
 		}),
+		save: vi.fn().mockResolvedValue(undefined),
+		setEnabled: vi.fn().mockResolvedValue(undefined),
 	};
 	router = new IpcRouter({
 		channels: new ChannelsRepo(db),

@@ -84,4 +84,19 @@ export class SkillsService {
 			body,
 		};
 	}
+
+	async save(id: string, body: string): Promise<void> {
+		const skills = await this.deps.loadSkills();
+		const target = skills.find((s) => this.idFor(s).id === id);
+		if (!target?.filePath) {
+			throw new Error(`skill not found or has no file: ${id}`);
+		}
+		fs.writeFileSync(target.filePath, body);
+	}
+
+	async setEnabled(id: string, enabled: boolean): Promise<void> {
+		const current = getResourceEnabled(this.deps.appSettings.getAll());
+		const next = { ...current, [id]: enabled };
+		this.deps.appSettings.set("resourceEnabled", next);
+	}
 }
