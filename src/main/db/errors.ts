@@ -6,7 +6,7 @@ export class DbOpenError extends Error {
 	readonly kind = "open" as const;
 	constructor(
 		message: string,
-		readonly cause?: unknown,
+		public readonly cause?: unknown,
 	) {
 		super(message);
 	}
@@ -29,7 +29,7 @@ export class DbMigrationError extends Error {
 	constructor(
 		message: string,
 		public readonly version: number,
-		readonly cause?: unknown,
+		public readonly cause?: unknown,
 	) {
 		super(message);
 	}

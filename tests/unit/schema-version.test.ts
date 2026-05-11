@@ -1,3 +1,5 @@
+import { readdirSync } from "node:fs";
+import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 import {
@@ -41,5 +43,16 @@ describe("schema-version", () => {
 		const db = makeDb(0);
 		expect(() => assertSchemaCompatible(db)).not.toThrow();
 		db.close();
+	});
+
+	it("KNOWN_MAX_VERSION matches the highest migration file on disk", () => {
+		const migrationsDir = path.resolve(
+			__dirname,
+			"../../src/main/db/migrations",
+		);
+		const versions = readdirSync(migrationsDir)
+			.filter((f) => /^\d{4}-.*\.sql$/.test(f))
+			.map((f) => Number.parseInt(f.slice(0, 4), 10));
+		expect(KNOWN_MAX_VERSION).toBe(Math.max(...versions));
 	});
 });
