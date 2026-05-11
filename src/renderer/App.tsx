@@ -11,6 +11,7 @@ import { CreateSessionDialog } from "./components/CreateSessionDialog";
 import { GlobalSettingsDialog } from "./components/GlobalSettingsDialog";
 import { type Mode, ModeRail } from "./components/ModeRail";
 import { SettingsApplier } from "./components/SettingsApplier";
+import { SkillsMode } from "./components/SkillsMode";
 
 export function App() {
 	const [mode, setMode] = React.useState<Mode>("chat");
@@ -31,21 +32,26 @@ export function App() {
 					onSelect={setMode}
 					onOpenSettings={() => setGlobalSettingsOpen(true)}
 				/>
-				<ChannelSidebar
-					selectedChannelId={channelId}
-					selectedSessionId={sessionId}
-					onSelectChannel={(id) => {
-						setChannelId(id);
-						setSessionId(null);
-					}}
-					onSelectSession={setSessionId}
-					onOpenCreateChannel={() => setCreateChannelOpen(true)}
-					onOpenCreateSession={setCreateSessionInChannel}
-				/>
-				<ChatPane
-					piSessionId={sessionId}
-					onOpenGlobalSettings={() => setGlobalSettingsOpen(true)}
-				/>
+				{mode === "chat" && (
+					<>
+						<ChannelSidebar
+							selectedChannelId={channelId}
+							selectedSessionId={sessionId}
+							onSelectChannel={(id) => {
+								setChannelId(id);
+								setSessionId(null);
+							}}
+							onSelectSession={setSessionId}
+							onOpenCreateChannel={() => setCreateChannelOpen(true)}
+							onOpenCreateSession={setCreateSessionInChannel}
+						/>
+						<ChatPane
+							piSessionId={sessionId}
+							onOpenGlobalSettings={() => setGlobalSettingsOpen(true)}
+						/>
+					</>
+				)}
+				{mode === "skills" && <SkillsMode />}
 				<BranchPanel />
 			</div>
 			<GlobalSettingsDialog

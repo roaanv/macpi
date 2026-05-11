@@ -22,7 +22,7 @@ export function ModeRail({
 }) {
 	const items: { mode: Mode; enabled: boolean }[] = [
 		{ mode: "chat", enabled: true },
-		{ mode: "skills", enabled: false },
+		{ mode: "skills", enabled: true },
 		{ mode: "extensions", enabled: false },
 		{ mode: "prompts", enabled: false },
 	];
