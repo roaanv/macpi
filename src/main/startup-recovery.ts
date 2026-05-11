@@ -19,11 +19,17 @@ export interface StartupResult {
 
 type Choice = "open-folder" | "restore-backup" | "start-fresh" | "quit";
 
+// Bounds the retry loop. If the DB keeps failing this many times in a row,
+// we give the user one last "Open folder or quit" dialog instead of looping
+// forever on something like a disk-full or permission error.
+const MAX_RECOVERY_ATTEMPTS = 5;
+
 export async function startupWithRecovery(
 	dbFile: string,
 	logger: Logger,
 ): Promise<StartupResult> {
-	while (true) {
+	let lastError: unknown = null;
+	for (let attempt = 1; attempt <= MAX_RECOVERY_ATTEMPTS; attempt++) {
 		try {
 			const db = openDb({ filename: dbFile });
 			assertSchemaCompatible(db);
@@ -32,33 +38,75 @@ export async function startupWithRecovery(
 			logger.info(`db ready at ${dbFile}`);
 			return { db };
 		} catch (e) {
-			logger.error(`startup failure: ${(e as Error).message}`);
+			lastError = e;
+			logger.error(`startup failure (attempt ${attempt}): ${describe(e)}`);
 			const choice = await showRecoveryDialog(dbFile, e);
 			if (choice === "quit") {
-				app.quit();
+				app.exit(1);
+				// app.exit is synchronous in Electron, but TS doesn't know that;
+				// rethrow so the surrounding promise chain has a terminal value.
 				throw e;
 			}
-			if (choice === "open-folder") {
-				await shell.openPath(path.dirname(dbFile));
-				continue;
-			}
-			if (choice === "restore-backup") {
-				const bak = `${dbFile}.bak`;
-				if (fs.existsSync(bak)) {
-					fs.copyFileSync(bak, dbFile);
-					logger.info("restored from macpi.db.bak");
-				}
-				continue;
-			}
-			if (choice === "start-fresh") {
-				const ts = new Date().toISOString().replace(/[:.]/g, "-");
-				if (fs.existsSync(dbFile)) {
-					fs.renameSync(dbFile, `${dbFile}.broken-${ts}`);
-					logger.info(`renamed broken db to ${dbFile}.broken-${ts}`);
-				}
+			try {
+				await applyChoice(choice, dbFile, logger);
+			} catch (actionErr) {
+				logger.error(
+					`recovery action "${choice}" failed: ${describe(actionErr)}`,
+				);
+				// Fall through to the next iteration — the next dialog will show
+				// the *new* failure (likely the recovery error itself when openDb
+				// is retried), giving the user another choice.
 			}
 		}
 	}
+	// Last-resort dialog after MAX attempts: no auto-retry, only Open-folder + Quit.
+	await showGiveUpDialog(dbFile, lastError);
+	app.exit(1);
+	throw lastError;
+}
+
+async function applyChoice(
+	choice: Exclude<Choice, "quit">,
+	dbFile: string,
+	logger: Logger,
+): Promise<void> {
+	if (choice === "open-folder") {
+		await shell.openPath(path.dirname(dbFile));
+		return;
+	}
+	if (choice === "restore-backup") {
+		const bak = `${dbFile}.bak`;
+		if (!fs.existsSync(bak)) {
+			logger.warn("restore-backup chosen but macpi.db.bak no longer exists");
+			return;
+		}
+		fs.copyFileSync(bak, dbFile);
+		logger.info("restored from macpi.db.bak");
+		return;
+	}
+	// start-fresh
+	const ts = new Date().toISOString().replace(/[:.]/g, "-");
+	if (fs.existsSync(dbFile)) {
+		fs.renameSync(dbFile, `${dbFile}.broken-${ts}`);
+		logger.info(`renamed broken db to ${dbFile}.broken-${ts}`);
+	}
+}
+
+function describe(e: unknown): string {
+	return e instanceof Error ? e.message : String(e);
+}
+
+function formatDetail(err: unknown): string {
+	if (err instanceof DbSchemaNewerError) {
+		return "This database was written by a newer version of macpi. Update the app to continue.";
+	}
+	if (err instanceof DbMigrationError) {
+		return `Migration ${err.version} failed: ${err.message}`;
+	}
+	if (err instanceof DbOpenError) {
+		return `Could not open the database: ${err.message}`;
+	}
+	return describe(err);
 }
 
 async function showRecoveryDialog(
@@ -72,21 +120,15 @@ async function showRecoveryDialog(
 		"Start fresh (rename old db)",
 		"Quit",
 	];
-	const detail =
-		err instanceof DbSchemaNewerError
-			? "This database was written by a newer version of macpi. Update the app to continue."
-			: err instanceof DbMigrationError
-				? `Migration ${err.version} failed: ${err.message}`
-				: err instanceof DbOpenError
-					? `Could not open the database: ${err.message}`
-					: String(err);
 	const { response } = await dialog.showMessageBox({
 		type: "error",
 		title: "macpi — database problem",
 		message: "macpi could not start.",
-		detail,
+		detail: formatDetail(err),
 		buttons,
-		defaultId: buttons.length - 1,
+		// Default to the least destructive action (open folder) so an
+		// accidental Enter doesn't quit. Esc still maps to Quit via cancelId.
+		defaultId: 0,
 		cancelId: buttons.length - 1,
 	});
 	const label = buttons[response];
@@ -94,4 +136,16 @@ async function showRecoveryDialog(
 	if (label === "Restore last backup") return "restore-backup";
 	if (label === "Start fresh (rename old db)") return "start-fresh";
 	return "quit";
+}
+
+async function showGiveUpDialog(dbFile: string, err: unknown): Promise<void> {
+	await dialog.showMessageBox({
+		type: "error",
+		title: "macpi — giving up",
+		message: `macpi could not start after ${MAX_RECOVERY_ATTEMPTS} attempts.`,
+		detail: `${formatDetail(err)}\n\nThe data folder is:\n${path.dirname(dbFile)}`,
+		buttons: ["Open data folder", "Quit"],
+		defaultId: 0,
+		cancelId: 1,
+	});
 }
