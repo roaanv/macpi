@@ -1,10 +1,10 @@
-// Right-pane skill detail. Manifest header + CodeMirror markdown
-// editor + Save button. Tracks a local `draft` so the editor stays
+// Right-pane skill detail. Manifest header + CodeEditor (markdown mode)
+// + Save button. Tracks a local `draft` so the editor stays
 // snappy and we can show an "unsaved" indicator.
 
 import React from "react";
 import { useSaveSkill, useSkillDetail } from "../queries";
-import { MarkdownEditor } from "./MarkdownEditor";
+import { CodeEditor } from "./CodeEditor";
 
 interface SkillDetailProps {
 	id: string | null;
@@ -53,7 +53,7 @@ export function SkillDetail({ id }: SkillDetailProps) {
 					{detail.data.manifest.source} · {detail.data.manifest.relativePath}
 				</div>
 			</header>
-			<MarkdownEditor value={draft} onChange={setDraft} />
+			<CodeEditor value={draft} onChange={setDraft} language="markdown" />
 			<footer className="flex items-center justify-end gap-2 border-t border-divider p-2">
 				{dirty && <span className="text-xs text-amber-300">• unsaved</span>}
 				<button

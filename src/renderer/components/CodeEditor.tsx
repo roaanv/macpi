@@ -1,19 +1,22 @@
 // React wrapper around CodeMirror 6. Controlled by { value, onChange }.
 // Mounts the EditorView once; subsequent value changes are dispatched as
 // transactions so cursor / undo history survive across renders.
+// Supports "markdown" and "typescript" language modes via the `language` prop.
 
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
+import { javascript } from "@codemirror/lang-javascript";
 import { markdown } from "@codemirror/lang-markdown";
 import { EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers } from "@codemirror/view";
 import React from "react";
 
-interface MarkdownEditorProps {
+interface CodeEditorProps {
 	value: string;
 	onChange: (next: string) => void;
+	language: "markdown" | "typescript";
 }
 
-export function MarkdownEditor({ value, onChange }: MarkdownEditorProps) {
+export function CodeEditor({ value, onChange, language }: CodeEditorProps) {
 	const hostRef = React.useRef<HTMLDivElement | null>(null);
 	const viewRef = React.useRef<EditorView | null>(null);
 
@@ -28,13 +31,15 @@ export function MarkdownEditor({ value, onChange }: MarkdownEditorProps) {
 	// biome-ignore lint/correctness/useExhaustiveDependencies: mount-once intent
 	React.useEffect(() => {
 		if (!hostRef.current) return;
+		const langExtension =
+			language === "typescript" ? javascript({ typescript: true }) : markdown();
 		const view = new EditorView({
 			state: EditorState.create({
 				doc: value,
 				extensions: [
 					lineNumbers(),
 					history(),
-					markdown(),
+					langExtension,
 					keymap.of([...defaultKeymap, ...historyKeymap]),
 					EditorView.theme(
 						{
