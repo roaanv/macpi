@@ -24,6 +24,8 @@ import type {
 import type { PiEvent } from "../shared/pi-events";
 import type { TimelineEntry } from "../shared/timeline-types";
 import { agentMessagesToTimeline } from "./pi-history";
+import type { AppSettingsRepo } from "./repos/app-settings";
+import { ensureResourceRoot } from "./resource-root";
 
 type PiCodingModule = typeof import("@earendil-works/pi-coding-agent");
 
@@ -69,6 +71,11 @@ export interface SessionPathStore {
 	setSessionFilePath(piSessionId: string, path: string): void;
 }
 
+export interface PiSessionManagerDeps {
+	appSettings: AppSettingsRepo;
+	homeDir: string;
+}
+
 export class PiSessionManager {
 	private readonly active = new Map<string, ActiveSession>();
 	private readonly listeners = new Set<PiEventListener>();
@@ -80,8 +87,29 @@ export class PiSessionManager {
 	__testOverrides: PiTestOverrides | undefined;
 	private pathStore?: SessionPathStore;
 
+	constructor(private readonly deps?: PiSessionManagerDeps) {}
+
 	setPathStore(store: SessionPathStore): void {
 		this.pathStore = store;
+	}
+
+	private buildResourceLoader(
+		ctx: PiContext,
+		cwd: string,
+	): ResourceLoader | undefined {
+		// Test overrides win — they inject in-memory loaders.
+		const ov = this.__testOverrides;
+		if (ov?.resourceLoader) return ov.resourceLoader;
+		// Production path: only construct our own loader when deps are wired.
+		if (!this.deps) return undefined;
+		const agentDir = ensureResourceRoot(
+			this.deps.appSettings.getAll(),
+			this.deps.homeDir,
+		);
+		return new ctx.mod.DefaultResourceLoader({
+			cwd,
+			agentDir,
+		});
 	}
 
 	onEvent(listener: PiEventListener): () => void {
@@ -100,7 +128,7 @@ export class PiSessionManager {
 			cwd: opts.cwd,
 			authStorage: ov?.authStorage ?? ctx.auth,
 			modelRegistry: ov?.modelRegistry ?? ctx.registry,
-			resourceLoader: ov?.resourceLoader,
+			resourceLoader: this.buildResourceLoader(ctx, opts.cwd),
 			settingsManager: ov?.settingsManager,
 			model: ov?.model,
 		});
@@ -136,7 +164,7 @@ export class PiSessionManager {
 			cwd: sessionManager.getCwd(),
 			authStorage: ov?.authStorage ?? ctx.auth,
 			modelRegistry: ov?.modelRegistry ?? ctx.registry,
-			resourceLoader: ov?.resourceLoader,
+			resourceLoader: this.buildResourceLoader(ctx, sessionManager.getCwd()),
 			settingsManager: ov?.settingsManager,
 			model: ov?.model,
 			sessionManager,

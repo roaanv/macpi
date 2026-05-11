@@ -1,6 +1,7 @@
 // Main process entry point. Initialises the database, instantiates the in-process
 // pi session manager, wires up the IPC router, and creates the main window.
 
+import os from "node:os";
 import path from "node:path";
 import { app, BrowserWindow } from "electron";
 import { installCrashHandler } from "./crash-handler";
@@ -58,7 +59,10 @@ app.whenReady().then(async () => {
 	const channelSessions = new ChannelSessionsRepo(db);
 	const appSettings = new AppSettingsRepo(db);
 
-	piSessionManager = new PiSessionManager();
+	piSessionManager = new PiSessionManager({
+		appSettings,
+		homeDir: os.homedir(),
+	});
 	piSessionManager.onEvent((event) => {
 		for (const w of BrowserWindow.getAllWindows()) {
 			w.webContents.send("macpi:pi-event", event);
