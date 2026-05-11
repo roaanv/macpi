@@ -133,6 +133,14 @@ export interface IpcMethods {
 		req: Record<string, never>;
 		res: { cwd: string };
 	};
+	"system.log": {
+		req: {
+			stream: "renderer";
+			level: "info" | "warn" | "error";
+			message: string;
+		};
+		res: Record<string, never>;
+	};
 }
 
 export type IpcMethodName = keyof IpcMethods;

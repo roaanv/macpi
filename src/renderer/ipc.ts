@@ -28,3 +28,13 @@ export async function invoke<M extends IpcMethodName>(
 export function onPiEvent(listener: (event: unknown) => void): () => void {
 	return window.macpi.onPiEvent(listener);
 }
+
+export function logToMain(
+	level: "info" | "warn" | "error",
+	message: string,
+): void {
+	// Best-effort: never throw from a logger. Swallow IPC failures.
+	void invoke("system.log", { stream: "renderer", level, message }).catch(
+		() => {},
+	);
+}

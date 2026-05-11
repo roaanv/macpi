@@ -13,6 +13,7 @@ import {
 	ok,
 } from "../shared/ipc-types";
 import type { DialogHandlers } from "./dialog-handlers";
+import type { Logger } from "./logger";
 import type { PiSessionManager } from "./pi-session-manager";
 import type { AppSettingsRepo } from "./repos/app-settings";
 import type { ChannelSessionsRepo } from "./repos/channel-sessions";
@@ -29,6 +30,8 @@ export interface RouterDeps {
 	appSettings: AppSettingsRepo;
 	dialog: DialogHandlers;
 	getDefaultCwd: () => string;
+	mainLogger: Logger;
+	rendererLogger: Logger;
 }
 
 export class IpcRouter {
@@ -36,6 +39,14 @@ export class IpcRouter {
 
 	constructor(private readonly deps: RouterDeps) {
 		this.register("ping", async (args) => ok({ value: args.value }));
+		this.register("system.log", async (args) => {
+			const target =
+				args.stream === "renderer"
+					? this.deps.rendererLogger
+					: this.deps.mainLogger;
+			target[args.level](args.message);
+			return ok({});
+		});
 		this.register("channels.list", async () =>
 			ok({ channels: this.deps.channels.list() }),
 		);

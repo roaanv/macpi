@@ -8,6 +8,7 @@ import { runMigrations } from "./db/migrations";
 import { getDefaultCwd } from "./default-cwd";
 import { electronDialogHandlers } from "./dialog-handlers";
 import { IpcRouter } from "./ipc-router";
+import { createLogger, type Logger } from "./logger";
 import { PiSessionManager } from "./pi-session-manager";
 import { AppSettingsRepo } from "./repos/app-settings";
 import { ChannelSessionsRepo } from "./repos/channel-sessions";
@@ -18,6 +19,8 @@ declare const MAIN_WINDOW_VITE_NAME: string;
 
 let piSessionManager: PiSessionManager | null = null;
 let router: IpcRouter | null = null;
+let mainLogger: Logger | null = null;
+let rendererLogger: Logger | null = null;
 
 function createWindow() {
 	const mainWindow = new BrowserWindow({
@@ -41,6 +44,11 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+	const logsDir = app.getPath("logs");
+	mainLogger = createLogger({ dir: logsDir, stream: "main" });
+	rendererLogger = createLogger({ dir: logsDir, stream: "renderer" });
+	mainLogger.info(`macpi starting; userData=${app.getPath("userData")}`);
+
 	const dbPath = path.join(app.getPath("userData"), "macpi.db");
 	process.env.MACPI_MIGRATIONS_DIR = path.join(__dirname, "migrations");
 	const db = openDb({ filename: dbPath });
@@ -69,6 +77,8 @@ app.whenReady().then(() => {
 		appSettings,
 		dialog: electronDialogHandlers,
 		getDefaultCwd,
+		mainLogger,
+		rendererLogger,
 	});
 	router.attach();
 
@@ -81,5 +91,7 @@ app.whenReady().then(() => {
 app.on("window-all-closed", () => {
 	router?.detach();
 	piSessionManager?.shutdown();
+	mainLogger?.close();
+	rendererLogger?.close();
 	if (process.platform !== "darwin") app.quit();
 });

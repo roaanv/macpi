@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type DbHandle, openDb } from "../../src/main/db/connection";
 import { runMigrations } from "../../src/main/db/migrations";
 import { IpcRouter } from "../../src/main/ipc-router";
+import type { Logger } from "../../src/main/logger";
 import type { PiSessionManager } from "../../src/main/pi-session-manager";
 import { AppSettingsRepo } from "../../src/main/repos/app-settings";
 import { ChannelSessionsRepo } from "../../src/main/repos/channel-sessions";
@@ -19,6 +20,17 @@ vi.mock("electron", () => ({
 	dialog: { showOpenDialog: dialogShowOpenDialog },
 	BrowserWindow: { getFocusedWindow: () => null },
 }));
+
+function makeStubLogger(): Logger {
+	return {
+		info: () => {},
+		warn: () => {},
+		error: () => {},
+		flush: () => {},
+		readRecent: () => [],
+		close: () => {},
+	};
+}
 
 let dir: string;
 let db: DbHandle;
@@ -71,6 +83,8 @@ beforeEach(() => {
 			},
 		},
 		getDefaultCwd: () => "/Users/test/home",
+		mainLogger: makeStubLogger(),
+		rendererLogger: makeStubLogger(),
 	});
 });
 
