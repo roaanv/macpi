@@ -222,7 +222,11 @@ export class PiSessionManager {
 	 * Used by ExtensionsService for list/read calls outside an active session.
 	 */
 	async loadExtensions(): Promise<{
-		extensions: Array<{ path: string; resolvedPath: string; sourceInfo: { source: string } }>;
+		extensions: Array<{
+			path: string;
+			resolvedPath: string;
+			sourceInfo: { source: string };
+		}>;
 		errors: Array<{ path: string; error: string }>;
 	}> {
 		if (!this.deps) {

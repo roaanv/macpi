@@ -1,4 +1,10 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+	mkdirSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -102,9 +108,9 @@ describe("ExtensionsService", () => {
 		const svc = makeService({});
 		const result = await svc.list();
 		await svc.save(result.extensions[0].id, "new body");
-		expect(
-			readFileSync(path.join(dir, ".macpi/extensions/a.ts"), "utf8"),
-		).toBe("new body");
+		expect(readFileSync(path.join(dir, ".macpi/extensions/a.ts"), "utf8")).toBe(
+			"new body",
+		);
 	});
 
 	it("save throws when the extension has no resolved path", async () => {
@@ -115,10 +121,18 @@ describe("ExtensionsService", () => {
 			appSettings,
 			homeDir: dir,
 			loadExtensions: async () => ({
-				extensions: [{ path: "ghost.ts", resolvedPath: "", sourceInfo: { source: "local" } }],
+				extensions: [
+					{
+						path: "ghost.ts",
+						resolvedPath: "",
+						sourceInfo: { source: "local" },
+					},
+				],
 				errors: [],
 			}),
-			loadPackageManager: () => { throw new Error("not exercised"); },
+			loadPackageManager: () => {
+				throw new Error("not exercised");
+			},
 			emitEvent: () => undefined,
 			runBiome: () => Promise.resolve([]),
 		});
@@ -163,7 +177,9 @@ describe("ExtensionsService", () => {
 				],
 				errors: [],
 			}),
-			loadPackageManager: () => { throw new Error("not exercised"); },
+			loadPackageManager: () => {
+				throw new Error("not exercised");
+			},
 			emitEvent: () => undefined,
 			runBiome,
 		});

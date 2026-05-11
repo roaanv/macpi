@@ -8,10 +8,10 @@ import { ChannelSidebar } from "./components/ChannelSidebar";
 import { ChatPane } from "./components/ChatPane";
 import { CreateChannelDialog } from "./components/CreateChannelDialog";
 import { CreateSessionDialog } from "./components/CreateSessionDialog";
+import { ExtensionsMode } from "./components/ExtensionsMode";
 import { GlobalSettingsDialog } from "./components/GlobalSettingsDialog";
 import { type Mode, ModeRail } from "./components/ModeRail";
 import { SettingsApplier } from "./components/SettingsApplier";
-import { ExtensionsMode } from "./components/ExtensionsMode";
 import { SkillsMode } from "./components/SkillsMode";
 
 export function App() {

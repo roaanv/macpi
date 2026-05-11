@@ -143,12 +143,7 @@ export class ExtensionsService {
 		pm.setProgressCallback((e) => {
 			this.deps.emitEvent({
 				type: "package.progress",
-				action: e.action as
-					| "install"
-					| "remove"
-					| "update"
-					| "clone"
-					| "pull",
+				action: e.action as "install" | "remove" | "update" | "clone" | "pull",
 				source: e.source,
 				phase: e.type as "start" | "progress" | "complete" | "error",
 				message: e.message,
