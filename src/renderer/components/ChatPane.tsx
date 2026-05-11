@@ -7,6 +7,7 @@ import {
 	useChannels,
 	useClearQueue,
 	usePromptSession,
+	useReloadSession,
 	useRemoveFromQueue,
 	useSessionChannel,
 	useSessionMeta,
@@ -19,6 +20,7 @@ import { CompactionBanner } from "./banners/CompactionBanner";
 import { ErrorBanner } from "./banners/ErrorBanner";
 import { QueuePills } from "./banners/QueuePills";
 import { RetryBanner } from "./banners/RetryBanner";
+import { SkillsChangedBanner } from "./banners/SkillsChangedBanner";
 import { Composer, type SendIntent } from "./Composer";
 import { Timeline } from "./Timeline";
 
@@ -40,6 +42,7 @@ export function ChatPane({
 	const abortMutation = useAbortSession();
 	const removeFromQueueMutation = useRemoveFromQueue();
 	const setFirstMessageLabelMutation = useSetFirstMessageLabel();
+	const reload = useReloadSession();
 	const sessionMeta = useSessionMeta(piSessionId);
 	const channels = useChannels();
 	const sessionChannel = useSessionChannel(piSessionId);
@@ -140,6 +143,11 @@ export function ChatPane({
 					key={piSessionId ?? "no-session"}
 					state={snapshot.errorBanner}
 					onOpenSettings={onOpenGlobalSettings}
+				/>
+				<SkillsChangedBanner
+					changed={snapshot.skillsChanged}
+					reloading={reload.isPending}
+					onReload={() => piSessionId && reload.mutate({ piSessionId })}
 				/>
 				<RetryBanner retry={snapshot.retry} />
 				<CompactionBanner

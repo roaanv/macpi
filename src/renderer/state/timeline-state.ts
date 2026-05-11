@@ -40,6 +40,7 @@ export interface TimelineSnapshot {
 	compaction: CompactionState | null;
 	lastCompactionResult: { ok: boolean; message?: string } | null;
 	errorBanner: ErrorBannerState | null;
+	skillsChanged: boolean;
 }
 
 const EMPTY: TimelineSnapshot = {
@@ -50,6 +51,7 @@ const EMPTY: TimelineSnapshot = {
 	compaction: null,
 	lastCompactionResult: null,
 	errorBanner: null,
+	skillsChanged: false,
 };
 
 let entryIdCounter = 0;
@@ -94,6 +96,20 @@ export function useTimeline(
 		});
 	}, [piSessionId]);
 
+	React.useEffect(() => {
+		if (!piSessionId) return;
+		const onChange = () =>
+			setSnapshot((prev) => ({ ...prev, skillsChanged: true }));
+		const onCleared = () =>
+			setSnapshot((prev) => ({ ...prev, skillsChanged: false }));
+		window.addEventListener("macpi:skills-changed", onChange);
+		window.addEventListener("macpi:skills-changed-cleared", onCleared);
+		return () => {
+			window.removeEventListener("macpi:skills-changed", onChange);
+			window.removeEventListener("macpi:skills-changed-cleared", onCleared);
+		};
+	}, [piSessionId]);
+
 	const appendUserMessage = React.useCallback((text: string) => {
 		setSnapshot((prev) => ({
 			...prev,
@@ -108,7 +124,12 @@ export function useTimeline(
 function reduce(prev: TimelineSnapshot, event: PiEvent): TimelineSnapshot {
 	switch (event.type) {
 		case "session.turn_start":
-			return { ...prev, streaming: true, errorBanner: null };
+			return {
+				...prev,
+				streaming: true,
+				errorBanner: null,
+				skillsChanged: false,
+			};
 		case "session.turn_end":
 			return {
 				...prev,

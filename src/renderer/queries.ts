@@ -217,6 +217,7 @@ export function useSetSkillEnabled() {
 			invoke("skills.setEnabled", input),
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ["skills.list"] });
+			window.dispatchEvent(new CustomEvent("macpi:skills-changed"));
 		},
 	});
 }
@@ -237,6 +238,7 @@ export function useSaveSkill() {
 			invoke("skills.save", input),
 		onSuccess: (_d, vars) => {
 			qc.invalidateQueries({ queryKey: ["skills.read", vars.id] });
+			window.dispatchEvent(new CustomEvent("macpi:skills-changed"));
 		},
 	});
 }
@@ -247,6 +249,28 @@ export function useInstallSkill() {
 		mutationFn: (input: { source: string }) => invoke("skills.install", input),
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ["skills.list"] });
+			window.dispatchEvent(new CustomEvent("macpi:skills-changed"));
+		},
+	});
+}
+
+export function useImportSkillsFromPi() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: () => invoke("skills.importFromPi", {}),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["skills.list"] });
+			window.dispatchEvent(new CustomEvent("macpi:skills-changed"));
+		},
+	});
+}
+
+export function useReloadSession() {
+	return useMutation({
+		mutationFn: (input: { piSessionId: string }) =>
+			invoke("session.reload", input),
+		onSuccess: () => {
+			window.dispatchEvent(new CustomEvent("macpi:skills-changed-cleared"));
 		},
 	});
 }
