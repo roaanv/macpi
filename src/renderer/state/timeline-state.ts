@@ -103,9 +103,11 @@ export function useTimeline(
 		const onCleared = () =>
 			setSnapshot((prev) => ({ ...prev, skillsChanged: false }));
 		window.addEventListener("macpi:skills-changed", onChange);
+		window.addEventListener("macpi:extensions-changed", onChange);
 		window.addEventListener("macpi:skills-changed-cleared", onCleared);
 		return () => {
 			window.removeEventListener("macpi:skills-changed", onChange);
+			window.removeEventListener("macpi:extensions-changed", onChange);
 			window.removeEventListener("macpi:skills-changed-cleared", onCleared);
 		};
 	}, [piSessionId]);
