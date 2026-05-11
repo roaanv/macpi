@@ -220,3 +220,23 @@ export function useSetSkillEnabled() {
 		},
 	});
 }
+
+export function useSkillDetail(id: string | null) {
+	return useQuery({
+		queryKey: ["skills.read", id],
+		queryFn: () =>
+			id ? invoke("skills.read", { id }) : Promise.reject(new Error("no id")),
+		enabled: id !== null,
+	});
+}
+
+export function useSaveSkill() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (input: { id: string; body: string }) =>
+			invoke("skills.save", input),
+		onSuccess: (_d, vars) => {
+			qc.invalidateQueries({ queryKey: ["skills.read", vars.id] });
+		},
+	});
+}
