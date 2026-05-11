@@ -4,6 +4,7 @@
 import os from "node:os";
 import path from "node:path";
 import { app, BrowserWindow } from "electron";
+import { runBiomeCheck } from "./biome-runner";
 import { installCrashHandler } from "./crash-handler";
 import { getDefaultCwd } from "./default-cwd";
 import { electronDialogHandlers } from "./dialog-handlers";
@@ -91,7 +92,7 @@ app.whenReady().then(async () => {
 		loadExtensions: () => manager.loadExtensions(),
 		loadPackageManager: () => manager.loadPackageManager(),
 		emitEvent: (event) => manager.broadcastEvent(event),
-		runBiome: () => Promise.resolve([]), // stub until Task 8
+		runBiome: (filePath) => runBiomeCheck(filePath),
 	});
 
 	router = new IpcRouter({
