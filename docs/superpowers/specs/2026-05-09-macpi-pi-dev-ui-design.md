@@ -277,14 +277,18 @@ const result = await createAgentSession({
 
 Three list-detail views, all backed by pi's `DefaultResourceLoader` and `DefaultPackageManager`. v1 covers list, view, enable/disable, **edit**, install.
 
+**Isolation:** macpi uses its own resource root, separate from `~/.pi`. The setting `resourceRoot` (default `~/.macpi`) is passed to pi's loader/package manager as `agentDir`. macpi behaves like pi but doesn't share state with a co-installed pi TUI. Empty first-run state offers an "Import from ~/.pi" affordance that copies (not symlinks) the user's skills/prompts/extensions into `~/.macpi`.
+
+**Phasing:** §10 ships in three plans. **Phase 1 = skills + the shared infrastructure** (resource root setting, isolated loader/package manager wiring, install dialog with progress, settings-driven enable/disable, reload-session mechanism, import-from-pi). **Phase 2 = extensions** (adds TypeScript editor + Biome on save). **Phase 3 = prompts**. Each phase reuses the infrastructure laid down by phase 1. See `docs/superpowers/specs/2026-05-11-macpi-skills-management-design.md` for the phase 1 detail.
+
 - **List**: discovered resources with name, source (path/URL), version, enabled state.
 - **Detail (view + edit)**: manifest, body, and content visible. **CodeMirror 6** as the in-app editor (lighter and more tree-shakable than Monaco):
   - Skills / prompts (Markdown): Markdown-mode editor with preview tab.
-  - Extensions (TypeScript): TS-mode editor; no in-app type-checking or runtime — saving lints via Biome only. Full type-check / runtime errors surface when pi-host re-loads the extension.
-- **Enable / disable** toggles update the relevant settings layer (global by default, channel/session if invoked from there).
-- **Install**: existing pi package-manager flow surfaced as a UI dialog (path or URL input, progress events).
-- **Reload semantics**: edits to a resource take effect for *new* sessions automatically (pi's `ResourceLoader` re-discovers on session start). For an active streaming session, edits do not apply mid-stream — the chat shows a *Reload* affordance that respawns pi-host on demand. (Hot-reload mid-stream remains a non-goal.)
-- **Editor scope**: in v1 the editor edits the resource files in place at their on-disk source. There is no in-app fork / branch / version-control flow — version history is whatever the user's git/working tree gives them.
+  - Extensions (TypeScript): TS-mode editor; no in-app type-checking or runtime — saving lints via Biome only. Full type-check / runtime errors surface when the session is reloaded with the new extension.
+- **Enable / disable** toggles update the global settings layer in v1 (`app_settings.resourceEnabled`). Per-channel and per-session overlays are deferred until we have a real need for them.
+- **Install**: existing pi package-manager flow surfaced as a UI dialog. Single source input accepts npm specs, git URLs, and local paths; live progress driven by pi's `setProgressCallback`.
+- **Reload semantics**: edits to a resource take effect for *new* sessions automatically (pi's `ResourceLoader` re-discovers on session start). For an active session, the active pi `AgentSession` was built with a resource snapshot at construction time and does not pick up edits mid-stream. The chat shows a *Reload session* affordance that disposes the in-process pi session and reattaches it via the existing `attachSession(piSessionId)` flow, which constructs a fresh `ResourceLoader` and replays the persisted session log. In-flight assistant turn is lost. (Hot-reload mid-stream remains a non-goal.)
+- **Editor scope**: in v1 the editor edits the resource files in place at their on-disk source under `resourceRoot`. There is no in-app fork / branch / version-control flow — version history is whatever the user's git/working tree gives them.
 
 ## 11. Error handling & recovery
 
