@@ -1,6 +1,131 @@
+@import "@fontsource-variable/fraunces/index.css";
+@import "@fontsource/plus-jakarta-sans/400.css";
+@import "@fontsource/plus-jakarta-sans/500.css";
+@import "@fontsource/plus-jakarta-sans/600.css";
+@import "@fontsource/plus-jakarta-sans/700.css";
+@import "@fontsource/gloock/400.css";
+@import "@fontsource-variable/manrope/index.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/*
+ * Theme system has two dimensions:
+ *   html[data-theme-family="slate" | "sunrise" | "meadow"]  — color personality + fonts
+ *   html.dark                                                — light/dark surface inversion
+ * Six combined states. Each declares CSS variables consumed by .surface-* and .text-*
+ * component classes below. SettingsApplier sets data-theme-family and toggles .dark.
+ */
+
+:root {
+	/* Slate (default) — neutral cool grey, system fonts. Light mode. */
+	--font-display: ui-sans-serif, system-ui, sans-serif;
+	--font-body: ui-sans-serif, system-ui, sans-serif;
+	--font-mono: ui-monospace, SFMono-Regular, monospace;
+
+	--app-bg: #ffffff;
+	--app-fg: #18181b;
+	--panel-bg: #f4f4f5; /* zinc-100 */
+	--row-bg: #e4e4e7; /* zinc-200 */
+	--rail-bg: #f4f4f5; /* zinc-100 */
+	--text-primary: #18181b; /* zinc-900 */
+	--text-muted: #71717a; /* zinc-500 */
+	--text-faint: #a1a1aa; /* zinc-400 */
+	--divider: #e4e4e7; /* zinc-200 */
+	--accent: #2563eb; /* blue-600 — modest classic accent */
+	--accent-fg: #ffffff;
+}
+
+html.dark {
+	/* Slate dark — original macpi dark surface tokens. */
+	--app-bg: #1a1a1f;
+	--app-fg: #eeeeee;
+	--panel-bg: #27272a; /* zinc-800 */
+	--row-bg: #3f3f46; /* zinc-700 */
+	--rail-bg: #1f1f24;
+	--text-primary: #f4f4f5; /* zinc-100 */
+	--text-muted: #a1a1aa; /* zinc-400 */
+	--text-faint: #71717a; /* zinc-500 */
+	--divider: #27272a; /* zinc-800 */
+	--accent: #60a5fa; /* blue-400 */
+	--accent-fg: #0c1227;
+}
+
+/*
+ * 🌅 Sunrise — warm citrus & coral. Friendly. Sun-coming-up energy.
+ * Display: Fraunces (variable serif, soft+optical-size axes engaged).
+ * Body:    Plus Jakarta Sans (humanist geometric, friendly).
+ */
+html[data-theme-family="sunrise"] {
+	--font-display: "Fraunces Variable", "Fraunces", Georgia, serif;
+	--font-body: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+	--font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+	--app-bg: #fdf6ec; /* cream paper */
+	--app-fg: #3c2415; /* deep cocoa text */
+	--panel-bg: #faecd3; /* peach */
+	--row-bg: #f3d9a4; /* warm sand */
+	--rail-bg: #fbe9c8; /* soft mango */
+	--text-primary: #3c2415;
+	--text-muted: #92632f; /* tea-stain */
+	--text-faint: #b59458;
+	--divider: #ecd0a3;
+	--accent: #c2410c; /* terracotta */
+	--accent-fg: #fff7ed; /* off-white */
+}
+
+html.dark[data-theme-family="sunrise"] {
+	--app-bg: #1c130c; /* dark cocoa */
+	--app-fg: #fef3c7; /* warm cream */
+	--panel-bg: #2a1e14; /* roasted */
+	--row-bg: #3d2b1c; /* deep amber wood */
+	--rail-bg: #221610;
+	--text-primary: #fef3c7;
+	--text-muted: #fcd34d; /* warm gold */
+	--text-faint: #a16207; /* dim amber */
+	--divider: #3d2b1c;
+	--accent: #fb923c; /* glowing orange */
+	--accent-fg: #1c130c;
+}
+
+/*
+ * 🌿 Meadow — verdant, energetic, fresh garden palette.
+ * Display: Gloock (high-contrast didone serif, dramatic).
+ * Body:    Manrope (rounded geometric sans, modern + open).
+ */
+html[data-theme-family="meadow"] {
+	--font-display: "Gloock", Georgia, serif;
+	--font-body:
+		"Manrope Variable", "Manrope", ui-sans-serif, system-ui, sans-serif;
+	--font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+	--app-bg: #f0fdf4; /* mint paper */
+	--app-fg: #052e16; /* deep forest */
+	--panel-bg: #dcfce7; /* fresh mint */
+	--row-bg: #bbf7d0; /* leaf */
+	--rail-bg: #d1fae5; /* spring mint */
+	--text-primary: #052e16;
+	--text-muted: #166534; /* deep moss */
+	--text-faint: #4ade80;
+	--divider: #bbf7d0;
+	--accent: #f59e0b; /* marigold pop */
+	--accent-fg: #052e16;
+}
+
+html.dark[data-theme-family="meadow"] {
+	--app-bg: #0a1f17; /* deep forest floor */
+	--app-fg: #d1fae5; /* mint moonlight */
+	--panel-bg: #11332a; /* mossy */
+	--row-bg: #1c4a3a; /* deep algae */
+	--rail-bg: #0f2a22;
+	--text-primary: #d1fae5;
+	--text-muted: #6ee7b7; /* bright algae */
+	--text-faint: #34d399;
+	--divider: #1c4a3a;
+	--accent: #fde047; /* sunlit pollen */
+	--accent-fg: #052e16;
+}
 
 html,
 body,
@@ -9,41 +134,48 @@ body,
 }
 body {
 	margin: 0;
-	font-family: var(--font-family, ui-sans-serif), system-ui, sans-serif;
+	font-family: var(--font-family, var(--font-body));
+	background: var(--app-bg);
+	color: var(--app-fg);
+	font-feature-settings: "ss01", "ss02", "cv11";
 }
 
 html {
-	background: #ffffff;
-	color: #18181b;
-}
-html.dark {
-	background: #1a1a1f;
-	color: #eeeeee;
+	background: var(--app-bg);
+	color: var(--app-fg);
 }
 
+/*
+ * Component-level surface tokens consumed throughout the renderer. These
+ * resolve through the CSS variables above, so theme changes are instant
+ * (no rebuild) and per-component code stays theme-agnostic.
+ */
 @layer components {
 	.surface-app {
-		@apply bg-white dark:bg-[#1a1a1f];
+		background: var(--app-bg);
 	}
 	.surface-panel {
-		@apply bg-zinc-100 dark:bg-zinc-800;
+		background: var(--panel-bg);
 	}
 	.surface-row {
-		@apply bg-zinc-200 dark:bg-zinc-700;
+		background: var(--row-bg);
 	}
 	.surface-rail {
-		@apply bg-zinc-100 dark:bg-[#1f1f24];
+		background: var(--rail-bg);
 	}
 	.text-primary {
-		@apply text-zinc-900 dark:text-zinc-100;
+		color: var(--text-primary);
 	}
 	.text-muted {
-		@apply text-zinc-500 dark:text-zinc-400;
+		color: var(--text-muted);
 	}
 	.text-faint {
-		@apply text-zinc-400 dark:text-zinc-500;
+		color: var(--text-faint);
 	}
 	.border-divider {
-		@apply border-zinc-200 dark:border-zinc-800;
+		border-color: var(--divider);
+	}
+	.font-display {
+		font-family: var(--font-display);
 	}
 }

@@ -5,6 +5,8 @@
 
 export type ThemeMode = "light" | "dark" | "auto";
 
+export type ThemeFamily = "slate" | "sunrise" | "meadow";
+
 export type FontSizeRegion =
 	| "sidebar"
 	| "chatAssistant"
@@ -14,8 +16,9 @@ export type FontSizeRegion =
 
 export const APP_SETTINGS_DEFAULTS = {
 	theme: "auto" as ThemeMode,
-	fontFamily: "system-ui",
-	fontFamilyMono: "ui-monospace, SFMono-Regular, monospace",
+	themeFamily: "slate" as ThemeFamily,
+	fontFamily: "",
+	fontFamilyMono: "",
 	"fontSize.sidebar": 13,
 	"fontSize.chatAssistant": 14,
 	"fontSize.chatUser": 14,
@@ -26,7 +29,16 @@ export const APP_SETTINGS_DEFAULTS = {
 
 export type AppSettingsKey = keyof typeof APP_SETTINGS_DEFAULTS;
 
-const THEME_VALUES: ReadonlySet<ThemeMode> = new Set(["light", "dark", "auto"]);
+const THEME_VALUES: ReadonlySet<ThemeMode> = new Set<ThemeMode>([
+	"light",
+	"dark",
+	"auto",
+]);
+const THEME_FAMILY_VALUES: ReadonlySet<ThemeFamily> = new Set<ThemeFamily>([
+	"slate",
+	"sunrise",
+	"meadow",
+]);
 
 export function getTheme(settings: Record<string, unknown>): ThemeMode {
 	const v = settings.theme;
@@ -34,6 +46,14 @@ export function getTheme(settings: Record<string, unknown>): ThemeMode {
 		return v as ThemeMode;
 	}
 	return APP_SETTINGS_DEFAULTS.theme;
+}
+
+export function getThemeFamily(settings: Record<string, unknown>): ThemeFamily {
+	const v = settings.themeFamily;
+	if (typeof v === "string" && THEME_FAMILY_VALUES.has(v as ThemeFamily)) {
+		return v as ThemeFamily;
+	}
+	return APP_SETTINGS_DEFAULTS.themeFamily;
 }
 
 export function getFontFamily(settings: Record<string, unknown>): string {

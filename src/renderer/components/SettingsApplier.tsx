@@ -11,6 +11,7 @@ import {
 	getFontFamilyMono,
 	getFontSize,
 	getTheme,
+	getThemeFamily,
 	type ThemeMode,
 } from "../../shared/app-settings-keys";
 import { useSettings } from "../queries";
@@ -44,12 +45,15 @@ export function SettingsApplier() {
 	const { data } = useSettings();
 	const settings = data?.settings ?? {};
 	const theme = getTheme(settings);
+	const themeFamily = getThemeFamily(settings);
 
-	// Apply theme class.
+	// Apply theme class + family attribute.
 	React.useEffect(() => {
+		const root = document.documentElement;
+		root.dataset.themeFamily = themeFamily;
 		const apply = () => {
 			const eff = effectiveTheme(theme);
-			document.documentElement.classList.toggle("dark", eff === "dark");
+			root.classList.toggle("dark", eff === "dark");
 		};
 		apply();
 		if (theme !== "auto" || !window.matchMedia) return;
@@ -57,13 +61,18 @@ export function SettingsApplier() {
 		const onChange = () => apply();
 		mql.addEventListener("change", onChange);
 		return () => mql.removeEventListener("change", onChange);
-	}, [theme]);
+	}, [theme, themeFamily]);
 
-	// Apply font family + sizes.
+	// Apply font family + sizes. Empty fontFamily lets the active theme's
+	// CSS variable take over (each theme family declares its own --font-body).
 	React.useEffect(() => {
 		const root = document.documentElement;
-		root.style.setProperty("--font-family", getFontFamily(settings));
-		root.style.setProperty("--font-family-mono", getFontFamilyMono(settings));
+		const fam = getFontFamily(settings);
+		const famMono = getFontFamilyMono(settings);
+		if (fam) root.style.setProperty("--font-family", fam);
+		else root.style.removeProperty("--font-family");
+		if (famMono) root.style.setProperty("--font-family-mono", famMono);
+		else root.style.removeProperty("--font-family-mono");
 		for (const region of REGIONS) {
 			root.style.setProperty(
 				REGION_VAR[region],
