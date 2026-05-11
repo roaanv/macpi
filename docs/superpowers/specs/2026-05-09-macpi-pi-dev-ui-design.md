@@ -290,8 +290,8 @@ Three list-detail views, all backed by pi's `DefaultResourceLoader` and `Default
 
 | Failure | Detection | Recovery |
 |---|---|---|
-| pi-host crash | `utilityProcess.on('exit', code)` non-zero | Respawn pi-host; `SessionManager.continue(sessionId)` re-attaches active sessions; toast "pi-host restarted (exit N)". In-flight assistant turn is lost. |
-| Crash loop | 3 crashes within 60s | Stop auto-respawn; modal with last 2 stderrs and manual *Retry*. |
+| Pi exception during a turn | Caught at the turn boundary in `PiSessionManager` (try/catch around the SDK call) | Red banner in chat; session stays alive; in-flight turn is lost; user can retry. Banner shows error code + message. |
+| Uncaught exception in main | `process.on('uncaughtException' \| 'unhandledRejection')` | Write a crash report (stack + last 200 log lines) to `app.getPath('logs')/crash-<ts>.log`, show an error dialog, then quit. Relaunching reopens DB cleanly. No auto-respawn. |
 | Pi SDK throws (transient) | `auto_retry_*` events from pi | Banner inside chat with attempt counter. |
 | Pi SDK throws (non-retryable: auth, model not found) | Errors surface via session events / promise rejections | Red banner in chat; session stays alive; user can fix and retry. |
 | Provider auth failure | Caught at session-start and first request | Blocking modal *only* when starting a new session; banner with *Open auth settings* / *Use different provider* otherwise. No silent retries. |
@@ -308,7 +308,7 @@ Three list-detail views, all backed by pi's `DefaultResourceLoader` and `Default
 
 ### 11.2 Logging
 
-Three streams in `app.getPath('logs')`: `main.log`, `pi-host.log`, `renderer.log`. Daily rotation, 7 days retained. Settings → *Open logs folder* link. No telemetry, no remote logging in v1.
+Two streams in `app.getPath('logs')`: `main.log` (main process + in-process pi) and `renderer.log`. Daily rotation, 7 days retained. Settings → *Open logs folder* link. No telemetry, no remote logging in v1.
 
 ## 12. Testing strategy
 
