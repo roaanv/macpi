@@ -240,3 +240,13 @@ export function useSaveSkill() {
 		},
 	});
 }
+
+export function useInstallSkill() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (input: { source: string }) => invoke("skills.install", input),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["skills.list"] });
+		},
+	});
+}
