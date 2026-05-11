@@ -16,17 +16,18 @@ export interface OpenDbOptions {
 }
 
 export function openDb(options: OpenDbOptions): DbHandle {
-	fs.mkdirSync(path.dirname(options.filename), { recursive: true });
 	let raw: DatabaseSync;
 	try {
+		fs.mkdirSync(path.dirname(options.filename), { recursive: true });
 		raw = new DatabaseSync(options.filename);
 		if (options.wal !== false) {
 			raw.exec("PRAGMA journal_mode = WAL");
 		}
 		raw.exec("PRAGMA foreign_keys = ON");
 	} catch (e) {
+		const msg = e instanceof Error ? e.message : String(e);
 		throw new DbOpenError(
-			`failed to open SQLite database at ${options.filename}: ${(e as Error).message}`,
+			`failed to open SQLite database at ${options.filename}: ${msg}`,
 			e,
 		);
 	}

@@ -63,8 +63,9 @@ export function runMigrations(
 					.run(m.version, Date.now());
 			});
 		} catch (e) {
+			const msg = e instanceof Error ? e.message : String(e);
 			throw new DbMigrationError(
-				`migration ${m.version} failed: ${(e as Error).message}`,
+				`migration ${m.version} failed: ${msg}`,
 				m.version,
 				e,
 			);
