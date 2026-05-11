@@ -73,3 +73,31 @@ export function getDefaultCwd(settings: Record<string, unknown>): string {
 	const v = settings.defaultCwd;
 	return typeof v === "string" ? v : APP_SETTINGS_DEFAULTS.defaultCwd;
 }
+
+/**
+ * Resource root — where pi's loader/package-manager are pointed. Home-relative
+ * default (~/.macpi) is resolved at read time so we don't bake the path into
+ * the defaults map.
+ */
+export function getResourceRoot(
+	settings: Record<string, unknown>,
+	homeDir: string,
+): string {
+	const v = settings.resourceRoot;
+	if (typeof v === "string" && v.length > 0) return v;
+	return `${homeDir}/.macpi`;
+}
+
+/**
+ * Global enabled map for resources. Missing entry = enabled.
+ * Keyed by `<type>:<source>:<relative-path>`.
+ */
+export function getResourceEnabled(
+	settings: Record<string, unknown>,
+): Record<string, boolean> {
+	const v = settings.resourceEnabled;
+	if (v && typeof v === "object" && !Array.isArray(v)) {
+		return v as Record<string, boolean>;
+	}
+	return {};
+}

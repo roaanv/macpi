@@ -5,6 +5,8 @@ import {
 	getFontFamily,
 	getFontFamilyMono,
 	getFontSize,
+	getResourceEnabled,
+	getResourceRoot,
 	getTheme,
 } from "../../src/shared/app-settings-keys";
 
@@ -56,5 +58,39 @@ describe("app-settings-keys", () => {
 
 	it("getDefaultCwd returns the stored value", () => {
 		expect(getDefaultCwd({ defaultCwd: "/Users/x" })).toBe("/Users/x");
+	});
+});
+
+describe("resourceRoot setting", () => {
+	it("defaults to ~/.macpi when missing or non-string", () => {
+		expect(getResourceRoot({}, "/Users/test")).toBe("/Users/test/.macpi");
+		expect(getResourceRoot({ resourceRoot: 5 }, "/Users/test")).toBe(
+			"/Users/test/.macpi",
+		);
+	});
+	it("returns the stored string value when valid", () => {
+		expect(
+			getResourceRoot({ resourceRoot: "/custom/path" }, "/Users/test"),
+		).toBe("/custom/path");
+	});
+	it("APP_SETTINGS_DEFAULTS does not statically embed a home path", () => {
+		// Defaults are home-relative at read time, not at module load.
+		expect(
+			(APP_SETTINGS_DEFAULTS as Record<string, unknown>).resourceRoot,
+		).toBeUndefined();
+	});
+});
+
+describe("resourceEnabled setting", () => {
+	it("returns empty map when missing", () => {
+		expect(getResourceEnabled({})).toEqual({});
+	});
+	it("returns the stored map", () => {
+		const map = { "skill:local:foo.md": true, "skill:local:bar.md": false };
+		expect(getResourceEnabled({ resourceEnabled: map })).toEqual(map);
+	});
+	it("guards against non-object values", () => {
+		expect(getResourceEnabled({ resourceEnabled: "nope" })).toEqual({});
+		expect(getResourceEnabled({ resourceEnabled: null })).toEqual({});
 	});
 });
