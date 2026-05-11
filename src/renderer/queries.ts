@@ -202,3 +202,21 @@ export function useSetSetting() {
 		},
 	});
 }
+
+export function useSkills() {
+	return useQuery({
+		queryKey: ["skills.list"],
+		queryFn: () => invoke("skills.list", {}),
+	});
+}
+
+export function useSetSkillEnabled() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (input: { id: string; enabled: boolean }) =>
+			invoke("skills.setEnabled", input),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["skills.list"] });
+		},
+	});
+}
