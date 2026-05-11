@@ -17,6 +17,8 @@ import type { Api, Model } from "@earendil-works/pi-ai";
 import type {
 	AgentSession,
 	AuthStorage,
+	Extension,
+	LoadExtensionsResult,
 	ModelRegistry,
 	ResourceDiagnostic,
 	ResourceLoader,
@@ -25,7 +27,7 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 import { getResourceEnabled } from "../shared/app-settings-keys";
 import type { PiEvent } from "../shared/pi-events";
-import { skillResourceId } from "../shared/resource-id";
+import { extensionResourceId, skillResourceId } from "../shared/resource-id";
 import type { TimelineEntry } from "../shared/timeline-types";
 import { agentMessagesToTimeline } from "./pi-history";
 import type { AppSettingsRepo } from "./repos/app-settings";
@@ -114,6 +116,34 @@ export class PiSessionManager {
 			cwd,
 			agentDir,
 			skillsOverride: this.buildSkillsEnabledFilter(agentDir),
+			extensionsOverride: this.buildExtensionsEnabledFilter(agentDir),
+		});
+	}
+
+	/**
+	 * Returns an extensionsOverride callback that filters out extensions whose
+	 * id is marked disabled in the global `resourceEnabled` settings map.
+	 * Mirrors buildSkillsEnabledFilter — without this, toggling "enabled" in
+	 * the UI does NOT actually prevent pi from loading the extension.
+	 * Captures settings at call time so a session reload picks up fresh values.
+	 */
+	private buildExtensionsEnabledFilter(
+		agentDir: string,
+	): (base: LoadExtensionsResult) => LoadExtensionsResult {
+		const settings = this.deps?.appSettings.getAll() ?? {};
+		const enabled = getResourceEnabled(settings);
+		const extensionsRoot = path.join(agentDir, "extensions");
+		return (base) => ({
+			extensions: base.extensions.filter((e: Extension) => {
+				const source = e.sourceInfo?.source ?? "local";
+				const relativePath = e.resolvedPath
+					? path.relative(extensionsRoot, e.resolvedPath)
+					: e.path;
+				const id = extensionResourceId({ source, relativePath });
+				return enabled[id] !== false;
+			}),
+			errors: base.errors,
+			runtime: base.runtime,
 		});
 	}
 
