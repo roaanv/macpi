@@ -285,13 +285,15 @@ export function useInstallExtension() {
 	});
 }
 
-export function useImportSkillsFromPi() {
+export function useImportResourcesFromPi() {
 	const qc = useQueryClient();
 	return useMutation({
-		mutationFn: () => invoke("skills.importFromPi", {}),
+		mutationFn: () => invoke("resources.importFromPi", {}),
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ["skills.list"] });
+			qc.invalidateQueries({ queryKey: ["extensions.list"] });
 			window.dispatchEvent(new CustomEvent("macpi:skills-changed"));
+			window.dispatchEvent(new CustomEvent("macpi:extensions-changed"));
 		},
 	});
 }

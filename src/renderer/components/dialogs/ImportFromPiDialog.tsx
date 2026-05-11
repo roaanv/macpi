@@ -1,9 +1,8 @@
-// Confirmation modal for "Import from ~/.pi". Phase 1 doesn't list files
-// up front; we surface counts after the import completes. User can
-// dismiss to acknowledge the result.
+// Confirmation modal for "Import from ~/.pi". Surfaces skill + extension counts
+// after the import completes. User can dismiss to acknowledge the result.
 
 import React from "react";
-import { useImportSkillsFromPi } from "../../queries";
+import { useImportResourcesFromPi } from "../../queries";
 
 interface ImportFromPiDialogProps {
 	open: boolean;
@@ -11,10 +10,10 @@ interface ImportFromPiDialogProps {
 }
 
 export function ImportFromPiDialog({ open, onClose }: ImportFromPiDialogProps) {
-	const importMutation = useImportSkillsFromPi();
+	const importMutation = useImportResourcesFromPi();
 	const [result, setResult] = React.useState<{
-		copied: number;
-		skipped: number;
+		skills: { copied: number; skipped: number };
+		extensions: { copied: number; skipped: number };
 	} | null>(null);
 
 	React.useEffect(() => {
@@ -45,14 +44,17 @@ export function ImportFromPiDialog({ open, onClose }: ImportFromPiDialogProps) {
 				aria-modal="true"
 				aria-label="Import from ~/.pi"
 			>
-				<div className="text-sm font-semibold">Import skills from ~/.pi</div>
+				<div className="text-sm font-semibold">Import from ~/.pi</div>
 				<div className="text-xs text-muted">
-					Copies top-level files from ~/.pi/skills into your resource root.
-					Files that already exist in macpi are skipped (never overwritten).
+					Copies top-level files from ~/.pi/skills and directories from
+					~/.pi/extensions into your resource root. Files that already exist in
+					macpi are skipped (never overwritten).
 				</div>
 				{result && (
 					<div className="text-xs text-emerald-300">
-						Imported {result.copied} file(s); skipped {result.skipped}.
+						Imported {result.skills.copied} skill(s); {result.extensions.copied}{" "}
+						extension(s); skipped{" "}
+						{result.skills.skipped + result.extensions.skipped}.
 					</div>
 				)}
 				{importMutation.isError && (

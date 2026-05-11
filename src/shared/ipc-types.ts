@@ -180,9 +180,12 @@ export interface IpcMethods {
 		req: { source: string };
 		res: Record<string, never>;
 	};
-	"skills.importFromPi": {
+	"resources.importFromPi": {
 		req: Record<string, never>;
-		res: { copied: number; skipped: number };
+		res: {
+			skills: { copied: number; skipped: number };
+			extensions: { copied: number; skipped: number };
+		};
 	};
 	"extensions.list": {
 		req: Record<string, never>;

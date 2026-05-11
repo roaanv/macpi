@@ -4,13 +4,13 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type DbHandle, openDb } from "../../src/main/db/connection";
 import { runMigrations } from "../../src/main/db/migrations";
+import type { ExtensionsService } from "../../src/main/extensions-service";
 import { IpcRouter } from "../../src/main/ipc-router";
 import type { Logger } from "../../src/main/logger";
 import type { PiSessionManager } from "../../src/main/pi-session-manager";
 import { AppSettingsRepo } from "../../src/main/repos/app-settings";
 import { ChannelSessionsRepo } from "../../src/main/repos/channel-sessions";
 import { ChannelsRepo } from "../../src/main/repos/channels";
-import type { ExtensionsService } from "../../src/main/extensions-service";
 import type { SkillsService } from "../../src/main/skills-service";
 import type { TimelineEntry } from "../../src/shared/timeline-types";
 
@@ -79,7 +79,6 @@ beforeEach(() => {
 		setEnabled: vi.fn().mockResolvedValue(undefined),
 		install: vi.fn().mockResolvedValue(undefined),
 		remove: vi.fn().mockResolvedValue(undefined),
-		importFromPi: vi.fn().mockResolvedValue({ copied: 0, skipped: 0 }),
 	};
 	const extensionsServiceStub = {
 		list: vi.fn().mockResolvedValue({ extensions: [], loadErrors: [] }),

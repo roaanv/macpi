@@ -2,8 +2,13 @@
 // Each method is registered in the constructor with full type safety via the IpcMethods
 // registry. Errors are caught and returned as structured IpcResult values.
 
+import os from "node:os";
+import path from "node:path";
 import { app, ipcMain, shell } from "electron";
-import { getDefaultCwd as readDefaultCwdFromSettings } from "../shared/app-settings-keys";
+import {
+	getResourceRoot,
+	getDefaultCwd as readDefaultCwdFromSettings,
+} from "../shared/app-settings-keys";
 import { resolveCwd } from "../shared/cwd-resolver";
 import {
 	err,
@@ -15,6 +20,7 @@ import {
 import type { DialogHandlers } from "./dialog-handlers";
 import type { ExtensionsService } from "./extensions-service";
 import type { Logger } from "./logger";
+import { importResourcesFromPi } from "./pi-import";
 import type { PiSessionManager } from "./pi-session-manager";
 import type { AppSettingsRepo } from "./repos/app-settings";
 import type { ChannelSessionsRepo } from "./repos/channel-sessions";
@@ -255,9 +261,15 @@ export class IpcRouter {
 				return err("remove_failed", msg);
 			}
 		});
-		this.register("skills.importFromPi", async () => {
+		this.register("resources.importFromPi", async () => {
 			try {
-				const r = await this.deps.skillsService.importFromPi();
+				const r = importResourcesFromPi({
+					piRoot: path.join(os.homedir(), ".pi"),
+					macpiRoot: getResourceRoot(
+						this.deps.appSettings.getAll(),
+						os.homedir(),
+					),
+				});
 				return ok(r);
 			} catch (e) {
 				const msg = e instanceof Error ? e.message : String(e);
@@ -295,7 +307,10 @@ export class IpcRouter {
 				await this.deps.extensionsService.install(args.source);
 				return ok({});
 			} catch (e) {
-				return err("install_failed", e instanceof Error ? e.message : String(e));
+				return err(
+					"install_failed",
+					e instanceof Error ? e.message : String(e),
+				);
 			}
 		});
 		this.register("extensions.remove", async (args) => {
