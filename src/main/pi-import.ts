@@ -1,17 +1,24 @@
-// Lists and selectively imports top-level resource files from a pi
-// installation into macpi's resource root. Skills and prompts both live as
-// top-level markdown files under ~/.pi/agent/<subdir>/ and use identical
-// copy semantics. Extensions take a different path (see
-// PiSessionManager.listConfiguredPiPackages + installPiPackage) because pi
-// tracks them in settings.packages with npm/git/local-path sources.
+// Lists and selectively imports top-level resource entries from a pi
+// installation into macpi's resource root. Both pi formats are valid for
+// skills/prompts:
+//   - Loose markdown files (e.g. ~/.pi/agent/prompts/recap.md)
+//   - Directories containing a manifest (e.g. ~/.pi/agent/skills/grill-me/SKILL.md)
+// Symlinked directories (common when users link a working copy from a repo)
+// are followed via fs.statSync, which dereferences by default.
+//
+// Extensions take a different path (see PiSessionManager.listConfiguredPiPackages
+// + installPiPackage) because pi tracks them in settings.packages with
+// npm/git/local-path sources.
 
 import fs from "node:fs";
 import path from "node:path";
 
-export interface PiTopLevelFile {
-	/** File basename — also the identifier used for selective import. */
+export interface PiTopLevelEntry {
+	/** Basename — also the identifier used for selective import. */
 	name: string;
-	/** True when a file with this basename already exists in macpi. */
+	/** "file" for loose .md, "directory" for manifest-based resources. */
+	kind: "file" | "directory";
+	/** True when an entry with this basename already exists in macpi. */
 	alreadyImported: boolean;
 }
 
@@ -32,19 +39,27 @@ export interface ImportResult {
 	skipped: number;
 }
 
-/** Top-level files in ~/.pi/agent/<subdir>, sorted by name. */
+/** Top-level entries (files + directories) in ~/.pi/agent/<subdir>, sorted by name. */
 export function listPiTopLevelFiles(
 	input: ListTopLevelInput,
-): PiTopLevelFile[] {
+): PiTopLevelEntry[] {
 	const sourceDir = path.join(input.piAgentRoot, input.subdir);
 	const targetDir = path.join(input.macpiRoot, input.subdir);
 	if (!fs.existsSync(sourceDir)) return [];
-	const out: PiTopLevelFile[] = [];
+	const out: PiTopLevelEntry[] = [];
 	for (const name of fs.readdirSync(sourceDir)) {
 		const sourcePath = path.join(sourceDir, name);
-		if (!safeStat(sourcePath)?.isFile()) continue;
+		const stat = safeStat(sourcePath);
+		if (!stat) continue;
+		const kind: "file" | "directory" | null = stat.isFile()
+			? "file"
+			: stat.isDirectory()
+				? "directory"
+				: null;
+		if (!kind) continue;
 		out.push({
 			name,
+			kind,
 			alreadyImported: fs.existsSync(path.join(targetDir, name)),
 		});
 	}
@@ -53,8 +68,9 @@ export function listPiTopLevelFiles(
 }
 
 /**
- * Copy the named files from pi's <subdir> into macpi's matching subdir.
- * Skip-if-exists; never overwrites. Skips names that don't exist or aren't files.
+ * Copy the named entries from pi's <subdir> into macpi's matching subdir.
+ * Files are copied via copyFileSync; directories are copied recursively.
+ * Skip-if-exists; never overwrites. Skips names that don't exist.
  */
 export function importSelectedPiTopLevelFiles(
 	input: ImportTopLevelInput,
@@ -68,14 +84,34 @@ export function importSelectedPiTopLevelFiles(
 	for (const name of input.names) {
 		const src = path.join(sourceDir, name);
 		const dst = path.join(targetDir, name);
-		if (!safeStat(src)?.isFile() || fs.existsSync(dst)) {
+		const stat = safeStat(src);
+		if (!stat || fs.existsSync(dst)) {
 			skipped++;
 			continue;
 		}
-		fs.copyFileSync(src, dst);
-		copied++;
+		if (stat.isFile()) {
+			fs.copyFileSync(src, dst);
+			copied++;
+		} else if (stat.isDirectory()) {
+			copyDirRecursive(src, dst);
+			copied++;
+		} else {
+			skipped++;
+		}
 	}
 	return { copied, skipped };
+}
+
+function copyDirRecursive(src: string, dst: string): void {
+	fs.mkdirSync(dst, { recursive: true });
+	for (const name of fs.readdirSync(src)) {
+		const s = path.join(src, name);
+		const d = path.join(dst, name);
+		const stat = safeStat(s);
+		if (!stat) continue;
+		if (stat.isFile()) fs.copyFileSync(s, d);
+		else if (stat.isDirectory()) copyDirRecursive(s, d);
+	}
 }
 
 /** Stat that follows symlinks; returns null when the target is missing/broken. */

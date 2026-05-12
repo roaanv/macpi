@@ -57,17 +57,27 @@ describe("listPiTopLevelFiles", () => {
 	});
 	afterEach(() => rmSync(homeDir, { recursive: true, force: true }));
 
-	it("returns top-level skill files sorted by name", () => {
+	it("returns top-level files AND directories sorted by name", () => {
+		// Pi's modern skill format is a directory containing SKILL.md; the
+		// older "loose markdown file" format still works too. Both must appear.
 		writeFileSync(path.join(piAgentRoot, "skills/zebra.md"), "z");
 		writeFileSync(path.join(piAgentRoot, "skills/alpha.md"), "a");
-		mkdirSync(path.join(piAgentRoot, "skills/subdir"));
+		mkdirSync(path.join(piAgentRoot, "skills/grill-me"));
+		writeFileSync(
+			path.join(piAgentRoot, "skills/grill-me/SKILL.md"),
+			"# grill",
+		);
 
 		const r = listPiTopLevelFiles({
 			piAgentRoot,
 			macpiRoot,
 			subdir: "skills",
 		});
-		expect(r.map((x) => x.name)).toEqual(["alpha.md", "zebra.md"]);
+		expect(r.map((x) => `${x.name}:${x.kind}`)).toEqual([
+			"alpha.md:file",
+			"grill-me:directory",
+			"zebra.md:file",
+		]);
 	});
 
 	it("works against the prompts subdir identically", () => {
@@ -171,16 +181,63 @@ describe("importSelectedPiTopLevelFiles", () => {
 		);
 	});
 
-	it("skips names that don't exist or aren't files", () => {
+	it("skips names that don't exist on disk", () => {
 		writeFileSync(path.join(piAgentRoot, "skills/real.md"), "x");
-		mkdirSync(path.join(piAgentRoot, "skills/folder"));
 
 		const r = importSelectedPiTopLevelFiles({
 			piAgentRoot,
 			macpiRoot,
 			subdir: "skills",
-			names: ["real.md", "ghost.md", "folder"],
+			names: ["real.md", "ghost.md"],
 		});
-		expect(r).toEqual({ copied: 1, skipped: 2 });
+		expect(r).toEqual({ copied: 1, skipped: 1 });
+	});
+
+	it("recursively copies directory-based skills", () => {
+		mkdirSync(path.join(piAgentRoot, "skills/grill-me"));
+		writeFileSync(
+			path.join(piAgentRoot, "skills/grill-me/SKILL.md"),
+			"# grill",
+		);
+		mkdirSync(path.join(piAgentRoot, "skills/grill-me/assets"));
+		writeFileSync(
+			path.join(piAgentRoot, "skills/grill-me/assets/hint.md"),
+			"hint",
+		);
+
+		const r = importSelectedPiTopLevelFiles({
+			piAgentRoot,
+			macpiRoot,
+			subdir: "skills",
+			names: ["grill-me"],
+		});
+		expect(r).toEqual({ copied: 1, skipped: 0 });
+		expect(
+			readFileSync(path.join(macpiRoot, "skills/grill-me/SKILL.md"), "utf8"),
+		).toBe("# grill");
+		expect(
+			readFileSync(
+				path.join(macpiRoot, "skills/grill-me/assets/hint.md"),
+				"utf8",
+			),
+		).toBe("hint");
+	});
+
+	it("skips a directory when the target name already exists", () => {
+		mkdirSync(path.join(piAgentRoot, "skills/grill-me"));
+		writeFileSync(path.join(piAgentRoot, "skills/grill-me/SKILL.md"), "new");
+		mkdirSync(path.join(macpiRoot, "skills/grill-me"), { recursive: true });
+		writeFileSync(path.join(macpiRoot, "skills/grill-me/SKILL.md"), "keep-me");
+
+		const r = importSelectedPiTopLevelFiles({
+			piAgentRoot,
+			macpiRoot,
+			subdir: "skills",
+			names: ["grill-me"],
+		});
+		expect(r).toEqual({ copied: 0, skipped: 1 });
+		expect(
+			readFileSync(path.join(macpiRoot, "skills/grill-me/SKILL.md"), "utf8"),
+		).toBe("keep-me");
 	});
 });
