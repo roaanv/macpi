@@ -143,7 +143,7 @@ export function ChatPane({
 				cwd={sessionMeta.data?.cwd ?? null}
 				label={sessionMeta.data?.label ?? null}
 			/>
-			<Timeline entries={snapshot.timeline} />
+			<Timeline entries={snapshot.timeline} piSessionId={piSessionId} />
 			<div className="mt-2 space-y-2">
 				<ErrorBanner
 					key={piSessionId ?? "no-session"}

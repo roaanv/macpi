@@ -1,13 +1,27 @@
 // Presentational component for a user message entry in the timeline.
 
 import type { UserMessageEntry } from "../../../shared/timeline-types";
+import { MessageBranchButton } from "./MessageBranchButton";
 
-export function UserMessage({ entry }: { entry: UserMessageEntry }) {
+interface UserMessageProps {
+	entry: UserMessageEntry;
+	piSessionId: string | null;
+}
+
+export function UserMessage({ entry, piSessionId }: UserMessageProps) {
 	return (
-		<div className="text-[length:var(--font-size-chat-user)] leading-relaxed">
-			<span className="text-emerald-300">you</span>
-			<span className="text-muted"> · </span>
-			<span className="whitespace-pre-wrap">{entry.text}</span>
+		<div className="group flex items-baseline gap-2 text-[length:var(--font-size-chat-user)] leading-relaxed">
+			<div className="flex-1">
+				<span className="text-emerald-300">you</span>
+				<span className="text-muted"> · </span>
+				<span className="whitespace-pre-wrap">{entry.text}</span>
+			</div>
+			{piSessionId && entry.piEntryId && (
+				<MessageBranchButton
+					piSessionId={piSessionId}
+					piEntryId={entry.piEntryId}
+				/>
+			)}
 		</div>
 	);
 }

@@ -9,7 +9,13 @@ import { UserMessage } from "./messages/UserMessage";
 // enough to tolerate sub-pixel rounding.
 const STICK_TO_BOTTOM_THRESHOLD_PX = 50;
 
-export function Timeline({ entries }: { entries: TimelineEntry[] }) {
+export function Timeline({
+	entries,
+	piSessionId,
+}: {
+	entries: TimelineEntry[];
+	piSessionId: string | null;
+}) {
 	const containerRef = React.useRef<HTMLDivElement>(null);
 	const stickToBottomRef = React.useRef(true);
 
@@ -61,7 +67,13 @@ export function Timeline({ entries }: { entries: TimelineEntry[] }) {
 			{entries.map((entry) => {
 				switch (entry.kind) {
 					case "user":
-						return <UserMessage key={entry.id} entry={entry} />;
+						return (
+							<UserMessage
+								key={entry.id}
+								entry={entry}
+								piSessionId={piSessionId}
+							/>
+						);
 					case "assistant-text":
 						return <AssistantMessage key={entry.id} entry={entry} />;
 					case "tool-call":
