@@ -29,7 +29,22 @@ const config: ForgeConfig = {
 				name: "MacPi",
 				icon: "build/icon.icns",
 				// Default volume label looks like "MacPi 0.1.0".
-				// window/contents are populated in Task 3.
+				// Set the DMG window dimensions and icon positions so users get
+				// the conventional "drop the app onto Applications" UX.
+				additionalDMGOptions: {
+					window: {
+						size: { width: 540, height: 380 },
+					},
+				},
+				contents: (opts) => [
+					{
+						x: 140,
+						y: 200,
+						type: "file",
+						path: (opts as { appPath: string }).appPath,
+					},
+					{ x: 400, y: 200, type: "link", path: "/Applications" },
+				],
 			},
 			["darwin"],
 		),
