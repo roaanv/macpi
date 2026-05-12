@@ -161,28 +161,29 @@ describe("BranchService.setEntryLabel", () => {
 });
 
 describe("BranchService.fork", () => {
-	it("forks via pi and attaches the new pi session to the parent's channel", async () => {
-		// pi's fork(entry) advances internal state; the new pi session id is the
-		// session id we observe AFTER fork. The pi SDK's fork() resolves once the
-		// new session file is in place; we read getSessionId() from the same
-		// AgentSession instance (which has been switched onto the new file).
-		const getSessionId = vi
-			.fn()
-			.mockReturnValueOnce("new-s")
-			.mockReturnValue("new-s");
-		const getSessionFile = vi.fn().mockReturnValue("/tmp/new-s.jsonl");
-		const fork = vi.fn().mockResolvedValue({ cancelled: false });
+	it("creates a branched session file and attaches it under the parent's channel", async () => {
+		const createBranchedSession = vi.fn().mockReturnValue("/tmp/new-s.jsonl");
+		const getEntry = vi.fn().mockReturnValue({
+			id: "entry-42",
+			type: "message",
+			parentId: "parent-1",
+			message: { role: "user" },
+		});
 		const ags = {
 			sessionManager: {
 				getTree: () => [],
 				getLeafId: () => null,
 				getLabel: () => undefined,
-				getSessionId,
-				getSessionFile,
+				getSessionId: () => "s1",
+				getSessionFile: () => "/tmp/old.jsonl",
+				getEntry,
+				createBranchedSession,
 			},
-			fork,
 		};
 		const attach = vi.fn();
+		const attachSessionByFile = vi
+			.fn()
+			.mockResolvedValue({ piSessionId: "new-s" });
 		const svc = new BranchService({
 			getAgentSession: () => ags as never,
 			channelSessions: { attach } as never,
@@ -193,11 +194,14 @@ describe("BranchService.fork", () => {
 					sessionFilePath: "/tmp/old.jsonl",
 					label: "Parent",
 				}),
+				attachSessionByFile,
 			} as never,
 			emitEvent: vi.fn(),
 		});
 		const result = await svc.fork("s1", "entry-42", "at");
-		expect(fork).toHaveBeenCalledWith("entry-42", { position: "at" });
+		// position="at" snapshots up to and including the selected entry.
+		expect(createBranchedSession).toHaveBeenCalledWith("entry-42");
+		expect(attachSessionByFile).toHaveBeenCalledWith("/tmp/new-s.jsonl");
 		expect(attach).toHaveBeenCalledWith({
 			channelId: "channel-1",
 			piSessionId: "new-s",
@@ -210,16 +214,23 @@ describe("BranchService.fork", () => {
 		expect(result).toEqual({ newSessionId: "new-s" });
 	});
 
-	it("throws fork_cancelled if pi returns cancelled", async () => {
+	it("position='before' rewinds to the user message's parent", async () => {
+		const createBranchedSession = vi.fn().mockReturnValue("/tmp/new-s.jsonl");
 		const ags = {
 			sessionManager: {
 				getTree: () => [],
 				getLeafId: () => null,
 				getLabel: () => undefined,
-				getSessionId: () => "x",
-				getSessionFile: () => "/x",
+				getSessionId: () => "s1",
+				getSessionFile: () => "/tmp/old.jsonl",
+				getEntry: () => ({
+					id: "entry-42",
+					type: "message",
+					parentId: "parent-1",
+					message: { role: "user" },
+				}),
+				createBranchedSession,
 			},
-			fork: vi.fn().mockResolvedValue({ cancelled: true }),
 		};
 		const svc = new BranchService({
 			getAgentSession: () => ags as never,
@@ -231,17 +242,58 @@ describe("BranchService.fork", () => {
 					sessionFilePath: null,
 					label: null,
 				}),
+				attachSessionByFile: vi
+					.fn()
+					.mockResolvedValue({ piSessionId: "new-s" }),
 			} as never,
 			emitEvent: vi.fn(),
 		});
-		await expect(svc.fork("s1", "e1")).rejects.toThrow(/cancelled/);
+		await svc.fork("s1", "entry-42", "before");
+		expect(createBranchedSession).toHaveBeenCalledWith("parent-1");
+	});
+
+	it("throws when createBranchedSession returns no path", async () => {
+		const ags = {
+			sessionManager: {
+				getTree: () => [],
+				getLeafId: () => null,
+				getLabel: () => undefined,
+				getSessionId: () => "s1",
+				getSessionFile: () => "/x",
+				getEntry: () => ({
+					id: "e1",
+					type: "message",
+					parentId: null,
+					message: { role: "user" },
+				}),
+				createBranchedSession: () => undefined,
+			},
+		};
+		const svc = new BranchService({
+			getAgentSession: () => ags as never,
+			channelSessions: { attach: vi.fn() } as never,
+			piSessionManager: {
+				getActiveSessionMeta: () => ({
+					channelId: "c",
+					cwd: null,
+					sessionFilePath: null,
+					label: null,
+				}),
+				attachSessionByFile: vi.fn(),
+			} as never,
+			emitEvent: vi.fn(),
+		});
+		await expect(svc.fork("s1", "e1", "at")).rejects.toThrow(/no file path/);
 	});
 
 	it("throws not_found if the session is unknown", async () => {
 		const svc = new BranchService({
 			getAgentSession: () => undefined,
 			channelSessions: { attach: vi.fn() } as never,
-			piSessionManager: { getActiveSessionMeta: () => undefined } as never,
+			piSessionManager: {
+				getActiveSessionMeta: () => undefined,
+				attachSessionByFile: vi.fn(),
+			} as never,
 			emitEvent: vi.fn(),
 		});
 		await expect(svc.fork("missing", "x")).rejects.toThrow(/not found/);

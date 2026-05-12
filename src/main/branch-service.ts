@@ -16,9 +16,14 @@ interface ActiveSessionMeta {
 }
 
 /**
- * Structural interface capturing the pi AgentSession/AgentSessionRuntime
- * surface that BranchService requires. Defined locally so BranchService is
- * not coupled to the exact class hierarchy of the pi SDK.
+ * Structural interface capturing the pi AgentSession surface that
+ * BranchService requires. Defined locally so BranchService is not coupled
+ * to the exact class hierarchy of the pi SDK.
+ *
+ * Note: pi's fork() is NOT on AgentSession — it lives on AgentSessionRuntime
+ * and replaces the runtime's current session. macpi keeps the parent session
+ * alive alongside the fork, so we drive the fork at a lower level via
+ * sessionManager.createBranchedSession + attachSessionByFile instead.
  */
 export interface BranchAgentSession {
 	sessionManager: {
@@ -28,6 +33,8 @@ export interface BranchAgentSession {
 		appendLabelChange(targetId: string, label: string | undefined): string;
 		getSessionId(): string;
 		getSessionFile(): string | undefined;
+		getEntry(id: string): PiEntryLike | undefined;
+		createBranchedSession(leafId: string): string | undefined;
 	};
 	navigateTree(
 		targetId: string,
@@ -38,10 +45,13 @@ export interface BranchAgentSession {
 			label?: string;
 		},
 	): Promise<{ editorText?: string; cancelled: boolean }>;
-	fork(
-		entryId: string,
-		options?: { position?: "before" | "at" },
-	): Promise<{ cancelled: boolean; selectedText?: string }>;
+}
+
+interface PiEntryLike {
+	id: string;
+	type: string;
+	parentId: string | null;
+	message?: { role?: string };
 }
 
 export interface BranchServiceDeps {
@@ -51,6 +61,7 @@ export interface BranchServiceDeps {
 		getActiveSessionMeta: (
 			piSessionId: string,
 		) => ActiveSessionMeta | undefined;
+		attachSessionByFile: (filePath: string) => Promise<{ piSessionId: string }>;
 	};
 	// Emits a PiEvent to all renderer subscribers. Used to synthesize
 	// `session.tree` after navigateTree completes — pi's own session_tree
@@ -109,12 +120,48 @@ export class BranchService {
 		if (!meta) {
 			throw new Error(`branch session not found: ${piSessionId}`);
 		}
-		const result = await ags.fork(entryId, { position });
-		if (result.cancelled) {
-			throw new Error(`fork cancelled at ${entryId}`);
+
+		// Resolve the leaf the new branch should end at. Mirrors pi's
+		// AgentSessionRuntime.fork logic so "before" on a user message rewinds
+		// to its parent (the typical "edit this message and re-send" gesture)
+		// while "at" snapshots the conversation including that entry.
+		const selectedEntry = ags.sessionManager.getEntry(entryId);
+		if (!selectedEntry) {
+			throw new Error(`entry not found: ${entryId}`);
 		}
-		const newSessionId = ags.sessionManager.getSessionId();
-		const newSessionFile = ags.sessionManager.getSessionFile() ?? null;
+		let targetLeafId: string | null;
+		if (position === "at") {
+			targetLeafId = selectedEntry.id;
+		} else {
+			if (
+				selectedEntry.type !== "message" ||
+				selectedEntry.message?.role !== "user"
+			) {
+				throw new Error(
+					`fork before is only valid on user messages: ${entryId}`,
+				);
+			}
+			targetLeafId = selectedEntry.parentId;
+		}
+		if (!targetLeafId) {
+			throw new Error("fork target resolves to null (cannot fork at root)");
+		}
+
+		// createBranchedSession writes a new session file containing the
+		// root→targetLeafId path and returns its absolute path. Pi's high-level
+		// runtime.fork additionally tears down the current session — we don't
+		// want that, since macpi keeps the parent session alive next to the
+		// new fork in the sidebar.
+		const newSessionFile =
+			ags.sessionManager.createBranchedSession(targetLeafId);
+		if (!newSessionFile) {
+			throw new Error("createBranchedSession returned no file path");
+		}
+
+		const attached =
+			await this.deps.piSessionManager.attachSessionByFile(newSessionFile);
+		const newSessionId = attached.piSessionId;
+
 		const parentDisplay = meta.label ?? piSessionId.slice(0, 6);
 		const defaultLabel = `${parentDisplay} · ${newSessionId.slice(0, 6)}`;
 		this.deps.channelSessions.attach({

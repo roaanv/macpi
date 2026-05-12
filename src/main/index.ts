@@ -97,14 +97,15 @@ app.whenReady().then(async () => {
 	});
 
 	const branchService = new BranchService({
-		// AgentSession is structurally compatible with BranchAgentSession at
-		// runtime — fork() lives on the same object but is not exposed in the
-		// declared AgentSession type; cast to satisfy the structural interface.
+		// AgentSession is structurally compatible with BranchAgentSession; cast
+		// to satisfy the locally-declared interface (which intentionally omits
+		// pi's unstable internal fields).
 		getAgentSession: (id) =>
 			manager.getAgentSession(id) as unknown as BranchAgentSession | undefined,
 		channelSessions,
 		piSessionManager: {
 			getActiveSessionMeta: (id) => channelSessions.findMeta(id),
+			attachSessionByFile: (path) => manager.attachSessionByFile(path),
 		},
 		emitEvent: (event) => manager.broadcastEvent(event),
 	});

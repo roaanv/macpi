@@ -365,6 +365,38 @@ export class PiSessionManager {
 		return this.active.get(piSessionId)?.session;
 	}
 
+	/**
+	 * Attach a session whose file path is known but whose pi session id we
+	 * haven't recorded yet (e.g. just-forked branches). Opens the file via
+	 * SessionManager.open to read the embedded id, then creates the
+	 * AgentSession the same way attachSession does. Returns the new id and
+	 * records the path in the path store.
+	 */
+	async attachSessionByFile(
+		filePath: string,
+	): Promise<{ piSessionId: string }> {
+		const ctx = await this.ensureContext();
+		const sessionManager = ctx.mod.SessionManager.open(filePath);
+		const ov = this.__testOverrides;
+		const result = await ctx.mod.createAgentSession({
+			cwd: sessionManager.getCwd(),
+			authStorage: ov?.authStorage ?? ctx.auth,
+			modelRegistry: ov?.modelRegistry ?? ctx.registry,
+			resourceLoader: this.buildResourceLoader(ctx, sessionManager.getCwd()),
+			settingsManager: ov?.settingsManager,
+			model: ov?.model,
+			sessionManager,
+		});
+		const session = result.session;
+		const piSessionId = session.sessionId;
+		this.pathStore?.setSessionFilePath(piSessionId, filePath);
+		const unsubscribe = session.subscribe((event) =>
+			this.translate(piSessionId, event),
+		);
+		this.active.set(piSessionId, { piSessionId, session, unsubscribe });
+		return { piSessionId };
+	}
+
 	getHistory(piSessionId: string): TimelineEntry[] {
 		const active = this.active.get(piSessionId);
 		if (!active) throw new Error(`unknown session ${piSessionId}`);
