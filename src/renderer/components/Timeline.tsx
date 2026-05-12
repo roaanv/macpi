@@ -13,6 +13,22 @@ export function Timeline({ entries }: { entries: TimelineEntry[] }) {
 	const containerRef = React.useRef<HTMLDivElement>(null);
 	const stickToBottomRef = React.useRef(true);
 
+	// Listen for the macpi:scroll-to-bottom window event dispatched when the
+	// active branch changes (session.tree with newLeaf !== oldLeaf). Always
+	// scrolls unconditionally — the branch switch is an explicit navigation,
+	// not a user scroll, so we want to show the head of the new branch.
+	React.useEffect(() => {
+		const handler = () => {
+			const el = containerRef.current;
+			if (el) {
+				stickToBottomRef.current = true;
+				el.scrollTop = el.scrollHeight;
+			}
+		};
+		window.addEventListener("macpi:scroll-to-bottom", handler);
+		return () => window.removeEventListener("macpi:scroll-to-bottom", handler);
+	}, []);
+
 	// Track scroll position. Whenever the user scrolls, recompute whether
 	// they're near the bottom. The result drives the autoscroll effect below.
 	React.useEffect(() => {

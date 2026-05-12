@@ -4,6 +4,7 @@
 // The hook resets on piSessionId change.
 
 import React from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import type { PiEvent } from "../../shared/pi-events";
 import type {
 	AssistantTextEntry,
@@ -72,6 +73,7 @@ export function useTimeline(
 	appendUserMessage: (text: string) => void;
 } {
 	const [snapshot, setSnapshot] = React.useState<TimelineSnapshot>(EMPTY);
+	const queryClient = useQueryClient();
 
 	// Reset on session change.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: piSessionId is the only meaningful dep
@@ -111,6 +113,28 @@ export function useTimeline(
 			window.removeEventListener("macpi:skills-changed-cleared", onCleared);
 		};
 	}, [piSessionId]);
+
+	// React to session.tree events: invalidate the tree query so BranchPanel
+	// stays current, and when the active leaf changes reset the in-memory
+	// timeline (stale content) then scroll to the head of the new branch.
+	React.useEffect(() => {
+		if (!piSessionId) return;
+		return onPiEvent((raw) => {
+			const e = raw as PiEvent;
+			if (e.type !== "session.tree") return;
+			if (!("piSessionId" in e) || e.piSessionId !== piSessionId) return;
+			queryClient.invalidateQueries({
+				queryKey: ["session.tree", e.piSessionId],
+			});
+			if (e.newLeafEntryId !== e.oldLeafEntryId) {
+				// Active branch changed — clear the in-memory timeline so the UI
+				// shows a fresh slate, then signal the scroll container to jump to
+				// the bottom (head of the newly active branch).
+				setSnapshot(EMPTY);
+				window.dispatchEvent(new CustomEvent("macpi:scroll-to-bottom"));
+			}
+		});
+	}, [piSessionId, queryClient]);
 
 	const appendUserMessage = React.useCallback((text: string) => {
 		setSnapshot((prev) => ({
