@@ -1,5 +1,6 @@
 import { FuseV1Options, FuseVersion } from "@electron/fuses";
 import { MakerDeb } from "@electron-forge/maker-deb";
+import { MakerDMG } from "@electron-forge/maker-dmg";
 import { MakerRpm } from "@electron-forge/maker-rpm";
 import { MakerSquirrel } from "@electron-forge/maker-squirrel";
 import { MakerZIP } from "@electron-forge/maker-zip";
@@ -23,6 +24,15 @@ const config: ForgeConfig = {
 	makers: [
 		new MakerSquirrel({}),
 		new MakerZIP({}, ["darwin"]),
+		new MakerDMG(
+			{
+				name: "MacPi",
+				icon: "build/icon.icns",
+				// Default volume label looks like "MacPi 0.1.0".
+				// window/contents are populated in Task 3.
+			},
+			["darwin"],
+		),
 		new MakerRpm({}),
 		new MakerDeb({}),
 	],
