@@ -3,7 +3,6 @@
 // channel_sessions so the new pi session appears under the parent's channel
 // in the renderer sidebar.
 
-import type { AgentSession } from "@earendil-works/pi-coding-agent";
 import type { BranchTreeSnapshot } from "../shared/branch-types";
 import type { ChannelSessionsRepo } from "./repos/channel-sessions";
 import { projectTree } from "./tree-projection";
@@ -15,8 +14,37 @@ interface ActiveSessionMeta {
 	label: string | null;
 }
 
+/**
+ * Structural interface capturing the pi AgentSession/AgentSessionRuntime
+ * surface that BranchService requires. Defined locally so BranchService is
+ * not coupled to the exact class hierarchy of the pi SDK.
+ */
+interface BranchAgentSession {
+	sessionManager: {
+		getTree(): unknown[];
+		getLeafId(): string | null;
+		getLabel(id: string): string | undefined;
+		appendLabelChange(targetId: string, label: string | undefined): string;
+		getSessionId(): string;
+		getSessionFile(): string | undefined;
+	};
+	navigateTree(
+		targetId: string,
+		options?: {
+			summarize?: boolean;
+			customInstructions?: string;
+			replaceInstructions?: boolean;
+			label?: string;
+		},
+	): Promise<{ editorText?: string; cancelled: boolean }>;
+	fork(
+		entryId: string,
+		options?: { position?: "before" | "at" },
+	): Promise<{ cancelled: boolean; selectedText?: string }>;
+}
+
 export interface BranchServiceDeps {
-	getAgentSession: (piSessionId: string) => AgentSession | undefined;
+	getAgentSession: (piSessionId: string) => BranchAgentSession | undefined;
 	channelSessions: ChannelSessionsRepo;
 	piSessionManager: {
 		getActiveSessionMeta: (
@@ -57,7 +85,32 @@ export class BranchService {
 		ags.sessionManager.appendLabelChange(entryId, value);
 	}
 
-	private requireAgentSession(piSessionId: string): AgentSession {
+	async fork(
+		piSessionId: string,
+		entryId: string,
+		position: "before" | "at" = "at",
+	): Promise<{ newSessionId: string }> {
+		const ags = this.requireAgentSession(piSessionId);
+		const meta = this.deps.piSessionManager.getActiveSessionMeta(piSessionId);
+		if (!meta) {
+			throw new Error(`branch session not found: ${piSessionId}`);
+		}
+		const result = await ags.fork(entryId, { position });
+		if (result.cancelled) {
+			throw new Error(`fork cancelled at ${entryId}`);
+		}
+		const newSessionId = ags.sessionManager.getSessionId();
+		const newSessionFile = ags.sessionManager.getSessionFile() ?? null;
+		this.deps.channelSessions.attach({
+			channelId: meta.channelId,
+			piSessionId: newSessionId,
+			cwd: meta.cwd,
+			sessionFilePath: newSessionFile,
+		});
+		return { newSessionId };
+	}
+
+	private requireAgentSession(piSessionId: string): BranchAgentSession {
 		const ags = this.deps.getAgentSession(piSessionId);
 		if (!ags) {
 			throw new Error(`branch session not found: ${piSessionId}`);
