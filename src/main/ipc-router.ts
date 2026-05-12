@@ -152,6 +152,15 @@ export class IpcRouter {
 			const entries = this.deps.piSessionManager.getHistory(args.piSessionId);
 			return ok({ entries });
 		});
+		this.register("session.getHistory", async (args) => {
+			try {
+				const entries = this.deps.piSessionManager.getHistory(args.piSessionId);
+				return ok({ entries });
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				return err("not_found", msg);
+			}
+		});
 		this.register("session.reload", async (args) => {
 			try {
 				await this.deps.piSessionManager.reloadSession(args.piSessionId);

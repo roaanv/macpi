@@ -95,6 +95,11 @@ export interface IpcMethods {
 		/** History reconstructed from pi's persisted session log. */
 		res: { entries: TimelineEntry[] };
 	};
+	"session.getHistory": {
+		req: { piSessionId: string };
+		/** Same shape as session.attach.res; used to refetch after branch navigation. */
+		res: { entries: TimelineEntry[] };
+	};
 	"session.reload": {
 		req: { piSessionId: string };
 		res: Record<string, never>;

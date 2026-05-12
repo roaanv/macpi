@@ -4,6 +4,7 @@
 // in the renderer sidebar.
 
 import type { BranchTreeSnapshot } from "../shared/branch-types";
+import type { PiEvent } from "../shared/pi-events";
 import type { ChannelSessionsRepo } from "./repos/channel-sessions";
 import { projectTree } from "./tree-projection";
 
@@ -51,6 +52,11 @@ export interface BranchServiceDeps {
 			piSessionId: string,
 		) => ActiveSessionMeta | undefined;
 	};
+	// Emits a PiEvent to all renderer subscribers. Used to synthesize
+	// `session.tree` after navigateTree completes — pi's own session_tree
+	// event flows through the extension runtime channel which we don't
+	// subscribe to, so we surface it ourselves.
+	emitEvent: (event: PiEvent) => void;
 }
 
 export class BranchService {
@@ -69,10 +75,18 @@ export class BranchService {
 
 	async navigateTree(piSessionId: string, entryId: string): Promise<void> {
 		const ags = this.requireAgentSession(piSessionId);
+		const oldLeafEntryId = ags.sessionManager.getLeafId();
 		const result = await ags.navigateTree(entryId);
 		if (result.cancelled) {
 			throw new Error(`navigate cancelled for ${entryId}`);
 		}
+		const newLeafEntryId = ags.sessionManager.getLeafId();
+		this.deps.emitEvent({
+			type: "session.tree",
+			piSessionId,
+			newLeafEntryId,
+			oldLeafEntryId,
+		});
 	}
 
 	async setEntryLabel(

@@ -42,6 +42,7 @@ describe("BranchService.getTree", () => {
 					label: "Session A",
 				}),
 			} as never,
+			emitEvent: vi.fn(),
 		});
 		const snap = await svc.getTree("s1");
 		expect(snap.sessionId).toBe("s1");
@@ -57,6 +58,7 @@ describe("BranchService.getTree", () => {
 			piSessionManager: {
 				getActiveSessionMeta: () => undefined,
 			} as never,
+			emitEvent: vi.fn(),
 		});
 		await expect(svc.getTree("missing")).rejects.toThrow(/not found/);
 	});
@@ -69,9 +71,40 @@ describe("BranchService.navigateTree", () => {
 			getAgentSession: () => ags as never,
 			channelSessions: { attach: vi.fn() } as never,
 			piSessionManager: { getActiveSessionMeta: () => undefined } as never,
+			emitEvent: vi.fn(),
 		});
 		await svc.navigateTree("s1", "target-id");
 		expect(ags.navigateTree).toHaveBeenCalledWith("target-id");
+	});
+
+	it("emits a session.tree event after navigation completes", async () => {
+		// pi doesn't fire session_tree on the subscribe() channel — BranchService
+		// must synthesize the event itself so renderers know to refetch.
+		const ags = {
+			sessionManager: {
+				getTree: () => [],
+				getLeafId: vi
+					.fn()
+					.mockReturnValueOnce("old-leaf")
+					.mockReturnValueOnce("new-leaf"),
+				getLabel: () => undefined,
+			},
+			navigateTree: vi.fn().mockResolvedValue({ cancelled: false }),
+		};
+		const emitEvent = vi.fn();
+		const svc = new BranchService({
+			getAgentSession: () => ags as never,
+			channelSessions: { attach: vi.fn() } as never,
+			piSessionManager: { getActiveSessionMeta: () => undefined } as never,
+			emitEvent,
+		});
+		await svc.navigateTree("s1", "target-id");
+		expect(emitEvent).toHaveBeenCalledWith({
+			type: "session.tree",
+			piSessionId: "s1",
+			newLeafEntryId: "new-leaf",
+			oldLeafEntryId: "old-leaf",
+		});
 	});
 
 	it("throws not_found for unknown session", async () => {
@@ -79,6 +112,7 @@ describe("BranchService.navigateTree", () => {
 			getAgentSession: () => undefined,
 			channelSessions: { attach: vi.fn() } as never,
 			piSessionManager: { getActiveSessionMeta: () => undefined } as never,
+			emitEvent: vi.fn(),
 		});
 		await expect(svc.navigateTree("missing", "x")).rejects.toThrow(/not found/);
 	});
@@ -99,6 +133,7 @@ describe("BranchService.setEntryLabel", () => {
 			getAgentSession: () => ags as never,
 			channelSessions: { attach: vi.fn() } as never,
 			piSessionManager: { getActiveSessionMeta: () => undefined } as never,
+			emitEvent: vi.fn(),
 		});
 		await svc.setEntryLabel("s1", "target", "refactor try");
 		expect(appendLabelChange).toHaveBeenCalledWith("target", "refactor try");
@@ -118,6 +153,7 @@ describe("BranchService.setEntryLabel", () => {
 			getAgentSession: () => ags as never,
 			channelSessions: { attach: vi.fn() } as never,
 			piSessionManager: { getActiveSessionMeta: () => undefined } as never,
+			emitEvent: vi.fn(),
 		});
 		await svc.setEntryLabel("s1", "target", "");
 		expect(appendLabelChange).toHaveBeenCalledWith("target", undefined);
@@ -158,6 +194,7 @@ describe("BranchService.fork", () => {
 					label: "Parent",
 				}),
 			} as never,
+			emitEvent: vi.fn(),
 		});
 		const result = await svc.fork("s1", "entry-42", "at");
 		expect(fork).toHaveBeenCalledWith("entry-42", { position: "at" });
@@ -192,6 +229,7 @@ describe("BranchService.fork", () => {
 					label: null,
 				}),
 			} as never,
+			emitEvent: vi.fn(),
 		});
 		await expect(svc.fork("s1", "e1")).rejects.toThrow(/cancelled/);
 	});
@@ -201,6 +239,7 @@ describe("BranchService.fork", () => {
 			getAgentSession: () => undefined,
 			channelSessions: { attach: vi.fn() } as never,
 			piSessionManager: { getActiveSessionMeta: () => undefined } as never,
+			emitEvent: vi.fn(),
 		});
 		await expect(svc.fork("missing", "x")).rejects.toThrow(/not found/);
 	});

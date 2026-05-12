@@ -588,14 +588,10 @@ export class PiSessionManager {
 					followUp: (e.followUp as readonly string[]) ?? [],
 				});
 				return;
-			case "session_tree":
-				this.emit({
-					type: "session.tree",
-					piSessionId,
-					newLeafEntryId: (e.newLeafId as string | null) ?? null,
-					oldLeafEntryId: (e.oldLeafId as string | null) ?? null,
-				});
-				return;
+			// Note: `session_tree` is NOT in AgentSessionEvent — pi only fires it
+			// through the extension-runtime channel. macpi emits a synthesized
+			// `session.tree` PiEvent from BranchService.navigateTree directly,
+			// after the operation completes, so we don't subscribe here.
 			// Other AgentSessionEvent kinds (agent_start, agent_end, message_start,
 			// message_end, tool_execution_update, session_info_changed,
 			// thinking_level_changed) are intentionally ignored. Plan 3+ may

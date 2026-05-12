@@ -11,7 +11,7 @@ import type {
 	TimelineEntry,
 	ToolCallEntry,
 } from "../../shared/timeline-types";
-import { onPiEvent } from "../ipc";
+import { invoke, onPiEvent } from "../ipc";
 
 export interface QueueState {
 	steering: readonly string[];
@@ -127,11 +127,19 @@ export function useTimeline(
 				queryKey: ["session.tree", e.piSessionId],
 			});
 			if (e.newLeafEntryId !== e.oldLeafEntryId) {
-				// Active branch changed — clear the in-memory timeline so the UI
-				// shows a fresh slate, then signal the scroll container to jump to
-				// the bottom (head of the newly active branch).
-				setSnapshot(EMPTY);
-				window.dispatchEvent(new CustomEvent("macpi:scroll-to-bottom"));
+				// Active branch changed — refetch the timeline from pi for the new
+				// branch's path, then signal the scroll container to jump to the
+				// bottom (head of the newly active branch).
+				invoke("session.getHistory", { piSessionId: e.piSessionId })
+					.then(({ entries }) => {
+						setSnapshot({ ...EMPTY, timeline: entries });
+						window.dispatchEvent(new CustomEvent("macpi:scroll-to-bottom"));
+					})
+					.catch(() => {
+						// On failure, fall back to the previous behaviour (clear) so
+						// the user isn't stuck looking at stale messages.
+						setSnapshot(EMPTY);
+					});
 			}
 		});
 	}, [piSessionId, queryClient]);

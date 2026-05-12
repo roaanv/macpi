@@ -106,6 +106,7 @@ app.whenReady().then(async () => {
 		piSessionManager: {
 			getActiveSessionMeta: (id) => channelSessions.findMeta(id),
 		},
+		emitEvent: (event) => manager.broadcastEvent(event),
 	});
 
 	router = new IpcRouter({
