@@ -125,9 +125,10 @@ export function useTimeline(
 		};
 	}, [piSessionId]);
 
-	// React to session.tree events: invalidate the tree query so BranchPanel
-	// stays current, and when the active leaf changes reset the in-memory
-	// timeline (stale content) then scroll to the head of the new branch.
+	// React to session.tree events: invalidate the tree query so the sidebar's
+	// in-place branch list stays current, and when the active leaf changes
+	// reset the in-memory timeline (stale content) then scroll to the head of
+	// the new branch.
 	React.useEffect(() => {
 		if (!piSessionId) return;
 		return onPiEvent((raw) => {

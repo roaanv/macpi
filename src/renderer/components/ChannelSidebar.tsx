@@ -15,6 +15,7 @@ import {
 import { ConfirmDialog } from "./ConfirmDialog";
 import { ContextMenu } from "./ContextMenu";
 import { RowMenu, type RowMenuItem } from "./RowMenu";
+import { SessionBranches } from "./SessionBranches";
 import { SessionRow } from "./SessionRow";
 
 export function ChannelSidebar({
@@ -184,18 +185,25 @@ export function ChannelSidebar({
 						Sessions
 					</div>
 					{sessions.data?.piSessionIds.map((id) => (
-						<SessionRow
-							key={id}
-							piSessionId={id}
-							selected={selectedSessionId === id}
-							onSelect={() => onSelectSession(id)}
-							onRename={(label) =>
-								renameSession.mutate({ piSessionId: id, label })
-							}
-							onRequestDelete={() =>
-								setConfirmSessionDelete({ piSessionId: id })
-							}
-						/>
+						<React.Fragment key={id}>
+							<SessionRow
+								piSessionId={id}
+								selected={selectedSessionId === id}
+								onSelect={() => onSelectSession(id)}
+								onRename={(label) =>
+									renameSession.mutate({ piSessionId: id, label })
+								}
+								onRequestDelete={() =>
+									setConfirmSessionDelete({ piSessionId: id })
+								}
+							/>
+							{selectedSessionId === id && (
+								<SessionBranches
+									piSessionId={id}
+									onForkNavigate={onSelectSession}
+								/>
+							)}
+						</React.Fragment>
 					))}
 				</>
 			)}

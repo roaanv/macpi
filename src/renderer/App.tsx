@@ -1,9 +1,8 @@
 // Root application component that composes the three-pane shell:
-// ModeRail | ChannelSidebar | ChatPane | BranchPanel.
+// ModeRail | ChannelSidebar | ChatPane.
 // Hosts SettingsApplier (writes class+CSS vars on <html>) and dialog state.
 
 import React from "react";
-import { BranchPanel } from "./components/BranchPanel";
 import { ChannelSidebar } from "./components/ChannelSidebar";
 import { ChatPane } from "./components/ChatPane";
 import { CreateChannelDialog } from "./components/CreateChannelDialog";
@@ -49,10 +48,6 @@ export function App() {
 						<ChatPane
 							piSessionId={sessionId}
 							onOpenGlobalSettings={() => setGlobalSettingsOpen(true)}
-						/>
-						<BranchPanel
-							piSessionId={sessionId}
-							onForkNavigate={setSessionId}
 						/>
 					</>
 				)}
