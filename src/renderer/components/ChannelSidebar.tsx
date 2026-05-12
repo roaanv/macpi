@@ -163,7 +163,7 @@ export function ChannelSidebar({
 		: null;
 
 	return (
-		<div className="flex w-60 flex-col gap-1 surface-panel p-3 text-[length:var(--font-size-sidebar)] text-primary">
+		<div className="flex h-full w-full min-w-0 flex-col gap-1 surface-panel p-3 text-[length:var(--font-size-sidebar)] text-primary">
 			<div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-widest text-muted">
 				<span>Channels</span>
 				<button

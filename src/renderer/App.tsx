@@ -11,6 +11,7 @@ import { ExtensionsMode } from "./components/ExtensionsMode";
 import { GlobalSettingsDialog } from "./components/GlobalSettingsDialog";
 import { type Mode, ModeRail } from "./components/ModeRail";
 import { PromptsMode } from "./components/PromptsMode";
+import { ResizablePane } from "./components/ResizablePane";
 import { SettingsApplier } from "./components/SettingsApplier";
 import { SkillsMode } from "./components/SkillsMode";
 
@@ -35,17 +36,19 @@ export function App() {
 				/>
 				{mode === "chat" && (
 					<>
-						<ChannelSidebar
-							selectedChannelId={channelId}
-							selectedSessionId={sessionId}
-							onSelectChannel={(id) => {
-								setChannelId(id);
-								setSessionId(null);
-							}}
-							onSelectSession={setSessionId}
-							onOpenCreateChannel={() => setCreateChannelOpen(true)}
-							onOpenCreateSession={setCreateSessionInChannel}
-						/>
+						<ResizablePane storageKey="channels" defaultWidth={240}>
+							<ChannelSidebar
+								selectedChannelId={channelId}
+								selectedSessionId={sessionId}
+								onSelectChannel={(id) => {
+									setChannelId(id);
+									setSessionId(null);
+								}}
+								onSelectSession={setSessionId}
+								onOpenCreateChannel={() => setCreateChannelOpen(true)}
+								onOpenCreateSession={setCreateSessionInChannel}
+							/>
+						</ResizablePane>
 						<ChatPane
 							piSessionId={sessionId}
 							onOpenGlobalSettings={() => setGlobalSettingsOpen(true)}
