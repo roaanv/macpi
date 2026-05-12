@@ -12,11 +12,13 @@ import { electronDialogHandlers } from "./dialog-handlers";
 import { ExtensionsService } from "./extensions-service";
 import { IpcRouter } from "./ipc-router";
 import { createLogger, type Logger } from "./logger";
+import { configureNpmGlobalPrefix } from "./npm-global-prefix";
 import { PiSessionManager } from "./pi-session-manager";
 import { PromptsService } from "./prompts-service";
 import { AppSettingsRepo } from "./repos/app-settings";
 import { ChannelSessionsRepo } from "./repos/channel-sessions";
 import { ChannelsRepo } from "./repos/channels";
+import { ensureResourceRoot } from "./resource-root";
 import { SkillsService } from "./skills-service";
 import { startupWithRecovery } from "./startup-recovery";
 
@@ -92,6 +94,14 @@ app.whenReady().then(async () => {
 	const channels = new ChannelsRepo(db);
 	const channelSessions = new ChannelSessionsRepo(db);
 	const appSettings = new AppSettingsRepo(db);
+
+	// Redirect pi's `npm install -g` and `npm root -g` to macpi's
+	// resource directory. Must happen before any pi npm subprocess runs.
+	// Changing resourceRoot at runtime requires an app restart for this
+	// to follow.
+	const macpiRoot = ensureResourceRoot(appSettings.getAll(), os.homedir());
+	const npmGlobalPrefix = configureNpmGlobalPrefix(macpiRoot);
+	mainLogger.info(`npm_config_prefix set to ${npmGlobalPrefix}`);
 
 	const manager = new PiSessionManager({
 		appSettings,
