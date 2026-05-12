@@ -1,7 +1,7 @@
 # macpi — top-level Makefile.
 # Canonical commands per project conventions: `make build`, `make run`.
 
-.PHONY: setup build run test test-all lint format typecheck clean deploy
+.PHONY: setup build run test test-all lint format typecheck clean deploy dmg
 
 setup:
 	npm install
@@ -42,3 +42,15 @@ deploy:
 	echo "Copying $$APP_PATH → $$DEST"; \
 	cp -R "$$APP_PATH" "$$DEST"; \
 	echo "Deployed: $$DEST"
+
+# Build a distributable .dmg via electron-forge make. Output lands under
+# out/make/. Unsigned — Gatekeeper will warn on first launch until we add
+# signing+notarization (see the DMG plan's Follow-ups section).
+dmg:
+	npm run make -- --platform=darwin
+	@DMG_PATH=$$(find out/make -maxdepth 4 -name "*.dmg" -type f 2>/dev/null | head -1); \
+	if [ -z "$$DMG_PATH" ]; then \
+		echo "dmg: build finished but no .dmg found under out/make/" >&2; \
+		exit 1; \
+	fi; \
+	echo "DMG produced: $$DMG_PATH"
