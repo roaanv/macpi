@@ -50,11 +50,14 @@ export function App() {
 							piSessionId={sessionId}
 							onOpenGlobalSettings={() => setGlobalSettingsOpen(true)}
 						/>
+						<BranchPanel
+							piSessionId={sessionId}
+							onForkNavigate={setSessionId}
+						/>
 					</>
 				)}
 				{mode === "skills" && <SkillsMode />}
 				{mode === "extensions" && <ExtensionsMode />}
-				<BranchPanel />
 			</div>
 			<GlobalSettingsDialog
 				open={globalSettingsOpen}
