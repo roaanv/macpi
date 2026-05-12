@@ -14,6 +14,7 @@ import type {
 	ExtensionManifest,
 	ExtensionSummary,
 } from "../shared/extensions-types";
+import { friendlyNameForSource } from "../shared/friendly-name";
 import type { PiEvent } from "../shared/pi-events";
 import { extensionResourceId } from "../shared/resource-id";
 import type { AppSettingsRepo } from "./repos/app-settings";
@@ -71,15 +72,25 @@ export class ExtensionsService {
 		id: string;
 		source: string;
 		relativePath: string;
+		name: string;
 	} {
 		const source = ext.sourceInfo.source;
 		const relativePath = ext.resolvedPath
 			? path.relative(this.extensionsRoot(), ext.resolvedPath)
 			: ext.path;
+		// Pi extensions have no frontmatter, so there's no inherent display
+		// name. Prefer the friendly source label (e.g. "asdf" from
+		// "npm:asdf" or "local:/path/to/asdf"). If friendlyNameForSource
+		// can't extract anything (returns the source unchanged), fall back
+		// to relativePath so opaque sources still produce distinguishable
+		// rows. relativePath stays available on the manifest for detail.
+		const friendly = friendlyNameForSource(source);
+		const name = friendly !== source ? friendly : relativePath;
 		return {
 			id: extensionResourceId({ source, relativePath }),
 			source,
 			relativePath,
+			name,
 		};
 	}
 
@@ -93,7 +104,7 @@ export class ExtensionsService {
 			const ids = this.idFor(e);
 			return {
 				id: ids.id,
-				name: ids.relativePath,
+				name: ids.name,
 				source: ids.source,
 				relativePath: ids.relativePath,
 				enabled: enabled[ids.id] !== false,
@@ -114,7 +125,7 @@ export class ExtensionsService {
 			: "";
 		return {
 			manifest: {
-				name: ids.relativePath,
+				name: ids.name,
 				source: ids.source,
 				relativePath: ids.relativePath,
 				path: target.resolvedPath,

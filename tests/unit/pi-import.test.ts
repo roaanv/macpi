@@ -37,6 +37,12 @@ describe("friendlyNameForSource", () => {
 		expect(friendlyNameForSource("./local-ext")).toBe("local-ext");
 	});
 
+	it("strips pi's local: prefix and keeps the trailing path segment", () => {
+		// pi-coding-agent normalises local installs to "local:<absolute path>"
+		expect(friendlyNameForSource("local:/Users/me/code/asdf")).toBe("asdf");
+		expect(friendlyNameForSource("local:./rel/path/foo")).toBe("foo");
+	});
+
 	it("returns the source itself for unrecognized forms", () => {
 		expect(friendlyNameForSource("opaque-string")).toBe("opaque-string");
 	});

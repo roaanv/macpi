@@ -9,9 +9,14 @@
  *   "npm:@scope/pkg"                   -> "@scope/pkg"
  *   "git:https://github.com/foo/bar"   -> "foo/bar"
  *   "git:github.com/foo/bar"           -> "foo/bar"
+ *   "local:/Users/me/code/foo"         -> "foo"
  *   "/abs/path/to/extension"           -> "extension"
  *   "../relative/path/to/extension"    -> "extension"
  *   anything else                      -> source itself
+ *
+ * Pi normalises local packages to "local:<absolute path>" (see
+ * pi-coding-agent's package-manager.resolvePath), which is why "local:"
+ * gets its own branch even though absolute paths already work.
  */
 export function friendlyNameForSource(source: string): string {
 	if (source.startsWith("npm:")) return source.slice(4);
@@ -19,6 +24,11 @@ export function friendlyNameForSource(source: string): string {
 		const rest = source.slice(4).replace(/^https?:\/\//, "");
 		const parts = rest.split("/").filter(Boolean);
 		return parts.slice(-2).join("/") || rest;
+	}
+	if (source.startsWith("local:")) {
+		const rest = source.slice(6);
+		const parts = rest.split(/[/\\]/).filter(Boolean);
+		return parts[parts.length - 1] ?? rest;
 	}
 	if (
 		source.startsWith("/") ||
