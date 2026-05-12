@@ -178,6 +178,104 @@ export async function drive(
 	return { piSessionId, events: harness.captured.slice(before) };
 }
 
+// ---------------------------------------------------------------------------
+// createTestPiHarness — thin high-level wrapper for branching tests.
+//
+// Wraps createHarness() to expose a simplified session-scoped API:
+//   .prompt(text)        — queue a stub response, run a turn, wait for turn_end
+//   .getTree()           — return the raw SessionTreeNode[] from the active session
+//   .navigateTree(id)    — call AgentSession.navigateTree(id) without summarization
+//   .dispose()           — tear down the underlying harness
+//
+// The harness auto-queues a stub "ok" faux response before each prompt so
+// callers don't need to pre-queue.
+// ---------------------------------------------------------------------------
+
+import type { AgentSession, SessionManager } from "@earendil-works/pi-coding-agent";
+
+/** SessionTreeNode shape, derived from SessionManager.getTree(). */
+export type SessionTreeNode = ReturnType<SessionManager["getTree"]>[number];
+
+export interface TestPiHarness {
+	/** Send a user prompt and wait for the turn to complete. */
+	prompt(text: string): Promise<void>;
+	/** Return the raw pi SessionTreeNode[] from the active session tree. */
+	getTree(): SessionTreeNode[];
+	/** Move the session leaf pointer to targetId (no summarization). */
+	navigateTree(targetId: string): Promise<void>;
+	/** Tear down the underlying harness and free temp resources. */
+	dispose(): Promise<void>;
+}
+
+export async function createTestPiHarness(_opts?: {
+	homeDir?: string;
+}): Promise<TestPiHarness> {
+	const piAi = await import("@earendil-works/pi-ai");
+	const harness = await createHarness();
+	const { fauxAssistantMessage, fauxText } = await fauxHelpers();
+
+	// Each call to prompt() needs one queued faux response. We accumulate
+	// them lazily: queueStubResponse() pushes a brief text message so the
+	// faux provider has something to stream and the turn can complete.
+	function queueStubResponse() {
+		harness.queueResponse(fauxAssistantMessage(fauxText("ok")));
+	}
+
+	// The session is created once on the first prompt() call.
+	let piSessionId: string | null = null;
+
+	async function ensureSession(): Promise<string> {
+		if (piSessionId) return piSessionId;
+		const { piSessionId: id } = await harness.manager.createSession({
+			cwd: harness.cwd,
+		});
+		piSessionId = id;
+		return id;
+	}
+
+	async function promptFn(text: string): Promise<void> {
+		const id = await ensureSession();
+		queueStubResponse();
+		const turnEnd = waitForEvent(
+			harness,
+			(e) => e.type === "session.turn_end" && e.piSessionId === id,
+			DEFAULT_TURN_TIMEOUT_MS,
+		);
+		await harness.manager.prompt(id, text);
+		await turnEnd.promise;
+	}
+
+	function getTreeFn(): SessionTreeNode[] {
+		if (!piSessionId) return [];
+		const session = harness.manager.getAgentSession(piSessionId) as
+			| AgentSession
+			| undefined;
+		if (!session) return [];
+		return session.sessionManager.getTree();
+	}
+
+	async function navigateTreeFn(targetId: string): Promise<void> {
+		if (!piSessionId) throw new Error("no active session");
+		const session = harness.manager.getAgentSession(piSessionId) as
+			| AgentSession
+			| undefined;
+		if (!session) throw new Error("no active AgentSession");
+		const result = await session.navigateTree(targetId);
+		if (result.cancelled) {
+			throw new Error(`navigateTree cancelled for ${targetId}`);
+		}
+	}
+
+	return {
+		prompt: promptFn,
+		getTree: getTreeFn,
+		navigateTree: navigateTreeFn,
+		dispose: async () => {
+			harness.dispose();
+		},
+	};
+}
+
 // Re-exports so tests don't each have to await import("@earendil-works/pi-ai").
 // We do this inside an async exporter helper; consumers can `import { fauxHelpers } from "./test-harness"`
 // and then `await fauxHelpers()` to get them. Direct re-export from an ESM-only
