@@ -1,33 +1,27 @@
-// Lists and selectively imports skills/extensions from a pi installation
-// into macpi's resource root. Skills = top-level files; extensions =
-// directories. "Friendly name" is just the file/directory basename — pi
-// itself has no manifest name field for these resources, matching the
-// pi-extmgr convention.
+// Lists and selectively imports skills from a pi installation into macpi's
+// resource root. Skills = top-level files copied straight across. Extensions
+// take a different path (see PiSessionManager.listConfiguredPiPackages +
+// installPiPackage) because pi tracks them in settings.packages with sources
+// that can be npm/git/local-path — not just directories.
 
 import fs from "node:fs";
 import path from "node:path";
 
-export type ResourceKind = "skill" | "extension";
-
-export interface PiResource {
-	/** Display + identifier — basename of the file or directory. */
+export interface PiSkill {
+	/** File basename in ~/.pi/agent/skills (also the identifier). */
 	name: string;
-	/** Absolute path of the item in the pi tree. */
-	sourcePath: string;
-	/** True when an item with this basename already exists in macpi. */
+	/** True when a file with this basename already exists in macpi's skills. */
 	alreadyImported: boolean;
 }
 
-export interface ListInput {
+export interface ListSkillsInput {
 	piAgentRoot: string;
 	macpiRoot: string;
-	kind: ResourceKind;
 }
 
-export interface ImportInput {
+export interface ImportSkillsInput {
 	piAgentRoot: string;
 	macpiRoot: string;
-	kind: ResourceKind;
 	/** Basenames to import. Anything not in this list is skipped entirely. */
 	names: readonly string[];
 }
@@ -37,27 +31,17 @@ export interface ImportResult {
 	skipped: number;
 }
 
-/**
- * Walk the pi resource directory for `kind` and return one PiResource per
- * importable item. Skills are matched as top-level files; extensions as
- * top-level directories. Symlinks are followed (pi commonly symlinks
- * extensions/skills into a working tree).
- */
-export function listPiResources(input: ListInput): PiResource[] {
-	const sourceDir = path.join(input.piAgentRoot, dirNameFor(input.kind));
-	const targetDir = path.join(input.macpiRoot, dirNameFor(input.kind));
+/** Top-level skill files in ~/.pi/agent/skills, sorted by name. */
+export function listPiSkills(input: ListSkillsInput): PiSkill[] {
+	const sourceDir = path.join(input.piAgentRoot, "skills");
+	const targetDir = path.join(input.macpiRoot, "skills");
 	if (!fs.existsSync(sourceDir)) return [];
-	const out: PiResource[] = [];
+	const out: PiSkill[] = [];
 	for (const name of fs.readdirSync(sourceDir)) {
 		const sourcePath = path.join(sourceDir, name);
-		const stat = safeStat(sourcePath);
-		if (!stat) continue;
-		const matchesKind =
-			input.kind === "skill" ? stat.isFile() : stat.isDirectory();
-		if (!matchesKind) continue;
+		if (!safeStat(sourcePath)?.isFile()) continue;
 		out.push({
 			name,
-			sourcePath,
 			alreadyImported: fs.existsSync(path.join(targetDir, name)),
 		});
 	}
@@ -66,12 +50,12 @@ export function listPiResources(input: ListInput): PiResource[] {
 }
 
 /**
- * Copy the named items from pi into macpi's resource root. Skip-if-exists;
- * never overwrites. Returns counts so the UI can confirm the result.
+ * Copy the named skill files from pi into macpi's skills dir. Skip-if-exists;
+ * never overwrites. Skips names that don't exist or aren't files.
  */
-export function importSelectedPiResources(input: ImportInput): ImportResult {
-	const sourceDir = path.join(input.piAgentRoot, dirNameFor(input.kind));
-	const targetDir = path.join(input.macpiRoot, dirNameFor(input.kind));
+export function importSelectedPiSkills(input: ImportSkillsInput): ImportResult {
+	const sourceDir = path.join(input.piAgentRoot, "skills");
+	const targetDir = path.join(input.macpiRoot, "skills");
 	if (!fs.existsSync(sourceDir)) return { copied: 0, skipped: 0 };
 	fs.mkdirSync(targetDir, { recursive: true });
 	let copied = 0;
@@ -79,36 +63,14 @@ export function importSelectedPiResources(input: ImportInput): ImportResult {
 	for (const name of input.names) {
 		const src = path.join(sourceDir, name);
 		const dst = path.join(targetDir, name);
-		const stat = safeStat(src);
-		if (!stat) {
+		if (!safeStat(src)?.isFile() || fs.existsSync(dst)) {
 			skipped++;
 			continue;
 		}
-		if (fs.existsSync(dst)) {
-			skipped++;
-			continue;
-		}
-		if (input.kind === "skill") {
-			if (!stat.isFile()) {
-				skipped++;
-				continue;
-			}
-			fs.copyFileSync(src, dst);
-			copied++;
-		} else {
-			if (!stat.isDirectory()) {
-				skipped++;
-				continue;
-			}
-			copyDirRecursive(src, dst);
-			copied++;
-		}
+		fs.copyFileSync(src, dst);
+		copied++;
 	}
 	return { copied, skipped };
-}
-
-function dirNameFor(kind: ResourceKind): string {
-	return kind === "skill" ? "skills" : "extensions";
 }
 
 /** Stat that follows symlinks; returns null when the target is missing/broken. */
@@ -120,14 +82,32 @@ function safeStat(p: string): fs.Stats | null {
 	}
 }
 
-function copyDirRecursive(src: string, dst: string): void {
-	fs.mkdirSync(dst, { recursive: true });
-	for (const name of fs.readdirSync(src)) {
-		const s = path.join(src, name);
-		const d = path.join(dst, name);
-		const stat = safeStat(s);
-		if (!stat) continue;
-		if (stat.isFile()) fs.copyFileSync(s, d);
-		else if (stat.isDirectory()) copyDirRecursive(s, d);
+/**
+ * Strip the pi package source prefix to produce a human-friendly label.
+ * Examples:
+ *   "npm:pi-mcp-adapter"               -> "pi-mcp-adapter"
+ *   "npm:@scope/pkg"                   -> "@scope/pkg"
+ *   "git:https://github.com/foo/bar"   -> "foo/bar"
+ *   "git:github.com/foo/bar"           -> "foo/bar"
+ *   "/abs/path/to/extension"           -> "extension"
+ *   "../relative/path/to/extension"    -> "extension"
+ *   anything else                      -> source itself
+ */
+export function friendlyNameForSource(source: string): string {
+	if (source.startsWith("npm:")) return source.slice(4);
+	if (source.startsWith("git:")) {
+		const rest = source.slice(4).replace(/^https?:\/\//, "");
+		const parts = rest.split("/").filter(Boolean);
+		return parts.slice(-2).join("/") || rest;
 	}
+	if (
+		source.startsWith("/") ||
+		source.startsWith("./") ||
+		source.startsWith("../") ||
+		source.startsWith("~")
+	) {
+		const parts = source.split(/[/\\]/).filter(Boolean);
+		return parts[parts.length - 1] ?? source;
+	}
+	return source;
 }

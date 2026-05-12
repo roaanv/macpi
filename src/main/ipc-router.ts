@@ -21,7 +21,11 @@ import type { BranchService } from "./branch-service";
 import type { DialogHandlers } from "./dialog-handlers";
 import type { ExtensionsService } from "./extensions-service";
 import type { Logger } from "./logger";
-import { importSelectedPiResources, listPiResources } from "./pi-import";
+import {
+	friendlyNameForSource,
+	importSelectedPiSkills,
+	listPiSkills,
+} from "./pi-import";
 import type { PiSessionManager } from "./pi-session-manager";
 import type { AppSettingsRepo } from "./repos/app-settings";
 import type { ChannelSessionsRepo } from "./repos/channel-sessions";
@@ -278,30 +282,73 @@ export class IpcRouter {
 				this.deps.appSettings.getAll(),
 				os.homedir(),
 			);
-			const resources = listPiResources({
-				piAgentRoot,
-				macpiRoot,
-				kind: args.kind,
-			});
-			return ok({
-				resources: resources.map((r) => ({
-					name: r.name,
-					alreadyImported: r.alreadyImported,
-				})),
-			});
+			if (args.kind === "skill") {
+				const skills = listPiSkills({ piAgentRoot, macpiRoot });
+				return ok({
+					resources: skills.map((s) => ({
+						name: s.name,
+						displayName: s.name,
+						alreadyImported: s.alreadyImported,
+					})),
+				});
+			}
+			// extension kind: list pi's configured packages and compare against
+			// macpi's already-registered sources.
+			try {
+				const [piPackages, macpiSources] = await Promise.all([
+					this.deps.piSessionManager.listConfiguredPiPackages(piAgentRoot),
+					this.deps.piSessionManager.listMacpiConfiguredSources(),
+				]);
+				const macpiSet = new Set(macpiSources);
+				const resources = piPackages
+					.map((p) => ({
+						name: p.source,
+						displayName: friendlyNameForSource(p.source),
+						alreadyImported: macpiSet.has(p.source),
+					}))
+					.sort((a, b) => a.displayName.localeCompare(b.displayName));
+				return ok({ resources });
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				return err("list_failed", msg);
+			}
 		});
 		this.register("resources.importPiResources", async (args) => {
+			if (args.kind === "skill") {
+				try {
+					const r = importSelectedPiSkills({
+						piAgentRoot: path.join(os.homedir(), ".pi", "agent"),
+						macpiRoot: getResourceRoot(
+							this.deps.appSettings.getAll(),
+							os.homedir(),
+						),
+						names: args.names,
+					});
+					return ok(r);
+				} catch (e) {
+					const msg = e instanceof Error ? e.message : String(e);
+					return err("import_failed", msg);
+				}
+			}
+			// extension kind: register each source via macpi's package manager.
+			// installAndPersist both adds to settings.packages and installs the
+			// package into macpi's agent dir.
 			try {
-				const r = importSelectedPiResources({
-					piAgentRoot: path.join(os.homedir(), ".pi", "agent"),
-					macpiRoot: getResourceRoot(
-						this.deps.appSettings.getAll(),
-						os.homedir(),
-					),
-					kind: args.kind,
-					names: args.names,
-				});
-				return ok(r);
+				const pm = await this.deps.piSessionManager.loadPackageManager();
+				let copied = 0;
+				let skipped = 0;
+				const existing = new Set(
+					pm.listConfiguredPackages().map((p) => p.source),
+				);
+				for (const source of args.names) {
+					if (existing.has(source)) {
+						skipped++;
+						continue;
+					}
+					await pm.installAndPersist(source, { local: false });
+					copied++;
+				}
+				return ok({ copied, skipped });
 			} catch (e) {
 				const msg = e instanceof Error ? e.message : String(e);
 				return err("import_failed", msg);

@@ -259,9 +259,65 @@ export class PiSessionManager {
 		this.emit(event);
 	}
 
+	/**
+	 * List packages configured in another pi installation (e.g. ~/.pi/agent).
+	 * Used by the "Import from pi" picker so the user can see every package
+	 * pi has registered — npm, git, and local-path entries — not just the
+	 * dir-based extensions that happen to live under ~/.pi/agent/extensions.
+	 */
+	async listConfiguredPiPackages(piAgentRoot: string): Promise<
+		Array<{
+			source: string;
+			scope: "user" | "project";
+			installedPath?: string;
+		}>
+	> {
+		if (!this.deps) {
+			throw new Error(
+				"PiSessionManager requires deps for listConfiguredPiPackages",
+			);
+		}
+		const ctx = await this.ensureContext();
+		const settingsManager = ctx.mod.SettingsManager.create(
+			this.deps.homeDir,
+			piAgentRoot,
+		);
+		const pm = new ctx.mod.DefaultPackageManager({
+			cwd: this.deps.homeDir,
+			agentDir: piAgentRoot,
+			settingsManager,
+		});
+		// Only surface user-scope packages — project-scope packages are bound
+		// to a specific cwd's .pi/ directory and aren't meaningful as an
+		// "import this into macpi" target.
+		return pm
+			.listConfiguredPackages()
+			.filter((p) => p.scope === "user")
+			.map((p) => ({
+				source: p.source,
+				scope: p.scope,
+				installedPath: p.installedPath,
+			}));
+	}
+
+	/**
+	 * Source strings already registered in macpi's own settings.packages.
+	 * Used by the picker to mark items as already imported.
+	 */
+	async listMacpiConfiguredSources(): Promise<string[]> {
+		const pm = await this.loadPackageManager();
+		return pm.listConfiguredPackages().map((p) => p.source);
+	}
+
 	/** Constructs a one-shot DefaultPackageManager using the configured
 	 *  resourceRoot. Caller is responsible for setProgressCallback lifecycle. */
 	async loadPackageManager(): Promise<{
+		listConfiguredPackages: () => Array<{
+			source: string;
+			scope: "user" | "project";
+			filtered: boolean;
+			installedPath?: string;
+		}>;
 		installAndPersist: (
 			source: string,
 			options?: { local?: boolean },

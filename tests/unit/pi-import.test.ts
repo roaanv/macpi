@@ -10,86 +10,100 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
-	importSelectedPiResources,
-	listPiResources,
+	friendlyNameForSource,
+	importSelectedPiSkills,
+	listPiSkills,
 } from "../../src/main/pi-import";
 
-describe("listPiResources", () => {
+describe("friendlyNameForSource", () => {
+	it("strips npm: prefix", () => {
+		expect(friendlyNameForSource("npm:pi-mcp-adapter")).toBe("pi-mcp-adapter");
+	});
+
+	it("preserves scoped npm names", () => {
+		expect(friendlyNameForSource("npm:@scope/pkg")).toBe("@scope/pkg");
+	});
+
+	it("strips git: prefix and keeps last two path segments", () => {
+		expect(friendlyNameForSource("git:https://github.com/foo/bar")).toBe(
+			"foo/bar",
+		);
+		expect(friendlyNameForSource("git:github.com/foo/bar")).toBe("foo/bar");
+	});
+
+	it("reduces local paths to the trailing segment", () => {
+		expect(friendlyNameForSource("/abs/path/to/extension")).toBe("extension");
+		expect(friendlyNameForSource("../rel/path/to/thing")).toBe("thing");
+		expect(friendlyNameForSource("./local-ext")).toBe("local-ext");
+	});
+
+	it("returns the source itself for unrecognized forms", () => {
+		expect(friendlyNameForSource("opaque-string")).toBe("opaque-string");
+	});
+});
+
+describe("listPiSkills", () => {
 	let homeDir: string;
 	let piAgentRoot: string;
 	let macpiRoot: string;
 
 	beforeEach(() => {
-		homeDir = mkdtempSync(path.join(os.tmpdir(), "macpi-import-list-"));
+		homeDir = mkdtempSync(path.join(os.tmpdir(), "macpi-skills-list-"));
 		piAgentRoot = path.join(homeDir, ".pi/agent");
 		macpiRoot = path.join(homeDir, ".macpi");
 		mkdirSync(path.join(piAgentRoot, "skills"), { recursive: true });
-		mkdirSync(path.join(piAgentRoot, "extensions"), { recursive: true });
 		mkdirSync(macpiRoot, { recursive: true });
 	});
 	afterEach(() => rmSync(homeDir, { recursive: true, force: true }));
 
-	it("returns skill files sorted by name", () => {
+	it("returns top-level files sorted by name", () => {
 		writeFileSync(path.join(piAgentRoot, "skills/zebra.md"), "z");
 		writeFileSync(path.join(piAgentRoot, "skills/alpha.md"), "a");
-		// Subdirs aren't skills — should be ignored.
+		// Subdirectories aren't skills.
 		mkdirSync(path.join(piAgentRoot, "skills/subdir"));
 
-		const r = listPiResources({ piAgentRoot, macpiRoot, kind: "skill" });
+		const r = listPiSkills({ piAgentRoot, macpiRoot });
 		expect(r.map((x) => x.name)).toEqual(["alpha.md", "zebra.md"]);
 	});
 
-	it("returns extension directories only", () => {
-		mkdirSync(path.join(piAgentRoot, "extensions/web-agent"));
-		mkdirSync(path.join(piAgentRoot, "extensions/supacode"));
-		// Top-level files in the extensions dir aren't extensions.
-		writeFileSync(path.join(piAgentRoot, "extensions/loose.ts"), "x");
-
-		const r = listPiResources({ piAgentRoot, macpiRoot, kind: "extension" });
-		expect(r.map((x) => x.name)).toEqual(["supacode", "web-agent"]);
-	});
-
-	it("flags alreadyImported=true when the basename exists in macpi", () => {
+	it("flags alreadyImported=true on basename collision", () => {
 		writeFileSync(path.join(piAgentRoot, "skills/a.md"), "pi");
 		mkdirSync(path.join(macpiRoot, "skills"));
 		writeFileSync(path.join(macpiRoot, "skills/a.md"), "macpi");
 
-		const r = listPiResources({ piAgentRoot, macpiRoot, kind: "skill" });
+		const r = listPiSkills({ piAgentRoot, macpiRoot });
 		expect(r).toEqual([
 			expect.objectContaining({ name: "a.md", alreadyImported: true }),
 		]);
 	});
 
-	it("returns empty when the pi resource dir doesn't exist", () => {
+	it("returns empty when ~/.pi/agent/skills doesn't exist", () => {
 		rmSync(path.join(piAgentRoot, "skills"), { recursive: true });
-		const r = listPiResources({ piAgentRoot, macpiRoot, kind: "skill" });
-		expect(r).toEqual([]);
+		expect(listPiSkills({ piAgentRoot, macpiRoot })).toEqual([]);
 	});
 });
 
-describe("importSelectedPiResources", () => {
+describe("importSelectedPiSkills", () => {
 	let homeDir: string;
 	let piAgentRoot: string;
 	let macpiRoot: string;
 
 	beforeEach(() => {
-		homeDir = mkdtempSync(path.join(os.tmpdir(), "macpi-import-sel-"));
+		homeDir = mkdtempSync(path.join(os.tmpdir(), "macpi-skills-import-"));
 		piAgentRoot = path.join(homeDir, ".pi/agent");
 		macpiRoot = path.join(homeDir, ".macpi");
 		mkdirSync(path.join(piAgentRoot, "skills"), { recursive: true });
-		mkdirSync(path.join(piAgentRoot, "extensions"), { recursive: true });
 	});
 	afterEach(() => rmSync(homeDir, { recursive: true, force: true }));
 
-	it("copies only the named skills, leaves others alone", () => {
+	it("copies only the named files", () => {
 		writeFileSync(path.join(piAgentRoot, "skills/a.md"), "A");
 		writeFileSync(path.join(piAgentRoot, "skills/b.md"), "B");
 		writeFileSync(path.join(piAgentRoot, "skills/c.md"), "C");
 
-		const r = importSelectedPiResources({
+		const r = importSelectedPiSkills({
 			piAgentRoot,
 			macpiRoot,
-			kind: "skill",
 			names: ["a.md", "c.md"],
 		});
 		expect(r).toEqual({ copied: 2, skipped: 0 });
@@ -98,33 +112,14 @@ describe("importSelectedPiResources", () => {
 		expect(existsSync(path.join(macpiRoot, "skills/c.md"))).toBe(true);
 	});
 
-	it("recursively copies extension directories", () => {
-		mkdirSync(path.join(piAgentRoot, "extensions/ext1"));
-		writeFileSync(path.join(piAgentRoot, "extensions/ext1/index.ts"), "x");
-		mkdirSync(path.join(piAgentRoot, "extensions/ext1/sub"));
-		writeFileSync(path.join(piAgentRoot, "extensions/ext1/sub/y.ts"), "y");
-
-		const r = importSelectedPiResources({
-			piAgentRoot,
-			macpiRoot,
-			kind: "extension",
-			names: ["ext1"],
-		});
-		expect(r).toEqual({ copied: 1, skipped: 0 });
-		expect(
-			readFileSync(path.join(macpiRoot, "extensions/ext1/sub/y.ts"), "utf8"),
-		).toBe("y");
-	});
-
-	it("skips items that already exist at the target (never overwrites)", () => {
+	it("never overwrites existing files", () => {
 		writeFileSync(path.join(piAgentRoot, "skills/a.md"), "pi-version");
 		mkdirSync(path.join(macpiRoot, "skills"), { recursive: true });
 		writeFileSync(path.join(macpiRoot, "skills/a.md"), "keep-me");
 
-		const r = importSelectedPiResources({
+		const r = importSelectedPiSkills({
 			piAgentRoot,
 			macpiRoot,
-			kind: "skill",
 			names: ["a.md"],
 		});
 		expect(r).toEqual({ copied: 0, skipped: 1 });
@@ -133,36 +128,15 @@ describe("importSelectedPiResources", () => {
 		);
 	});
 
-	it("skips names that don't exist in the pi tree", () => {
+	it("skips names that don't exist or aren't files", () => {
 		writeFileSync(path.join(piAgentRoot, "skills/real.md"), "x");
-		const r = importSelectedPiResources({
-			piAgentRoot,
-			macpiRoot,
-			kind: "skill",
-			names: ["real.md", "ghost.md"],
-		});
-		expect(r).toEqual({ copied: 1, skipped: 1 });
-	});
+		mkdirSync(path.join(piAgentRoot, "skills/folder"));
 
-	it("skill kind ignores directories even when explicitly named", () => {
-		mkdirSync(path.join(piAgentRoot, "skills/folder"), { recursive: true });
-		const r = importSelectedPiResources({
+		const r = importSelectedPiSkills({
 			piAgentRoot,
 			macpiRoot,
-			kind: "skill",
-			names: ["folder"],
+			names: ["real.md", "ghost.md", "folder"],
 		});
-		expect(r).toEqual({ copied: 0, skipped: 1 });
-	});
-
-	it("extension kind ignores files even when explicitly named", () => {
-		writeFileSync(path.join(piAgentRoot, "extensions/loose.ts"), "x");
-		const r = importSelectedPiResources({
-			piAgentRoot,
-			macpiRoot,
-			kind: "extension",
-			names: ["loose.ts"],
-		});
-		expect(r).toEqual({ copied: 0, skipped: 1 });
+		expect(r).toEqual({ copied: 1, skipped: 2 });
 	});
 });

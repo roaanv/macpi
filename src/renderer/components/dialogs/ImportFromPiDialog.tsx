@@ -67,7 +67,8 @@ export function ImportFromPiDialog({
 	};
 
 	const kindLabel = resourceKind === "skill" ? "skills" : "extensions";
-	const sourceLabel = `~/.pi/agent/${kindLabel}`;
+	const sourceLabel =
+		resourceKind === "skill" ? "~/.pi/agent/skills" : "pi's installed packages";
 
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss
@@ -122,6 +123,9 @@ export function ImportFromPiDialog({
 						<div className="flex max-h-[40vh] flex-col gap-1 overflow-y-auto rounded border border-divider p-1">
 							{items.map((item) => {
 								const isSelected = selected.has(item.name);
+								const showSource =
+									resourceKind === "extension" &&
+									item.displayName !== item.name;
 								return (
 									<label
 										key={item.name}
@@ -137,7 +141,14 @@ export function ImportFromPiDialog({
 											checked={isSelected && !item.alreadyImported}
 											onChange={() => toggle(item.name)}
 										/>
-										<span className="flex-1 truncate">{item.name}</span>
+										<div className="flex flex-1 flex-col overflow-hidden">
+											<span className="truncate">{item.displayName}</span>
+											{showSource && (
+												<span className="truncate text-[10px] text-faint">
+													{item.name}
+												</span>
+											)}
+										</div>
 										{item.alreadyImported && (
 											<span className="rounded surface-row px-1.5 text-[10px] text-muted">
 												already imported

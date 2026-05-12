@@ -195,7 +195,10 @@ export interface IpcMethods {
 		req: { kind: "skill" | "extension" };
 		res: {
 			resources: ReadonlyArray<{
+				/** Identifier — filename (skill) or source string (extension). */
 				name: string;
+				/** Human-friendly name for display. */
+				displayName: string;
 				alreadyImported: boolean;
 			}>;
 		};
@@ -203,6 +206,7 @@ export interface IpcMethods {
 	"resources.importPiResources": {
 		req: {
 			kind: "skill" | "extension";
+			/** For skills: filenames. For extensions: source strings. */
 			names: readonly string[];
 		};
 		res: { copied: number; skipped: number };
