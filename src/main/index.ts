@@ -22,6 +22,23 @@ import { startupWithRecovery } from "./startup-recovery";
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const MAIN_WINDOW_VITE_NAME: string;
 
+// Pin the data + logs directories to the lowercase identifier BEFORE
+// changing the display name. Electron derives userData/logs/cache from
+// app.name, so renaming to "MacPi" without this would move the DB to a
+// new directory and look like data loss on case-sensitive filesystems
+// (macOS APFS is case-insensitive by default, so most users wouldn't
+// notice, but we shouldn't depend on that).
+const appData = app.getPath("appData");
+app.setPath("userData", path.join(appData, "macpi"));
+if (process.platform === "darwin") {
+	app.setPath("logs", path.join(os.homedir(), "Library", "Logs", "macpi"));
+}
+
+// Set display name AFTER the path pins so the macOS application menu
+// reads "MacPi" (not "Electron") in dev runs. Packaged builds also pick
+// this up from package.json productName + forge packagerConfig.name.
+app.setName("MacPi");
+
 let piSessionManager: PiSessionManager | null = null;
 let router: IpcRouter | null = null;
 let mainLogger: Logger | null = null;
@@ -31,7 +48,7 @@ function createWindow() {
 	const mainWindow = new BrowserWindow({
 		width: 1280,
 		height: 800,
-		title: "macpi",
+		title: "MacPi",
 		webPreferences: {
 			preload: path.join(__dirname, "preload.js"),
 			contextIsolation: true,

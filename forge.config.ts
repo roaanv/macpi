@@ -9,7 +9,7 @@ import type { ForgeConfig } from "@electron-forge/shared-types";
 
 const config: ForgeConfig = {
 	packagerConfig: {
-		name: "macpi",
+		name: "MacPi",
 		appBundleId: "io.0112.macpi",
 		appCategoryType: "public.app-category.developer-tools",
 		asar: true,

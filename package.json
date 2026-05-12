@@ -1,6 +1,6 @@
 {
 	"name": "macpi",
-	"productName": "macpi",
+	"productName": "MacPi",
 	"version": "1.0.0",
 	"description": "Electron UI for the pi.dev coding agent",
 	"main": ".vite/build/index.js",
