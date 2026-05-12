@@ -3,6 +3,7 @@ import {
 	extensionResourceId,
 	filterEnabled,
 	parseResourceId,
+	promptResourceId,
 	skillResourceId,
 } from "../../src/shared/resource-id";
 
@@ -57,6 +58,19 @@ describe("extensionResourceId", () => {
 			type: "extension",
 			source: "local",
 			relativePath: "my-ext.ts",
+		});
+	});
+});
+
+describe("promptResourceId", () => {
+	it("formats prompt ids and round-trips through parseResourceId", () => {
+		expect(
+			promptResourceId({ source: "local", relativePath: "recap.md" }),
+		).toBe("prompt:local:recap.md");
+		expect(parseResourceId("prompt:local:recap.md")).toEqual({
+			type: "prompt",
+			source: "local",
+			relativePath: "recap.md",
 		});
 	});
 });

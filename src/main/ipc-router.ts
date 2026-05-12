@@ -23,10 +23,11 @@ import type { ExtensionsService } from "./extensions-service";
 import type { Logger } from "./logger";
 import {
 	friendlyNameForSource,
-	importSelectedPiSkills,
-	listPiSkills,
+	importSelectedPiTopLevelFiles,
+	listPiTopLevelFiles,
 } from "./pi-import";
 import type { PiSessionManager } from "./pi-session-manager";
+import type { PromptsService } from "./prompts-service";
 import type { AppSettingsRepo } from "./repos/app-settings";
 import type { ChannelSessionsRepo } from "./repos/channel-sessions";
 import type { ChannelsRepo } from "./repos/channels";
@@ -43,6 +44,7 @@ export interface RouterDeps {
 	appSettings: AppSettingsRepo;
 	skillsService: SkillsService;
 	extensionsService: ExtensionsService;
+	promptsService: PromptsService;
 	branchService: BranchService;
 	dialog: DialogHandlers;
 	getDefaultCwd: () => string;
@@ -276,19 +278,65 @@ export class IpcRouter {
 				return err("remove_failed", msg);
 			}
 		});
+		this.register("prompts.list", async () => {
+			const prompts = await this.deps.promptsService.list();
+			return ok({ prompts, loadErrors: [] });
+		});
+		this.register("prompts.read", async (args) => {
+			try {
+				const detail = await this.deps.promptsService.read(args.id);
+				return ok(detail);
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				if (msg.includes("not found")) return err("not_found", msg);
+				throw e;
+			}
+		});
+		this.register("prompts.save", async (args) => {
+			try {
+				await this.deps.promptsService.save(args.id, {
+					body: args.body,
+					description: args.description,
+					argumentHint: args.argumentHint,
+				});
+				return ok({});
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				if (msg.includes("not found")) return err("not_found", msg);
+				throw e;
+			}
+		});
+		this.register("prompts.setEnabled", async (args) => {
+			await this.deps.promptsService.setEnabled(args.id, args.enabled);
+			return ok({});
+		});
+		this.register("prompts.install", async (args) => {
+			try {
+				await this.deps.promptsService.install(args.source);
+				return ok({});
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				return err("install_failed", msg);
+			}
+		});
 		this.register("resources.listPiResources", async (args) => {
 			const piAgentRoot = path.join(os.homedir(), ".pi", "agent");
 			const macpiRoot = getResourceRoot(
 				this.deps.appSettings.getAll(),
 				os.homedir(),
 			);
-			if (args.kind === "skill") {
-				const skills = listPiSkills({ piAgentRoot, macpiRoot });
+			if (args.kind === "skill" || args.kind === "prompt") {
+				const subdir = args.kind === "skill" ? "skills" : "prompts";
+				const files = listPiTopLevelFiles({
+					piAgentRoot,
+					macpiRoot,
+					subdir,
+				});
 				return ok({
-					resources: skills.map((s) => ({
-						name: s.name,
-						displayName: s.name,
-						alreadyImported: s.alreadyImported,
+					resources: files.map((f) => ({
+						name: f.name,
+						displayName: f.name,
+						alreadyImported: f.alreadyImported,
 					})),
 				});
 			}
@@ -314,14 +362,16 @@ export class IpcRouter {
 			}
 		});
 		this.register("resources.importPiResources", async (args) => {
-			if (args.kind === "skill") {
+			if (args.kind === "skill" || args.kind === "prompt") {
 				try {
-					const r = importSelectedPiSkills({
+					const subdir = args.kind === "skill" ? "skills" : "prompts";
+					const r = importSelectedPiTopLevelFiles({
 						piAgentRoot: path.join(os.homedir(), ".pi", "agent"),
 						macpiRoot: getResourceRoot(
 							this.deps.appSettings.getAll(),
 							os.homedir(),
 						),
+						subdir,
 						names: args.names,
 					});
 					return ok(r);

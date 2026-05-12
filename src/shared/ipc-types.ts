@@ -8,6 +8,11 @@ import type {
 	ExtensionManifest,
 	ExtensionSummary,
 } from "./extensions-types";
+import type {
+	PromptLoadError,
+	PromptManifest,
+	PromptSummary,
+} from "./prompts-types";
 import type { SkillManifest, SkillSummary } from "./skills-types";
 import type { TimelineEntry } from "./timeline-types";
 
@@ -191,8 +196,33 @@ export interface IpcMethods {
 		req: { source: string };
 		res: Record<string, never>;
 	};
+	"prompts.list": {
+		req: Record<string, never>;
+		res: { prompts: PromptSummary[]; loadErrors: PromptLoadError[] };
+	};
+	"prompts.read": {
+		req: { id: string };
+		res: { manifest: PromptManifest; body: string };
+	};
+	"prompts.save": {
+		req: {
+			id: string;
+			body: string;
+			description?: string;
+			argumentHint?: string;
+		};
+		res: Record<string, never>;
+	};
+	"prompts.setEnabled": {
+		req: { id: string; enabled: boolean };
+		res: Record<string, never>;
+	};
+	"prompts.install": {
+		req: { source: string };
+		res: Record<string, never>;
+	};
 	"resources.listPiResources": {
-		req: { kind: "skill" | "extension" };
+		req: { kind: "skill" | "extension" | "prompt" };
 		res: {
 			resources: ReadonlyArray<{
 				/** Identifier — filename (skill) or source string (extension). */
@@ -205,7 +235,7 @@ export interface IpcMethods {
 	};
 	"resources.importPiResources": {
 		req: {
-			kind: "skill" | "extension";
+			kind: "skill" | "extension" | "prompt";
 			/** For skills: filenames. For extensions: source strings. */
 			names: readonly string[];
 		};

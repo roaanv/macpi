@@ -10,7 +10,7 @@ import { useImportPiResources, usePiResources } from "../../queries";
 interface ImportFromPiDialogProps {
 	open: boolean;
 	onClose: () => void;
-	resourceKind: "skill" | "extension";
+	resourceKind: "skill" | "extension" | "prompt";
 }
 
 export function ImportFromPiDialog({
@@ -66,9 +66,18 @@ export function ImportFromPiDialog({
 		);
 	};
 
-	const kindLabel = resourceKind === "skill" ? "skills" : "extensions";
+	const kindLabel =
+		resourceKind === "skill"
+			? "skills"
+			: resourceKind === "prompt"
+				? "prompts"
+				: "extensions";
 	const sourceLabel =
-		resourceKind === "skill" ? "~/.pi/agent/skills" : "pi's installed packages";
+		resourceKind === "skill"
+			? "~/.pi/agent/skills"
+			: resourceKind === "prompt"
+				? "~/.pi/agent/prompts"
+				: "pi's installed packages";
 
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss

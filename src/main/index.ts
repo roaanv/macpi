@@ -13,6 +13,7 @@ import { ExtensionsService } from "./extensions-service";
 import { IpcRouter } from "./ipc-router";
 import { createLogger, type Logger } from "./logger";
 import { PiSessionManager } from "./pi-session-manager";
+import { PromptsService } from "./prompts-service";
 import { AppSettingsRepo } from "./repos/app-settings";
 import { ChannelSessionsRepo } from "./repos/channel-sessions";
 import { ChannelsRepo } from "./repos/channels";
@@ -125,6 +126,14 @@ app.whenReady().then(async () => {
 		runBiome: (filePath) => runBiomeCheck(filePath),
 	});
 
+	const promptsService = new PromptsService({
+		appSettings,
+		homeDir: os.homedir(),
+		loadPrompts: () => manager.loadPrompts(),
+		loadPackageManager: () => manager.loadPackageManager(),
+		emitEvent: (event) => manager.broadcastEvent(event),
+	});
+
 	const branchService = new BranchService({
 		// AgentSession is structurally compatible with BranchAgentSession; cast
 		// to satisfy the locally-declared interface (which intentionally omits
@@ -146,6 +155,7 @@ app.whenReady().then(async () => {
 		appSettings,
 		skillsService,
 		extensionsService,
+		promptsService,
 		branchService,
 		dialog: electronDialogHandlers,
 		getDefaultCwd,

@@ -254,6 +254,62 @@ export function useInstallSkill() {
 	});
 }
 
+export function usePrompts() {
+	return useQuery({
+		queryKey: ["prompts.list"],
+		queryFn: () => invoke("prompts.list", {}),
+	});
+}
+
+export function useSetPromptEnabled() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (input: { id: string; enabled: boolean }) =>
+			invoke("prompts.setEnabled", input),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["prompts.list"] });
+			window.dispatchEvent(new CustomEvent("macpi:prompts-changed"));
+		},
+	});
+}
+
+export function usePromptDetail(id: string | null) {
+	return useQuery({
+		queryKey: ["prompts.read", id],
+		queryFn: () =>
+			id ? invoke("prompts.read", { id }) : Promise.reject(new Error("no id")),
+		enabled: id !== null,
+	});
+}
+
+export function useSavePrompt() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (input: {
+			id: string;
+			body: string;
+			description?: string;
+			argumentHint?: string;
+		}) => invoke("prompts.save", input),
+		onSuccess: (_d, vars) => {
+			qc.invalidateQueries({ queryKey: ["prompts.read", vars.id] });
+			qc.invalidateQueries({ queryKey: ["prompts.list"] });
+			window.dispatchEvent(new CustomEvent("macpi:prompts-changed"));
+		},
+	});
+}
+
+export function useInstallPrompt() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (input: { source: string }) => invoke("prompts.install", input),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["prompts.list"] });
+			window.dispatchEvent(new CustomEvent("macpi:prompts-changed"));
+		},
+	});
+}
+
 export function useExtensions() {
 	return useQuery({
 		queryKey: ["extensions.list"],
@@ -285,7 +341,10 @@ export function useInstallExtension() {
 	});
 }
 
-export function usePiResources(kind: "skill" | "extension", enabled: boolean) {
+export function usePiResources(
+	kind: "skill" | "extension" | "prompt",
+	enabled: boolean,
+) {
 	return useQuery({
 		queryKey: ["resources.listPiResources", kind],
 		queryFn: () => invoke("resources.listPiResources", { kind }),
@@ -300,7 +359,7 @@ export function useImportPiResources() {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: (input: {
-			kind: "skill" | "extension";
+			kind: "skill" | "extension" | "prompt";
 			names: readonly string[];
 		}) => invoke("resources.importPiResources", input),
 		onSuccess: (_data, vars) => {

@@ -9,6 +9,7 @@ import type { ExtensionsService } from "../../src/main/extensions-service";
 import { IpcRouter } from "../../src/main/ipc-router";
 import type { Logger } from "../../src/main/logger";
 import type { PiSessionManager } from "../../src/main/pi-session-manager";
+import type { PromptsService } from "../../src/main/prompts-service";
 import { AppSettingsRepo } from "../../src/main/repos/app-settings";
 import { ChannelSessionsRepo } from "../../src/main/repos/channel-sessions";
 import { ChannelsRepo } from "../../src/main/repos/channels";
@@ -93,6 +94,21 @@ beforeEach(() => {
 		remove: vi.fn().mockResolvedValue(undefined),
 		lint: vi.fn().mockResolvedValue([]),
 	};
+	const promptsServiceStub = {
+		list: vi.fn().mockResolvedValue([]),
+		read: vi.fn().mockResolvedValue({
+			manifest: {
+				name: "x",
+				description: "",
+				source: "local",
+				relativePath: "x.md",
+			},
+			body: "",
+		}),
+		save: vi.fn().mockResolvedValue(undefined),
+		setEnabled: vi.fn().mockResolvedValue(undefined),
+		install: vi.fn().mockResolvedValue(undefined),
+	};
 	const branchServiceStub = {
 		getTree: vi.fn().mockResolvedValue({
 			sessionId: "s1",
@@ -111,6 +127,7 @@ beforeEach(() => {
 		appSettings: new AppSettingsRepo(db),
 		skillsService: skillsServiceStub as unknown as SkillsService,
 		extensionsService: extensionsServiceStub as unknown as ExtensionsService,
+		promptsService: promptsServiceStub as unknown as PromptsService,
 		branchService: branchServiceStub as unknown as BranchService,
 		dialog: {
 			openFolder: async ({ defaultPath }) => {

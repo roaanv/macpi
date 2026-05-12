@@ -5,12 +5,16 @@
 
 import React from "react";
 import { onPiEvent } from "../../ipc";
-import { useInstallExtension, useInstallSkill } from "../../queries";
+import {
+	useInstallExtension,
+	useInstallPrompt,
+	useInstallSkill,
+} from "../../queries";
 
 interface InstallSkillDialogProps {
 	open: boolean;
 	onClose: () => void;
-	resourceKind?: "skill" | "extension";
+	resourceKind?: "skill" | "extension" | "prompt";
 }
 
 interface ProgressLine {
@@ -27,8 +31,13 @@ export function InstallSkillDialog({
 	const [progress, setProgress] = React.useState<ProgressLine[]>([]);
 	const installSkill = useInstallSkill();
 	const installExtension = useInstallExtension();
+	const installPrompt = useInstallPrompt();
 	const install =
-		resourceKind === "extension" ? installExtension : installSkill;
+		resourceKind === "extension"
+			? installExtension
+			: resourceKind === "prompt"
+				? installPrompt
+				: installSkill;
 
 	React.useEffect(() => {
 		if (!open) return;

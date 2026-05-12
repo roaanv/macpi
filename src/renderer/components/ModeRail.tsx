@@ -24,7 +24,7 @@ export function ModeRail({
 		{ mode: "chat", enabled: true },
 		{ mode: "skills", enabled: true },
 		{ mode: "extensions", enabled: true },
-		{ mode: "prompts", enabled: false },
+		{ mode: "prompts", enabled: true },
 	];
 	return (
 		<div className="flex w-12 flex-col items-center gap-2 surface-rail py-2 text-primary">

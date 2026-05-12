@@ -1,27 +1,28 @@
-// Lists and selectively imports skills from a pi installation into macpi's
-// resource root. Skills = top-level files copied straight across. Extensions
-// take a different path (see PiSessionManager.listConfiguredPiPackages +
-// installPiPackage) because pi tracks them in settings.packages with sources
-// that can be npm/git/local-path — not just directories.
+// Lists and selectively imports top-level resource files from a pi
+// installation into macpi's resource root. Skills and prompts both live as
+// top-level markdown files under ~/.pi/agent/<subdir>/ and use identical
+// copy semantics. Extensions take a different path (see
+// PiSessionManager.listConfiguredPiPackages + installPiPackage) because pi
+// tracks them in settings.packages with npm/git/local-path sources.
 
 import fs from "node:fs";
 import path from "node:path";
 
-export interface PiSkill {
-	/** File basename in ~/.pi/agent/skills (also the identifier). */
+export interface PiTopLevelFile {
+	/** File basename — also the identifier used for selective import. */
 	name: string;
-	/** True when a file with this basename already exists in macpi's skills. */
+	/** True when a file with this basename already exists in macpi. */
 	alreadyImported: boolean;
 }
 
-export interface ListSkillsInput {
+export interface ListTopLevelInput {
 	piAgentRoot: string;
 	macpiRoot: string;
+	/** Subdirectory under both pi's and macpi's resource roots, e.g. "skills" or "prompts". */
+	subdir: string;
 }
 
-export interface ImportSkillsInput {
-	piAgentRoot: string;
-	macpiRoot: string;
+export interface ImportTopLevelInput extends ListTopLevelInput {
 	/** Basenames to import. Anything not in this list is skipped entirely. */
 	names: readonly string[];
 }
@@ -31,12 +32,14 @@ export interface ImportResult {
 	skipped: number;
 }
 
-/** Top-level skill files in ~/.pi/agent/skills, sorted by name. */
-export function listPiSkills(input: ListSkillsInput): PiSkill[] {
-	const sourceDir = path.join(input.piAgentRoot, "skills");
-	const targetDir = path.join(input.macpiRoot, "skills");
+/** Top-level files in ~/.pi/agent/<subdir>, sorted by name. */
+export function listPiTopLevelFiles(
+	input: ListTopLevelInput,
+): PiTopLevelFile[] {
+	const sourceDir = path.join(input.piAgentRoot, input.subdir);
+	const targetDir = path.join(input.macpiRoot, input.subdir);
 	if (!fs.existsSync(sourceDir)) return [];
-	const out: PiSkill[] = [];
+	const out: PiTopLevelFile[] = [];
 	for (const name of fs.readdirSync(sourceDir)) {
 		const sourcePath = path.join(sourceDir, name);
 		if (!safeStat(sourcePath)?.isFile()) continue;
@@ -50,12 +53,14 @@ export function listPiSkills(input: ListSkillsInput): PiSkill[] {
 }
 
 /**
- * Copy the named skill files from pi into macpi's skills dir. Skip-if-exists;
- * never overwrites. Skips names that don't exist or aren't files.
+ * Copy the named files from pi's <subdir> into macpi's matching subdir.
+ * Skip-if-exists; never overwrites. Skips names that don't exist or aren't files.
  */
-export function importSelectedPiSkills(input: ImportSkillsInput): ImportResult {
-	const sourceDir = path.join(input.piAgentRoot, "skills");
-	const targetDir = path.join(input.macpiRoot, "skills");
+export function importSelectedPiTopLevelFiles(
+	input: ImportTopLevelInput,
+): ImportResult {
+	const sourceDir = path.join(input.piAgentRoot, input.subdir);
+	const targetDir = path.join(input.macpiRoot, input.subdir);
 	if (!fs.existsSync(sourceDir)) return { copied: 0, skipped: 0 };
 	fs.mkdirSync(targetDir, { recursive: true });
 	let copied = 0;

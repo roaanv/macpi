@@ -28,6 +28,13 @@ export function extensionResourceId(opts: {
 	return `extension:${opts.source}:${opts.relativePath}`;
 }
 
+export function promptResourceId(opts: {
+	source: string;
+	relativePath: string;
+}): string {
+	return `prompt:${opts.source}:${opts.relativePath}`;
+}
+
 export function parseResourceId(id: string): ResourceIdParts | null {
 	const firstColon = id.indexOf(":");
 	if (firstColon < 0) return null;

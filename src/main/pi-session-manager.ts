@@ -20,6 +20,7 @@ import type {
 	Extension,
 	LoadExtensionsResult,
 	ModelRegistry,
+	PromptTemplate,
 	ResourceDiagnostic,
 	ResourceLoader,
 	SettingsManager,
@@ -27,7 +28,11 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 import { getResourceEnabled } from "../shared/app-settings-keys";
 import type { PiEvent } from "../shared/pi-events";
-import { extensionResourceId, skillResourceId } from "../shared/resource-id";
+import {
+	extensionResourceId,
+	promptResourceId,
+	skillResourceId,
+} from "../shared/resource-id";
 import type { TimelineEntry } from "../shared/timeline-types";
 import { agentMessagesToTimeline } from "./pi-history";
 import type { AppSettingsRepo } from "./repos/app-settings";
@@ -117,6 +122,36 @@ export class PiSessionManager {
 			agentDir,
 			skillsOverride: this.buildSkillsEnabledFilter(agentDir),
 			extensionsOverride: this.buildExtensionsEnabledFilter(agentDir),
+			promptsOverride: this.buildPromptsEnabledFilter(agentDir),
+		});
+	}
+
+	/**
+	 * Returns a promptsOverride callback that filters out prompts whose id is
+	 * marked disabled in the global `resourceEnabled` settings map. Mirrors
+	 * the skills/extensions filters so the UI's checkbox actually drops
+	 * disabled prompts from createAgentSession's loader.
+	 */
+	private buildPromptsEnabledFilter(agentDir: string): (base: {
+		prompts: PromptTemplate[];
+		diagnostics: ResourceDiagnostic[];
+	}) => {
+		prompts: PromptTemplate[];
+		diagnostics: ResourceDiagnostic[];
+	} {
+		const settings = this.deps?.appSettings.getAll() ?? {};
+		const enabled = getResourceEnabled(settings);
+		const promptsRoot = path.join(agentDir, "prompts");
+		return (base) => ({
+			prompts: base.prompts.filter((p) => {
+				const source = p.sourceInfo?.source ?? "local";
+				const relativePath = p.filePath
+					? path.relative(promptsRoot, p.filePath)
+					: p.name;
+				const id = promptResourceId({ source, relativePath });
+				return enabled[id] !== false;
+			}),
+			diagnostics: base.diagnostics,
 		});
 	}
 
@@ -213,6 +248,45 @@ export class PiSessionManager {
 			name: string;
 			sourceInfo: { source: string };
 			filePath?: string;
+		}>;
+	}
+
+	/**
+	 * One-shot prompt discovery for the UI list. Like loadSkills(), this
+	 * returns ALL prompts (no enabled-filter) so the checkbox state can be
+	 * computed in the renderer. The filter only applies to per-session
+	 * loaders built in buildResourceLoader.
+	 */
+	async loadPrompts(): Promise<
+		Array<{
+			name: string;
+			description: string;
+			argumentHint?: string;
+			content: string;
+			sourceInfo: { source: string };
+			filePath: string;
+		}>
+	> {
+		if (!this.deps) {
+			throw new Error("PiSessionManager requires deps for loadPrompts");
+		}
+		const ctx = await this.ensureContext();
+		const agentDir = ensureResourceRoot(
+			this.deps.appSettings.getAll(),
+			this.deps.homeDir,
+		);
+		const loader = new ctx.mod.DefaultResourceLoader({
+			cwd: this.deps.homeDir,
+			agentDir,
+		});
+		const result = loader.getPrompts();
+		return result.prompts as Array<{
+			name: string;
+			description: string;
+			argumentHint?: string;
+			content: string;
+			sourceInfo: { source: string };
+			filePath: string;
 		}>;
 	}
 
