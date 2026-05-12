@@ -126,7 +126,26 @@ export function projectTree(input: ProjectInput): BranchTreeSnapshot {
 		cur = pid ? byId.get(pid) : undefined;
 	}
 
-	const ctx: ProjectionContext = { activePath, leafId: input.leafId };
+	// Find the active "displayable" leaf. Pi's leafId can sit on a folded
+	// entry — e.g., navigateTree(userMessage) lands the leaf on the user
+	// message's parent (typically an assistant entry, per agent-session.js:
+	// "User message: leaf = parent ..."). Walk up the parent chain until we
+	// hit a node the projection actually renders; that's the user-visible
+	// active leaf and the one isLeafTip should match against.
+	let effectiveLeafId: string | null = null;
+	let walker: PiNodeLike | undefined = input.leafId
+		? byId.get(input.leafId)
+		: undefined;
+	while (walker) {
+		if (isDisplayable(walker.entry)) {
+			effectiveLeafId = walker.entry.id;
+			break;
+		}
+		const pid: string | null = walker.entry.parentId;
+		walker = pid ? byId.get(pid) : undefined;
+	}
+
+	const ctx: ProjectionContext = { activePath, leafId: effectiveLeafId };
 
 	// Project roots: each pi root that is displayable becomes a node; pass-through
 	// roots are flattened (children promoted up).
@@ -183,8 +202,8 @@ export function projectTree(input: ProjectInput): BranchTreeSnapshot {
 	// rewinds the leaf to an ancestor — counting tips covers both cases.
 	const hasBranches = countTips(roots) > 1;
 	let activeBranchLabel: string | undefined;
-	if (hasBranches && input.leafId) {
-		const tip = findById(roots, input.leafId);
+	if (hasBranches && effectiveLeafId) {
+		const tip = findById(roots, effectiveLeafId);
 		activeBranchLabel = tip?.label;
 	}
 

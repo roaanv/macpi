@@ -254,6 +254,41 @@ describe("projectTree", () => {
 		expect(longNode?.label).toMatch(/^this is an extremely long/);
 	});
 
+	it("leafId on a folded entry (post-navigateTree(userMsg)) — effective leaf is nearest displayable ancestor", () => {
+		// Real-pi flow: navigateTree(userMessageEntry) sets leafId = userMsg.parentId,
+		// which is typically the assistant entry above it (per
+		// agent-session.js:2242-2245). The assistant entry is folded out by the
+		// projection, so the projected "active position" must be the nearest
+		// displayable ancestor — the prior user message.
+		//
+		// Tree: A(user) -> ast(assistant) -> B(user) -> ast2(assistant) -> C(user)
+		// User clicks "Branch here" on B  ->  pi sets leaf = ast (B's parent).
+		// Expected projected state: A is the active tip, C is the abandoned tip.
+		const A = userMsg("a", null, "A");
+		const ast = asstMsg("ast", "a");
+		const B = userMsg("b", "ast", "B");
+		const ast2 = asstMsg("ast2", "b");
+		const C = userMsg("c", "ast2", "C");
+		withChildren(ast2, [C]);
+		withChildren(B, [ast2]);
+		withChildren(ast, [B]);
+		withChildren(A, [ast]);
+
+		const snap = projectTree({
+			piSessionId: "s1",
+			roots: [A],
+			leafId: "ast", // pi parked the leaf on the assistant above B
+		});
+
+		expect(snap.hasBranches).toBe(true);
+		const a = findEntry(snap.roots, "a");
+		const c = findEntry(snap.roots, "c");
+		expect(a?.isLeafTip).toBe(true);
+		expect(a?.isOnActivePath).toBe(true);
+		expect(c?.isLeafTip).toBe(true);
+		expect(c?.isOnActivePath).toBe(false);
+	});
+
 	it("active leaf with descendants is a tip; abandoned tail is a sibling tip", () => {
 		// Simulates the state right after navigateTree(B) on a linear A->B->C->D
 		// session: pi keeps the tail in the tree but the leaf pointer now sits

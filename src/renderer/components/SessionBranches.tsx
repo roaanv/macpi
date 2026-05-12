@@ -25,7 +25,24 @@ export function SessionBranches({
 	onForkNavigate,
 }: SessionBranchesProps) {
 	const tree = useSessionTree(piSessionId);
-	if (!tree.data?.hasBranches) return null;
+	if (tree.isLoading) {
+		return (
+			<div className="ml-3 pl-2 text-[10px] text-faint">…loading branches</div>
+		);
+	}
+	if (!tree.data) {
+		return null;
+	}
+	if (!tree.data.hasBranches) {
+		// Visible empty state confirms the query ran and pi sees the session as
+		// linear. Without this, "no branches" looks identical to "the panel is
+		// broken" from the user's side.
+		return (
+			<div className="ml-3 pl-2 text-[10px] text-faint italic">
+				linear · click ↪ Branch here on an earlier message
+			</div>
+		);
+	}
 	return (
 		<div className="ml-3 border-l border-divider pl-2">
 			<TipList
