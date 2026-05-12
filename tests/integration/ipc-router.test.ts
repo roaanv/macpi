@@ -4,6 +4,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type DbHandle, openDb } from "../../src/main/db/connection";
 import { runMigrations } from "../../src/main/db/migrations";
+import type { BranchService } from "../../src/main/branch-service";
 import type { ExtensionsService } from "../../src/main/extensions-service";
 import { IpcRouter } from "../../src/main/ipc-router";
 import type { Logger } from "../../src/main/logger";
@@ -92,6 +93,17 @@ beforeEach(() => {
 		remove: vi.fn().mockResolvedValue(undefined),
 		lint: vi.fn().mockResolvedValue([]),
 	};
+	const branchServiceStub = {
+		getTree: vi.fn().mockResolvedValue({
+			sessionId: "s1",
+			leafEntryId: null,
+			roots: [],
+			hasBranches: false,
+		}),
+		navigateTree: vi.fn().mockResolvedValue(undefined),
+		fork: vi.fn().mockResolvedValue({ newSessionId: "new-s" }),
+		setEntryLabel: vi.fn().mockResolvedValue(undefined),
+	};
 	router = new IpcRouter({
 		channels: new ChannelsRepo(db),
 		channelSessions: new ChannelSessionsRepo(db),
@@ -99,6 +111,7 @@ beforeEach(() => {
 		appSettings: new AppSettingsRepo(db),
 		skillsService: skillsServiceStub as unknown as SkillsService,
 		extensionsService: extensionsServiceStub as unknown as ExtensionsService,
+		branchService: branchServiceStub as unknown as BranchService,
 		dialog: {
 			openFolder: async ({ defaultPath }) => {
 				const result = await dialogShowOpenDialog({

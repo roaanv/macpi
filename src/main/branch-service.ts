@@ -19,7 +19,7 @@ interface ActiveSessionMeta {
  * surface that BranchService requires. Defined locally so BranchService is
  * not coupled to the exact class hierarchy of the pi SDK.
  */
-interface BranchAgentSession {
+export interface BranchAgentSession {
 	sessionManager: {
 		getTree(): unknown[];
 		getLeafId(): string | null;

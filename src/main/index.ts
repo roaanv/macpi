@@ -8,6 +8,7 @@ import { runBiomeCheck } from "./biome-runner";
 import { installCrashHandler } from "./crash-handler";
 import { getDefaultCwd } from "./default-cwd";
 import { electronDialogHandlers } from "./dialog-handlers";
+import { BranchService, type BranchAgentSession } from "./branch-service";
 import { ExtensionsService } from "./extensions-service";
 import { IpcRouter } from "./ipc-router";
 import { createLogger, type Logger } from "./logger";
@@ -95,6 +96,18 @@ app.whenReady().then(async () => {
 		runBiome: (filePath) => runBiomeCheck(filePath),
 	});
 
+	const branchService = new BranchService({
+		// AgentSession is structurally compatible with BranchAgentSession at
+		// runtime — fork() lives on the same object but is not exposed in the
+		// declared AgentSession type; cast to satisfy the structural interface.
+		getAgentSession: (id) =>
+			manager.getAgentSession(id) as unknown as BranchAgentSession | undefined,
+		channelSessions,
+		piSessionManager: {
+			getActiveSessionMeta: (id) => channelSessions.findMeta(id),
+		},
+	});
+
 	router = new IpcRouter({
 		channels,
 		channelSessions,
@@ -102,6 +115,7 @@ app.whenReady().then(async () => {
 		appSettings,
 		skillsService,
 		extensionsService,
+		branchService,
 		dialog: electronDialogHandlers,
 		getDefaultCwd,
 		mainLogger,

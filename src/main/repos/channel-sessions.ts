@@ -87,6 +87,34 @@ export class ChannelSessionsRepo {
 		};
 	}
 
+	/**
+	 * Lightweight meta lookup for BranchService — returns channelId, cwd,
+	 * sessionFilePath, and label without the labelUserSet flag.
+	 */
+	findMeta(piSessionId: string):
+		| {
+				channelId: string;
+				cwd: string | null;
+				sessionFilePath: string | null;
+				label: string | null;
+		  }
+		| undefined {
+		const row = this.db.raw
+			.prepare(
+				`SELECT channel_id AS channelId, cwd, session_file_path AS sessionFilePath, label
+             FROM channel_sessions WHERE pi_session_id = ?`,
+			)
+			.get(piSessionId) as
+			| {
+					channelId: string;
+					cwd: string | null;
+					sessionFilePath: string | null;
+					label: string | null;
+			  }
+			| undefined;
+		return row;
+	}
+
 	setSessionFilePath(piSessionId: string, path: string): void {
 		this.db.raw
 			.prepare(

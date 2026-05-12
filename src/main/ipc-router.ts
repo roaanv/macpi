@@ -17,6 +17,7 @@ import {
 	type IpcResult,
 	ok,
 } from "../shared/ipc-types";
+import type { BranchService } from "./branch-service";
 import type { DialogHandlers } from "./dialog-handlers";
 import type { ExtensionsService } from "./extensions-service";
 import type { Logger } from "./logger";
@@ -38,6 +39,7 @@ export interface RouterDeps {
 	appSettings: AppSettingsRepo;
 	skillsService: SkillsService;
 	extensionsService: ExtensionsService;
+	branchService: BranchService;
 	dialog: DialogHandlers;
 	getDefaultCwd: () => string;
 	mainLogger: Logger;
@@ -329,6 +331,55 @@ export class IpcRouter {
 				const msg = e instanceof Error ? e.message : String(e);
 				if (msg.includes("not found")) return err("not_found", msg);
 				throw e;
+			}
+		});
+		this.register("session.getTree", async (args) => {
+			try {
+				return ok(await this.deps.branchService.getTree(args.piSessionId));
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				if (msg.includes("not found")) return err("not_found", msg);
+				throw e;
+			}
+		});
+		this.register("session.navigateTree", async (args) => {
+			try {
+				await this.deps.branchService.navigateTree(args.piSessionId, args.entryId);
+				return ok({});
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				if (msg.includes("not found")) return err("not_found", msg);
+				if (msg.includes("cancelled")) return err("navigate_failed", msg);
+				throw e;
+			}
+		});
+		this.register("session.fork", async (args) => {
+			try {
+				const r = await this.deps.branchService.fork(
+					args.piSessionId,
+					args.entryId,
+					args.position,
+				);
+				return ok(r);
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				if (msg.includes("not found")) return err("not_found", msg);
+				if (msg.includes("cancelled")) return err("fork_cancelled", msg);
+				throw e;
+			}
+		});
+		this.register("session.setEntryLabel", async (args) => {
+			try {
+				await this.deps.branchService.setEntryLabel(
+					args.piSessionId,
+					args.entryId,
+					args.label,
+				);
+				return ok({});
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				if (msg.includes("not found")) return err("not_found", msg);
+				return err("label_failed", msg);
 			}
 		});
 	}

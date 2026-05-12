@@ -9,6 +9,7 @@ import type {
 } from "./extensions-types";
 import type { SkillManifest, SkillSummary } from "./skills-types";
 import type { TimelineEntry } from "./timeline-types";
+import type { BranchTreeSnapshot } from "./branch-types";
 
 export type IpcResult<T> =
 	| { ok: true; data: T }
@@ -214,6 +215,22 @@ export interface IpcMethods {
 	"extensions.lint": {
 		req: { id: string };
 		res: { diagnostics: ExtensionDiagnostic[] };
+	};
+	"session.getTree": {
+		req: { piSessionId: string };
+		res: BranchTreeSnapshot;
+	};
+	"session.navigateTree": {
+		req: { piSessionId: string; entryId: string };
+		res: Record<string, never>;
+	};
+	"session.fork": {
+		req: { piSessionId: string; entryId: string; position?: "before" | "at" };
+		res: { newSessionId: string };
+	};
+	"session.setEntryLabel": {
+		req: { piSessionId: string; entryId: string; label: string };
+		res: Record<string, never>;
 	};
 }
 
