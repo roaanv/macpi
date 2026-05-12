@@ -1,4 +1,11 @@
 
+# Override global ~/.config/git/ignore which excludes `build` dirs. macpi
+# uses build/ for the app icon source + generated platform artifacts. The
+# iconset/ subdir is an intermediate created by scripts/build-icons.sh.
+!build/
+!build/**
+build/icon.iconset/
+
 .cache
 .claude/
 .claire/

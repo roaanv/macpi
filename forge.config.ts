@@ -13,6 +13,11 @@ const config: ForgeConfig = {
 		appBundleId: "io.0112.macpi",
 		appCategoryType: "public.app-category.developer-tools",
 		asar: true,
+		// Extensionless path — electron-packager picks build/icon.icns on
+		// darwin, build/icon.ico on win32, build/icon.png on linux.
+		// Regenerate platform artifacts via ./scripts/build-icons.sh after
+		// replacing build/icon.png.
+		icon: "build/icon",
 	},
 	rebuildConfig: {},
 	makers: [

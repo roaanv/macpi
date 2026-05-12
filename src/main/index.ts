@@ -55,6 +55,18 @@ app.whenReady().then(async () => {
 	mainLogger.info(`macpi starting; userData=${app.getPath("userData")}`);
 	installCrashHandler(mainLogger, logsDir);
 
+	// Dev mode dock icon (macOS only). Packaged apps get their dock icon from
+	// the bundle's Info.plist via packagerConfig.icon — no runtime override
+	// needed (or wanted: build/icon.png isn't shipped in the asar).
+	if (
+		MAIN_WINDOW_VITE_DEV_SERVER_URL &&
+		process.platform === "darwin" &&
+		app.dock
+	) {
+		const iconPath = path.join(app.getAppPath(), "build", "icon.png");
+		app.dock.setIcon(iconPath);
+	}
+
 	const dbPath = path.join(app.getPath("userData"), "macpi.db");
 	process.env.MACPI_MIGRATIONS_DIR = path.join(__dirname, "migrations");
 	const { db } = await startupWithRecovery(dbPath, mainLogger);
