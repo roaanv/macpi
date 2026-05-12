@@ -361,6 +361,10 @@ export class PiSessionManager {
 		this.active.set(piSessionId, { piSessionId, session, unsubscribe });
 	}
 
+	getAgentSession(piSessionId: string): AgentSession | undefined {
+		return this.active.get(piSessionId)?.session;
+	}
+
 	getHistory(piSessionId: string): TimelineEntry[] {
 		const active = this.active.get(piSessionId);
 		if (!active) throw new Error(`unknown session ${piSessionId}`);
@@ -582,6 +586,14 @@ export class PiSessionManager {
 					piSessionId,
 					steering: (e.steering as readonly string[]) ?? [],
 					followUp: (e.followUp as readonly string[]) ?? [],
+				});
+				return;
+			case "session_tree":
+				this.emit({
+					type: "session.tree",
+					piSessionId,
+					newLeafEntryId: (e.newLeafId as string | null) ?? null,
+					oldLeafEntryId: (e.oldLeafId as string | null) ?? null,
 				});
 				return;
 			// Other AgentSessionEvent kinds (agent_start, agent_end, message_start,
