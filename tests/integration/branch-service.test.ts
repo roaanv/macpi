@@ -61,3 +61,65 @@ describe("BranchService.getTree", () => {
 		await expect(svc.getTree("missing")).rejects.toThrow(/not found/);
 	});
 });
+
+describe("BranchService.navigateTree", () => {
+	it("calls pi navigateTree with the target entry id", async () => {
+		const ags = fakeAgentSession([], null);
+		const svc = new BranchService({
+			getAgentSession: () => ags as never,
+			channelSessions: { attach: vi.fn() } as never,
+			piSessionManager: { getActiveSessionMeta: () => undefined } as never,
+		});
+		await svc.navigateTree("s1", "target-id");
+		expect(ags.navigateTree).toHaveBeenCalledWith("target-id");
+	});
+
+	it("throws not_found for unknown session", async () => {
+		const svc = new BranchService({
+			getAgentSession: () => undefined,
+			channelSessions: { attach: vi.fn() } as never,
+			piSessionManager: { getActiveSessionMeta: () => undefined } as never,
+		});
+		await expect(svc.navigateTree("missing", "x")).rejects.toThrow(/not found/);
+	});
+});
+
+describe("BranchService.setEntryLabel", () => {
+	it("appends a label change on the session manager", async () => {
+		const appendLabelChange = vi.fn().mockReturnValue("label-entry-id");
+		const ags = {
+			sessionManager: {
+				getTree: () => [],
+				getLeafId: () => null,
+				getLabel: () => undefined,
+				appendLabelChange,
+			},
+		};
+		const svc = new BranchService({
+			getAgentSession: () => ags as never,
+			channelSessions: { attach: vi.fn() } as never,
+			piSessionManager: { getActiveSessionMeta: () => undefined } as never,
+		});
+		await svc.setEntryLabel("s1", "target", "refactor try");
+		expect(appendLabelChange).toHaveBeenCalledWith("target", "refactor try");
+	});
+
+	it("passes undefined when label is empty string (clear)", async () => {
+		const appendLabelChange = vi.fn().mockReturnValue("label-entry-id");
+		const ags = {
+			sessionManager: {
+				getTree: () => [],
+				getLeafId: () => null,
+				getLabel: () => undefined,
+				appendLabelChange,
+			},
+		};
+		const svc = new BranchService({
+			getAgentSession: () => ags as never,
+			channelSessions: { attach: vi.fn() } as never,
+			piSessionManager: { getActiveSessionMeta: () => undefined } as never,
+		});
+		await svc.setEntryLabel("s1", "target", "");
+		expect(appendLabelChange).toHaveBeenCalledWith("target", undefined);
+	});
+});

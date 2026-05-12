@@ -39,6 +39,24 @@ export class BranchService {
 		return projectTree({ piSessionId, roots, leafId });
 	}
 
+	async navigateTree(piSessionId: string, entryId: string): Promise<void> {
+		const ags = this.requireAgentSession(piSessionId);
+		const result = await ags.navigateTree(entryId);
+		if (result.cancelled) {
+			throw new Error(`navigate cancelled for ${entryId}`);
+		}
+	}
+
+	async setEntryLabel(
+		piSessionId: string,
+		entryId: string,
+		label: string,
+	): Promise<void> {
+		const ags = this.requireAgentSession(piSessionId);
+		const value = label.length === 0 ? undefined : label;
+		ags.sessionManager.appendLabelChange(entryId, value);
+	}
+
 	private requireAgentSession(piSessionId: string): AgentSession {
 		const ags = this.deps.getAgentSession(piSessionId);
 		if (!ags) {
