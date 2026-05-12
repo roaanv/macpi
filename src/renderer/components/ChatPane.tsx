@@ -21,6 +21,7 @@ import { ErrorBanner } from "./banners/ErrorBanner";
 import { QueuePills } from "./banners/QueuePills";
 import { RetryBanner } from "./banners/RetryBanner";
 import { SkillsChangedBanner } from "./banners/SkillsChangedBanner";
+import { ChatBreadcrumb } from "./ChatBreadcrumb";
 import { Composer, type SendIntent } from "./Composer";
 import { Timeline } from "./Timeline";
 
@@ -131,6 +132,11 @@ export function ChatPane({
 
 	return (
 		<div className="flex flex-1 flex-col surface-app p-4">
+			<ChatBreadcrumb
+				piSessionId={piSessionId}
+				channelName={channelName}
+				sessionName={sessionMeta.data?.label ?? null}
+			/>
 			<BreadcrumbBar
 				channelName={channelName}
 				piSessionId={piSessionId}
