@@ -31,6 +31,7 @@ export function ExtensionsMode() {
 			<ImportFromPiDialog
 				open={importOpen}
 				onClose={() => setImportOpen(false)}
+				resourceKind="extension"
 			/>
 		</>
 	);

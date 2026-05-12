@@ -21,7 +21,7 @@ import type { BranchService } from "./branch-service";
 import type { DialogHandlers } from "./dialog-handlers";
 import type { ExtensionsService } from "./extensions-service";
 import type { Logger } from "./logger";
-import { importResourcesFromPi } from "./pi-import";
+import { importSelectedPiResources, listPiResources } from "./pi-import";
 import type { PiSessionManager } from "./pi-session-manager";
 import type { AppSettingsRepo } from "./repos/app-settings";
 import type { ChannelSessionsRepo } from "./repos/channel-sessions";
@@ -272,14 +272,34 @@ export class IpcRouter {
 				return err("remove_failed", msg);
 			}
 		});
-		this.register("resources.importFromPi", async () => {
+		this.register("resources.listPiResources", async (args) => {
+			const piAgentRoot = path.join(os.homedir(), ".pi", "agent");
+			const macpiRoot = getResourceRoot(
+				this.deps.appSettings.getAll(),
+				os.homedir(),
+			);
+			const resources = listPiResources({
+				piAgentRoot,
+				macpiRoot,
+				kind: args.kind,
+			});
+			return ok({
+				resources: resources.map((r) => ({
+					name: r.name,
+					alreadyImported: r.alreadyImported,
+				})),
+			});
+		});
+		this.register("resources.importPiResources", async (args) => {
 			try {
-				const r = importResourcesFromPi({
-					piRoot: path.join(os.homedir(), ".pi"),
+				const r = importSelectedPiResources({
+					piAgentRoot: path.join(os.homedir(), ".pi", "agent"),
 					macpiRoot: getResourceRoot(
 						this.deps.appSettings.getAll(),
 						os.homedir(),
 					),
+					kind: args.kind,
+					names: args.names,
 				});
 				return ok(r);
 			} catch (e) {

@@ -29,6 +29,7 @@ export function SkillsMode() {
 			<ImportFromPiDialog
 				open={importOpen}
 				onClose={() => setImportOpen(false)}
+				resourceKind="skill"
 			/>
 		</>
 	);

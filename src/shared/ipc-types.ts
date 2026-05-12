@@ -191,12 +191,21 @@ export interface IpcMethods {
 		req: { source: string };
 		res: Record<string, never>;
 	};
-	"resources.importFromPi": {
-		req: Record<string, never>;
+	"resources.listPiResources": {
+		req: { kind: "skill" | "extension" };
 		res: {
-			skills: { copied: number; skipped: number };
-			extensions: { copied: number; skipped: number };
+			resources: ReadonlyArray<{
+				name: string;
+				alreadyImported: boolean;
+			}>;
 		};
+	};
+	"resources.importPiResources": {
+		req: {
+			kind: "skill" | "extension";
+			names: readonly string[];
+		};
+		res: { copied: number; skipped: number };
 	};
 	"extensions.list": {
 		req: Record<string, never>;
