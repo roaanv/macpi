@@ -41,6 +41,9 @@ const config: ForgeConfig = {
 						x: 140,
 						y: 200,
 						type: "file",
+						// forge's MakerDMGConfig Omits `appPath` from the callback
+						// signature even though electron-installer-dmg passes it at
+						// runtime; the cast is the documented workaround.
 						path: (opts as { appPath: string }).appPath,
 					},
 					{ x: 400, y: 200, type: "link", path: "/Applications" },
