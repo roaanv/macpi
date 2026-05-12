@@ -10,10 +10,10 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
-	friendlyNameForSource,
 	importSelectedPiTopLevelFiles,
 	listPiTopLevelFiles,
 } from "../../src/main/pi-import";
+import { friendlyNameForSource } from "../../src/shared/friendly-name";
 
 describe("friendlyNameForSource", () => {
 	it("strips npm: prefix", () => {

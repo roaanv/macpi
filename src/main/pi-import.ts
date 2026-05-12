@@ -122,33 +122,3 @@ function safeStat(p: string): fs.Stats | null {
 		return null;
 	}
 }
-
-/**
- * Strip the pi package source prefix to produce a human-friendly label.
- * Examples:
- *   "npm:pi-mcp-adapter"               -> "pi-mcp-adapter"
- *   "npm:@scope/pkg"                   -> "@scope/pkg"
- *   "git:https://github.com/foo/bar"   -> "foo/bar"
- *   "git:github.com/foo/bar"           -> "foo/bar"
- *   "/abs/path/to/extension"           -> "extension"
- *   "../relative/path/to/extension"    -> "extension"
- *   anything else                      -> source itself
- */
-export function friendlyNameForSource(source: string): string {
-	if (source.startsWith("npm:")) return source.slice(4);
-	if (source.startsWith("git:")) {
-		const rest = source.slice(4).replace(/^https?:\/\//, "");
-		const parts = rest.split("/").filter(Boolean);
-		return parts.slice(-2).join("/") || rest;
-	}
-	if (
-		source.startsWith("/") ||
-		source.startsWith("./") ||
-		source.startsWith("../") ||
-		source.startsWith("~")
-	) {
-		const parts = source.split(/[/\\]/).filter(Boolean);
-		return parts[parts.length - 1] ?? source;
-	}
-	return source;
-}

@@ -21,8 +21,8 @@ import type { BranchService } from "./branch-service";
 import type { DialogHandlers } from "./dialog-handlers";
 import type { ExtensionsService } from "./extensions-service";
 import type { Logger } from "./logger";
+import { friendlyNameForSource } from "../shared/friendly-name";
 import {
-	friendlyNameForSource,
 	importSelectedPiTopLevelFiles,
 	listPiTopLevelFiles,
 } from "./pi-import";
