@@ -243,6 +243,9 @@ export class PiSessionManager {
 			cwd: this.deps.homeDir,
 			agentDir,
 		});
+		// reload() runs package resolve + auto-discovery of agentDir/skills/.
+		// Without it, getSkills() returns the empty initial state.
+		await loader.reload();
 		const result = loader.getSkills();
 		return result.skills as Array<{
 			name: string;
@@ -279,6 +282,7 @@ export class PiSessionManager {
 			cwd: this.deps.homeDir,
 			agentDir,
 		});
+		await loader.reload();
 		const result = loader.getPrompts();
 		return result.prompts as Array<{
 			name: string;
@@ -316,6 +320,7 @@ export class PiSessionManager {
 			cwd: this.deps.homeDir,
 			agentDir,
 		});
+		await loader.reload();
 		const result = loader.getExtensions();
 		return {
 			extensions: result.extensions as Array<{
