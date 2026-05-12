@@ -27,7 +27,18 @@ typecheck:
 clean:
 	rm -rf out .vite dist node_modules/.cache
 
+# Copy the packaged MacPi.app from out/ to ~/Applications/. Run `make build`
+# first; deploy intentionally does NOT trigger a rebuild so iterations stay
+# fast. Replaces an existing ~/Applications/MacPi.app in place.
 deploy:
-	# Packaging + DMG creation lands in plan 5. Until then this is a placeholder
-	# that fails loudly so it can never be confused with a real release.
-	@echo "deploy: not implemented in foundation milestone (lands in plan 5)" && exit 1
+	@APP_PATH=$$(find out -maxdepth 4 -name "MacPi.app" -type d 2>/dev/null | head -1); \
+	if [ -z "$$APP_PATH" ]; then \
+		echo "deploy: no MacPi.app found in out/ — run 'make build' first" >&2; \
+		exit 1; \
+	fi; \
+	DEST="$$HOME/Applications/MacPi.app"; \
+	mkdir -p "$$HOME/Applications"; \
+	if [ -e "$$DEST" ]; then echo "Removing existing $$DEST"; rm -rf "$$DEST"; fi; \
+	echo "Copying $$APP_PATH → $$DEST"; \
+	cp -R "$$APP_PATH" "$$DEST"; \
+	echo "Deployed: $$DEST"
