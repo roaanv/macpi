@@ -5,7 +5,7 @@
 import type { DbHandle } from "./connection";
 import { DbSchemaNewerError } from "./errors";
 
-export const KNOWN_MAX_VERSION = 4;
+export const KNOWN_MAX_VERSION = 5;
 
 export function assertSchemaCompatible(db: DbHandle): void {
 	const row = db.raw

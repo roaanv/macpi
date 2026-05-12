@@ -180,7 +180,8 @@ describe("IpcRouter", () => {
 			channelId: created.data.id,
 		});
 		expect(list.ok).toBe(true);
-		if (list.ok) expect(list.data.piSessionIds).toEqual(["sess-1"]);
+		if (list.ok)
+			expect(list.data.sessions.map((s) => s.piSessionId)).toEqual(["sess-1"]);
 	});
 
 	it("unknown method returns an unknown_method error", async () => {
@@ -394,7 +395,7 @@ describe("IpcRouter", () => {
 			channelId: c.data.id,
 		});
 		if (!list.ok) throw new Error("listForChannel failed");
-		expect(list.data.piSessionIds).toEqual([]);
+		expect(list.data.sessions).toEqual([]);
 	});
 
 	it("channels.delete on a non-empty channel without force returns non_empty", async () => {

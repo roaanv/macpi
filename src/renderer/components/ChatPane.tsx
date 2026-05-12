@@ -28,9 +28,11 @@ import { Timeline } from "./Timeline";
 export function ChatPane({
 	piSessionId,
 	onOpenGlobalSettings,
+	onSelectSession,
 }: {
 	piSessionId: string | null;
 	onOpenGlobalSettings?: () => void;
+	onSelectSession: (id: string) => void;
 }) {
 	const attachQuery = useAttachSession(piSessionId);
 	const initialTimeline = attachQuery.data?.entries;
@@ -133,7 +135,6 @@ export function ChatPane({
 	return (
 		<div className="flex flex-1 flex-col surface-app p-4">
 			<ChatBreadcrumb
-				piSessionId={piSessionId}
 				channelName={channelName}
 				sessionName={sessionMeta.data?.label ?? null}
 			/>
@@ -143,7 +144,11 @@ export function ChatPane({
 				cwd={sessionMeta.data?.cwd ?? null}
 				label={sessionMeta.data?.label ?? null}
 			/>
-			<Timeline entries={snapshot.timeline} piSessionId={piSessionId} />
+			<Timeline
+				entries={snapshot.timeline}
+				piSessionId={piSessionId}
+				onForkNavigate={onSelectSession}
+			/>
 			<div className="mt-2 space-y-2">
 				<ErrorBanner
 					key={piSessionId ?? "no-session"}

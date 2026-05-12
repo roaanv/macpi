@@ -173,7 +173,7 @@ export class IpcRouter {
 		});
 		this.register("session.listForChannel", async (args) => {
 			return ok({
-				piSessionIds: this.deps.channelSessions.listByChannel(args.channelId),
+				sessions: this.deps.channelSessions.listTreeByChannel(args.channelId),
 			});
 		});
 		this.register("session.rename", async (args) => {

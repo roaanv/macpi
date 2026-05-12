@@ -15,8 +15,60 @@ import {
 import { ConfirmDialog } from "./ConfirmDialog";
 import { ContextMenu } from "./ContextMenu";
 import { RowMenu, type RowMenuItem } from "./RowMenu";
-import { SessionBranches } from "./SessionBranches";
 import { SessionRow } from "./SessionRow";
+
+interface SessionRef {
+	piSessionId: string;
+	parentPiSessionId: string | null;
+}
+
+interface SessionTreeNode {
+	piSessionId: string;
+	depth: number;
+	children: SessionTreeNode[];
+}
+
+function buildSessionForest(rows: readonly SessionRef[]): SessionTreeNode[] {
+	const byId = new Map<string, SessionTreeNode>();
+	for (const r of rows) {
+		byId.set(r.piSessionId, {
+			piSessionId: r.piSessionId,
+			depth: 0,
+			children: [],
+		});
+	}
+	const roots: SessionTreeNode[] = [];
+	for (const r of rows) {
+		const node = byId.get(r.piSessionId);
+		if (!node) continue;
+		const parent = r.parentPiSessionId
+			? byId.get(r.parentPiSessionId)
+			: undefined;
+		if (parent) {
+			node.depth = parent.depth + 1;
+			parent.children.push(node);
+		} else {
+			roots.push(node);
+		}
+	}
+	// Re-walk to fix depth for nodes whose parent appeared after them in input.
+	const walk = (n: SessionTreeNode, depth: number) => {
+		n.depth = depth;
+		for (const c of n.children) walk(c, depth + 1);
+	};
+	for (const r of roots) walk(r, 0);
+	return roots;
+}
+
+function flattenForest(roots: SessionTreeNode[]): SessionTreeNode[] {
+	const out: SessionTreeNode[] = [];
+	const visit = (n: SessionTreeNode) => {
+		out.push(n);
+		for (const c of n.children) visit(c);
+	};
+	for (const r of roots) visit(r);
+	return out;
+}
 
 export function ChannelSidebar({
 	selectedChannelId,
@@ -184,27 +236,26 @@ export function ChannelSidebar({
 					<div className="mt-3 text-[10px] uppercase tracking-widest text-muted">
 						Sessions
 					</div>
-					{sessions.data?.piSessionIds.map((id) => (
-						<React.Fragment key={id}>
+					{flattenForest(buildSessionForest(sessions.data?.sessions ?? [])).map(
+						(node) => (
 							<SessionRow
-								piSessionId={id}
-								selected={selectedSessionId === id}
-								onSelect={() => onSelectSession(id)}
+								key={node.piSessionId}
+								piSessionId={node.piSessionId}
+								selected={selectedSessionId === node.piSessionId}
+								depth={node.depth}
+								onSelect={() => onSelectSession(node.piSessionId)}
 								onRename={(label) =>
-									renameSession.mutate({ piSessionId: id, label })
+									renameSession.mutate({
+										piSessionId: node.piSessionId,
+										label,
+									})
 								}
 								onRequestDelete={() =>
-									setConfirmSessionDelete({ piSessionId: id })
+									setConfirmSessionDelete({ piSessionId: node.piSessionId })
 								}
 							/>
-							{selectedSessionId === id && (
-								<SessionBranches
-									piSessionId={id}
-									onForkNavigate={onSelectSession}
-								/>
-							)}
-						</React.Fragment>
-					))}
+						),
+					)}
 				</>
 			)}
 

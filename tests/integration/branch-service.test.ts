@@ -203,6 +203,9 @@ describe("BranchService.fork", () => {
 			piSessionId: "new-s",
 			cwd: "/work",
 			sessionFilePath: "/tmp/new-s.jsonl",
+			parentPiSessionId: "s1",
+			label: "Parent · new-s",
+			labelUserSet: true,
 		});
 		expect(result).toEqual({ newSessionId: "new-s" });
 	});

@@ -8,6 +8,14 @@ export interface AttachArgs {
 	piSessionId: string;
 	cwd: string | null;
 	sessionFilePath: string | null;
+	parentPiSessionId?: string | null;
+	label?: string | null;
+	labelUserSet?: boolean;
+}
+
+export interface SessionTreeRow {
+	piSessionId: string;
+	parentPiSessionId: string | null;
 }
 
 export interface SessionMeta {
@@ -25,7 +33,10 @@ export class ChannelSessionsRepo {
 		const nextPos = this.nextPosition(args.channelId);
 		this.db.raw
 			.prepare(
-				"INSERT INTO channel_sessions (channel_id, pi_session_id, position, added_at, cwd, session_file_path) VALUES (?, ?, ?, ?, ?, ?)",
+				`INSERT INTO channel_sessions
+                    (channel_id, pi_session_id, position, added_at, cwd, session_file_path,
+                     parent_pi_session_id, label, label_user_set)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			)
 			.run(
 				args.channelId,
@@ -34,7 +45,29 @@ export class ChannelSessionsRepo {
 				Date.now(),
 				args.cwd,
 				args.sessionFilePath,
+				args.parentPiSessionId ?? null,
+				args.label ?? null,
+				args.labelUserSet ? 1 : 0,
 			);
+	}
+
+	listTreeByChannel(channelId: string): SessionTreeRow[] {
+		const rows = this.db.raw
+			.prepare(
+				`SELECT pi_session_id AS piSessionId,
+                        parent_pi_session_id AS parentPiSessionId
+                 FROM channel_sessions
+                 WHERE channel_id = ?
+                 ORDER BY position ASC`,
+			)
+			.all(channelId) as unknown as Array<{
+			piSessionId: string;
+			parentPiSessionId: string | null;
+		}>;
+		return rows.map((r) => ({
+			piSessionId: r.piSessionId,
+			parentPiSessionId: r.parentPiSessionId,
+		}));
 	}
 
 	detach(channelId: string, piSessionId: string): void {

@@ -115,11 +115,16 @@ export class BranchService {
 		}
 		const newSessionId = ags.sessionManager.getSessionId();
 		const newSessionFile = ags.sessionManager.getSessionFile() ?? null;
+		const parentDisplay = meta.label ?? piSessionId.slice(0, 6);
+		const defaultLabel = `${parentDisplay} · ${newSessionId.slice(0, 6)}`;
 		this.deps.channelSessions.attach({
 			channelId: meta.channelId,
 			piSessionId: newSessionId,
 			cwd: meta.cwd,
 			sessionFilePath: newSessionFile,
+			parentPiSessionId: piSessionId,
+			label: defaultLabel,
+			labelUserSet: true,
 		});
 		return { newSessionId };
 	}

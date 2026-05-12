@@ -48,6 +48,7 @@ export function App() {
 						<ChatPane
 							piSessionId={sessionId}
 							onOpenGlobalSettings={() => setGlobalSettingsOpen(true)}
+							onSelectSession={setSessionId}
 						/>
 					</>
 				)}

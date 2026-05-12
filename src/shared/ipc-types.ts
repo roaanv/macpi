@@ -106,7 +106,12 @@ export interface IpcMethods {
 	};
 	"session.listForChannel": {
 		req: { channelId: string };
-		res: { piSessionIds: string[] };
+		res: {
+			sessions: ReadonlyArray<{
+				piSessionId: string;
+				parentPiSessionId: string | null;
+			}>;
+		};
 	};
 	"session.rename": {
 		req: { piSessionId: string; label: string };

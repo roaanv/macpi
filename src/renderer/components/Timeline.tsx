@@ -12,9 +12,11 @@ const STICK_TO_BOTTOM_THRESHOLD_PX = 50;
 export function Timeline({
 	entries,
 	piSessionId,
+	onForkNavigate,
 }: {
 	entries: TimelineEntry[];
 	piSessionId: string | null;
+	onForkNavigate: (newPiSessionId: string) => void;
 }) {
 	const containerRef = React.useRef<HTMLDivElement>(null);
 	const stickToBottomRef = React.useRef(true);
@@ -72,6 +74,7 @@ export function Timeline({
 								key={entry.id}
 								entry={entry}
 								piSessionId={piSessionId}
+								onForkNavigate={onForkNavigate}
 							/>
 						);
 					case "assistant-text":

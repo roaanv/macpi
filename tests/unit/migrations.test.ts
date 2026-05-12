@@ -26,13 +26,13 @@ describe("migrations", () => {
 	it("starts at version 0 and applies 0001", () => {
 		expect(currentVersion(db)).toBe(0);
 		runMigrations(db);
-		expect(currentVersion(db)).toBe(4);
+		expect(currentVersion(db)).toBe(5);
 	});
 
 	it("is idempotent on re-run", () => {
 		runMigrations(db);
 		runMigrations(db);
-		expect(currentVersion(db)).toBe(4);
+		expect(currentVersion(db)).toBe(5);
 	});
 
 	it("creates the channels table", () => {

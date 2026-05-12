@@ -11,6 +11,7 @@ import { RowMenu, type RowMenuItem } from "./RowMenu";
 export interface SessionRowProps {
 	piSessionId: string;
 	selected: boolean;
+	depth?: number;
 	onSelect: () => void;
 	onRename: (label: string) => void;
 	onRequestDelete: () => void;
@@ -19,6 +20,7 @@ export interface SessionRowProps {
 export function SessionRow({
 	piSessionId,
 	selected,
+	depth = 0,
 	onSelect,
 	onRename,
 	onRequestDelete,
@@ -52,6 +54,9 @@ export function SessionRow({
 		},
 	];
 
+	const indentStyle =
+		depth > 0 ? { paddingLeft: `${depth * 12}px` } : undefined;
+
 	if (editing) {
 		return (
 			<input
@@ -73,6 +78,7 @@ export function SessionRow({
 						setEditing(false);
 					}
 				}}
+				style={indentStyle}
 				className="rounded surface-panel px-2 py-1 text-[length:var(--font-size-sidebar)] text-primary outline-none"
 			/>
 		);
@@ -82,8 +88,11 @@ export function SessionRow({
 		// biome-ignore lint/a11y/noStaticElementInteractions: right-click opens the same menu the ⋮ button shows; keyboard-accessible via that button
 		<div
 			className={`group flex items-center gap-1 rounded text-[length:var(--font-size-sidebar)] ${
-				selected ? "surface-row text-white" : "text-muted hover:surface-row"
+				selected
+					? "surface-row font-semibold text-white"
+					: "text-muted hover:surface-row"
 			}`}
+			style={indentStyle}
 			title={meta.data?.cwd ?? piSessionId}
 			onContextMenu={(e) => {
 				e.preventDefault();
@@ -95,7 +104,11 @@ export function SessionRow({
 				onClick={onSelect}
 				className="flex-1 truncate px-2 py-1 text-left"
 			>
-				▸ {label}
+				<span aria-hidden="true" className="mr-1">
+					{depth > 0 ? "↳ " : ""}
+					{selected ? "●" : "○"}
+				</span>
+				{label}
 			</button>
 			<RowMenu items={menuItems} />
 			<ContextMenu
