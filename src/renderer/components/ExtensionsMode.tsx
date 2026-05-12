@@ -4,6 +4,7 @@ import { ImportFromPiDialog } from "./dialogs/ImportFromPiDialog";
 import { InstallSkillDialog } from "./dialogs/InstallSkillDialog";
 import { ExtensionDetail } from "./ExtensionDetail";
 import { ExtensionsList } from "./ExtensionsList";
+import { ResizablePane } from "./ResizablePane";
 
 // We reuse the install dialog (works for any source via pi's package
 // manager). The shape is the same — only the source string differs.
@@ -16,12 +17,14 @@ export function ExtensionsMode() {
 	const [importOpen, setImportOpen] = React.useState(false);
 	return (
 		<>
-			<ExtensionsList
-				selectedId={selectedId}
-				onSelect={setSelectedId}
-				onInstall={() => setInstallOpen(true)}
-				onImport={() => setImportOpen(true)}
-			/>
+			<ResizablePane storageKey="extensions" defaultWidth={256}>
+				<ExtensionsList
+					selectedId={selectedId}
+					onSelect={setSelectedId}
+					onInstall={() => setInstallOpen(true)}
+					onImport={() => setImportOpen(true)}
+				/>
+			</ResizablePane>
 			<ExtensionDetail id={selectedId} />
 			<InstallSkillDialog
 				open={installOpen}

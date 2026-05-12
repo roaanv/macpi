@@ -5,6 +5,7 @@
 import React from "react";
 import { ImportFromPiDialog } from "./dialogs/ImportFromPiDialog";
 import { InstallSkillDialog } from "./dialogs/InstallSkillDialog";
+import { ResizablePane } from "./ResizablePane";
 import { SkillDetail } from "./SkillDetail";
 import { SkillsList } from "./SkillsList";
 
@@ -15,12 +16,14 @@ export function SkillsMode() {
 
 	return (
 		<>
-			<SkillsList
-				selectedId={selectedId}
-				onSelect={setSelectedId}
-				onInstall={() => setInstallOpen(true)}
-				onImport={() => setImportOpen(true)}
-			/>
+			<ResizablePane storageKey="skills" defaultWidth={256}>
+				<SkillsList
+					selectedId={selectedId}
+					onSelect={setSelectedId}
+					onInstall={() => setInstallOpen(true)}
+					onImport={() => setImportOpen(true)}
+				/>
+			</ResizablePane>
 			<SkillDetail id={selectedId} />
 			<InstallSkillDialog
 				open={installOpen}

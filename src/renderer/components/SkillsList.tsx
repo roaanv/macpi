@@ -23,7 +23,7 @@ export function SkillsList({
 	const setEnabled = useSetSkillEnabled();
 
 	return (
-		<aside className="flex w-64 flex-col surface-rail border-r border-divider">
+		<aside className="flex h-full w-full min-w-0 flex-col surface-rail border-r border-divider">
 			<div className="border-b border-divider px-3 pb-2 pt-3">
 				<div className="text-xs font-semibold uppercase tracking-wide text-muted">
 					Skills

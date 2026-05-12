@@ -6,6 +6,7 @@ import { ImportFromPiDialog } from "./dialogs/ImportFromPiDialog";
 import { InstallSkillDialog } from "./dialogs/InstallSkillDialog";
 import { PromptDetail } from "./PromptDetail";
 import { PromptsList } from "./PromptsList";
+import { ResizablePane } from "./ResizablePane";
 
 export function PromptsMode() {
 	const [selectedId, setSelectedId] = React.useState<string | null>(null);
@@ -13,12 +14,14 @@ export function PromptsMode() {
 	const [importOpen, setImportOpen] = React.useState(false);
 	return (
 		<>
-			<PromptsList
-				selectedId={selectedId}
-				onSelect={setSelectedId}
-				onInstall={() => setInstallOpen(true)}
-				onImport={() => setImportOpen(true)}
-			/>
+			<ResizablePane storageKey="prompts" defaultWidth={288}>
+				<PromptsList
+					selectedId={selectedId}
+					onSelect={setSelectedId}
+					onInstall={() => setInstallOpen(true)}
+					onImport={() => setImportOpen(true)}
+				/>
+			</ResizablePane>
 			<PromptDetail id={selectedId} />
 			<InstallSkillDialog
 				open={installOpen}
