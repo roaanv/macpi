@@ -336,3 +336,55 @@ export function useLintExtension() {
 		mutationFn: (input: { id: string }) => invoke("extensions.lint", input),
 	});
 }
+
+export function useSessionTree(piSessionId: string | null) {
+	return useQuery({
+		queryKey: ["session.tree", piSessionId],
+		queryFn: () =>
+			piSessionId
+				? invoke("session.getTree", { piSessionId })
+				: Promise.reject(new Error("no session")),
+		enabled: piSessionId !== null,
+	});
+}
+
+export function useNavigateTree() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (input: { piSessionId: string; entryId: string }) =>
+			invoke("session.navigateTree", input),
+		onSuccess: (_d, vars) => {
+			qc.invalidateQueries({ queryKey: ["session.tree", vars.piSessionId] });
+		},
+	});
+}
+
+export function useForkSession() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (input: {
+			piSessionId: string;
+			entryId: string;
+			position?: "before" | "at";
+		}) => invoke("session.fork", input),
+		onSuccess: () => {
+			// The forked session needs to appear in the sidebar. Invalidate the
+			// sessions query broadly.
+			qc.invalidateQueries({ queryKey: ["sessions"] });
+		},
+	});
+}
+
+export function useSetEntryLabel() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (input: {
+			piSessionId: string;
+			entryId: string;
+			label: string;
+		}) => invoke("session.setEntryLabel", input),
+		onSuccess: (_d, vars) => {
+			qc.invalidateQueries({ queryKey: ["session.tree", vars.piSessionId] });
+		},
+	});
+}
