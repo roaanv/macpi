@@ -368,7 +368,14 @@ export class PiSessionManager {
 	getHistory(piSessionId: string): TimelineEntry[] {
 		const active = this.active.get(piSessionId);
 		if (!active) throw new Error(`unknown session ${piSessionId}`);
-		return agentMessagesToTimeline(active.session.sessionManager.getEntries());
+		// Show only the active branch path, not all entries across all branches.
+		// pi's getBranch(leafId) returns root → leaf in chronological order.
+		// When the leaf is unset (brand-new session), fall through to getEntries
+		// which is empty anyway.
+		const sm = active.session.sessionManager;
+		const leafId = sm.getLeafId();
+		const entries = leafId ? sm.getBranch(leafId) : sm.getEntries();
+		return agentMessagesToTimeline(entries);
 	}
 
 	async prompt(

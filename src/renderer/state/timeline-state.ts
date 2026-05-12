@@ -95,6 +95,17 @@ export function useTimeline(
 			if (!("piSessionId" in e)) return;
 			if (e.piSessionId !== piSessionId) return;
 			setSnapshot((prev) => reduce(prev, e));
+			// After a turn finishes, refetch history so locally-appended user
+			// messages (which have piEntryId: undefined) get promoted with their
+			// real pi entry ids. This is what enables the inline ↪ Branch here
+			// button on messages the user just sent.
+			if (e.type === "session.turn_end") {
+				invoke("session.getHistory", { piSessionId })
+					.then(({ entries }) => {
+						setSnapshot((prev) => ({ ...prev, timeline: entries }));
+					})
+					.catch(() => undefined);
+			}
 		});
 	}, [piSessionId]);
 
