@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { FuseV1Options, FuseVersion } from "@electron/fuses";
 import { MakerDeb } from "@electron-forge/maker-deb";
 import { MakerDMG } from "@electron-forge/maker-dmg";
@@ -13,12 +15,40 @@ const config: ForgeConfig = {
 		name: "MacPi",
 		appBundleId: "io.0112.macpi",
 		appCategoryType: "public.app-category.developer-tools",
-		asar: true,
+		// Keep @earendil-works packages and the wasm-backed photon-node on
+		// disk (app.asar.unpacked) so pi-coding-agent can resolve its own
+		// data files (templates, themes, wasm) via real filesystem paths
+		// and spawn helper subprocesses. The rest of the app lives inside
+		// app.asar. The leading `**/` is required — @electron/asar's
+		// minimatch globs match against the entry's full asar-relative path.
+		asar: {
+			unpack: "**/{@earendil-works,@silvia-odwyer/photon-node}/**/*",
+		},
 		// Extensionless path — electron-packager picks build/icon.icns on
 		// darwin, build/icon.ico on win32, build/icon.png on linux.
 		// Regenerate platform artifacts via ./scripts/build-icons.sh after
 		// replacing build/icon.png.
 		icon: "build/icon",
+	},
+	hooks: {
+		// forge's plugin-vite nukes the entire node_modules tree in its
+		// packageAfterCopy hook on the assumption that everything is bundled
+		// into the main vite output. We deliberately externalize
+		// @earendil-works/* in vite.main.config.ts so pi-coding-agent
+		// resolves its own data files at runtime — which means those
+		// packages must physically exist in the packaged app. This runs
+		// after the plugin strips, restoring node_modules from the project
+		// root so the asar step includes everything.
+		packageAfterPrune: async (_config, buildPath) => {
+			const src = path.resolve(__dirname, "node_modules");
+			const dst = path.resolve(buildPath, "node_modules");
+			await fs.promises.cp(src, dst, {
+				recursive: true,
+				dereference: true,
+				errorOnExist: false,
+				force: true,
+			});
+		},
 	},
 	rebuildConfig: {},
 	makers: [
