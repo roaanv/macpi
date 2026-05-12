@@ -74,6 +74,23 @@ function withChildren(
 	return node;
 }
 
+function findEntry(
+	nodes: {
+		entryId: string;
+		children: { entryId: string; children: unknown[] }[];
+	}[],
+	id: string,
+):
+	| { entryId: string; isLeafTip: boolean; isOnActivePath: boolean }
+	| undefined {
+	for (const n of nodes) {
+		if (n.entryId === id) return n as never;
+		const found = findEntry(n.children as never, id);
+		if (found) return found;
+	}
+	return undefined;
+}
+
 describe("projectTree", () => {
 	it("linear session has no branches", () => {
 		const u1 = userMsg("e1", null, "hello");
@@ -235,6 +252,34 @@ describe("projectTree", () => {
 		const longNode = snap.roots[0].children.find((c) => c.entryId === "e2");
 		expect(longNode?.label?.length).toBeLessThanOrEqual(32);
 		expect(longNode?.label).toMatch(/^this is an extremely long/);
+	});
+
+	it("active leaf with descendants is a tip; abandoned tail is a sibling tip", () => {
+		// Simulates the state right after navigateTree(B) on a linear A->B->C->D
+		// session: pi keeps the tail in the tree but the leaf pointer now sits
+		// on B. Both B (active) and D (abandoned) must be reachable tips so the
+		// user can hop back to the old conversation.
+		const u1 = userMsg("e1", null, "A");
+		const u2 = userMsg("e2", "e1", "B");
+		const u3 = userMsg("e3", "e2", "C");
+		const u4 = userMsg("e4", "e3", "D");
+		withChildren(u3, [u4]);
+		withChildren(u2, [u3]);
+		withChildren(u1, [u2]);
+
+		const snap = projectTree({
+			piSessionId: "s1",
+			roots: [u1],
+			leafId: "e2",
+		});
+
+		expect(snap.hasBranches).toBe(true);
+		const b = findEntry(snap.roots, "e2");
+		const d = findEntry(snap.roots, "e4");
+		expect(b?.isLeafTip).toBe(true);
+		expect(b?.isOnActivePath).toBe(true);
+		expect(d?.isLeafTip).toBe(true);
+		expect(d?.isOnActivePath).toBe(false);
 	});
 
 	it("pi-set label wins over default text", () => {

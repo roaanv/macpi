@@ -54,6 +54,7 @@ function defaultLabel(entry: PiSessionEntryLike): string | undefined {
 
 interface ProjectionContext {
 	activePath: Set<string>;
+	leafId: string | null;
 }
 
 // Walk a pi node + its children, returning the displayable children that
@@ -85,7 +86,11 @@ function buildNode(
 ): BranchTreeNode {
 	const children = projectChildren(pi.children, pi.entry.id, ctx);
 	const isBranchPoint = children.length > 1;
-	const isLeafTip = children.length === 0;
+	// Active leaf is a tip even when descendants still live in the tree: when
+	// the user navigates back via navigateTree(), pi preserves the old tail
+	// off-path. Both the new active leaf and the abandoned tip must surface
+	// in the sidebar so the user can hop between them.
+	const isLeafTip = children.length === 0 || pi.entry.id === ctx.leafId;
 	const label = pi.label ?? defaultLabel(pi.entry);
 	return {
 		entryId: pi.entry.id,
@@ -121,7 +126,7 @@ export function projectTree(input: ProjectInput): BranchTreeSnapshot {
 		cur = pid ? byId.get(pid) : undefined;
 	}
 
-	const ctx: ProjectionContext = { activePath };
+	const ctx: ProjectionContext = { activePath, leafId: input.leafId };
 
 	// Project roots: each pi root that is displayable becomes a node; pass-through
 	// roots are flattened (children promoted up).
@@ -173,7 +178,10 @@ export function projectTree(input: ProjectInput): BranchTreeSnapshot {
 	for (const r of roots) fillMessageCount(r, 0);
 
 	// activeBranchLabel: label of the active leaf tip (if hasBranches).
-	const hasBranches = anyHasBranches(roots);
+	// hasBranches reflects whether the user can switch between tips. Pi creates
+	// off-path tips both at branch points (≥2 children) and when navigateTree
+	// rewinds the leaf to an ancestor — counting tips covers both cases.
+	const hasBranches = countTips(roots) > 1;
 	let activeBranchLabel: string | undefined;
 	if (hasBranches && input.leafId) {
 		const tip = findById(roots, input.leafId);
@@ -189,12 +197,13 @@ export function projectTree(input: ProjectInput): BranchTreeSnapshot {
 	};
 }
 
-function anyHasBranches(nodes: BranchTreeNode[]): boolean {
-	for (const n of nodes) {
-		if (n.isBranchPoint) return true;
-		if (anyHasBranches(n.children)) return true;
+function countTips(nodes: BranchTreeNode[]): number {
+	let n = 0;
+	for (const x of nodes) {
+		if (x.isLeafTip && x.kind !== "root") n++;
+		n += countTips(x.children);
 	}
-	return false;
+	return n;
 }
 
 function findById(
