@@ -1,6 +1,7 @@
 // IPC envelope used everywhere across renderer↔main and main↔pi-host boundaries.
 // We never throw across the wire — every call returns ok() or err().
 
+import type { BranchTreeSnapshot } from "./branch-types";
 import type {
 	ExtensionDiagnostic,
 	ExtensionLoadError,
@@ -9,7 +10,6 @@ import type {
 } from "./extensions-types";
 import type { SkillManifest, SkillSummary } from "./skills-types";
 import type { TimelineEntry } from "./timeline-types";
-import type { BranchTreeSnapshot } from "./branch-types";
 
 export type IpcResult<T> =
 	| { ok: true; data: T }

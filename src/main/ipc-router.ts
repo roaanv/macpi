@@ -344,7 +344,10 @@ export class IpcRouter {
 		});
 		this.register("session.navigateTree", async (args) => {
 			try {
-				await this.deps.branchService.navigateTree(args.piSessionId, args.entryId);
+				await this.deps.branchService.navigateTree(
+					args.piSessionId,
+					args.entryId,
+				);
 				return ok({});
 			} catch (e) {
 				const msg = e instanceof Error ? e.message : String(e);

@@ -3,8 +3,8 @@
 // state (timeline entries, streaming flag, queue/retry/compaction banners).
 // The hook resets on piSessionId change.
 
-import React from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import React from "react";
 import type { PiEvent } from "../../shared/pi-events";
 import type {
 	AssistantTextEntry,

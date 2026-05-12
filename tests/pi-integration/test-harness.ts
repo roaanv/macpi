@@ -191,7 +191,10 @@ export async function drive(
 // callers don't need to pre-queue.
 // ---------------------------------------------------------------------------
 
-import type { AgentSession, SessionManager } from "@earendil-works/pi-coding-agent";
+import type {
+	AgentSession,
+	SessionManager,
+} from "@earendil-works/pi-coding-agent";
 
 /** SessionTreeNode shape, derived from SessionManager.getTree(). */
 export type SessionTreeNode = ReturnType<SessionManager["getTree"]>[number];
@@ -210,7 +213,7 @@ export interface TestPiHarness {
 export async function createTestPiHarness(_opts?: {
 	homeDir?: string;
 }): Promise<TestPiHarness> {
-	const piAi = await import("@earendil-works/pi-ai");
+	const _piAi = await import("@earendil-works/pi-ai");
 	const harness = await createHarness();
 	const { fauxAssistantMessage, fauxText } = await fauxHelpers();
 

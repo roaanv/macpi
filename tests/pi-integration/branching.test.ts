@@ -8,7 +8,11 @@
 // Uses the in-memory faux provider (no real pi credentials required).
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createTestPiHarness, type SessionTreeNode, type TestPiHarness } from "./test-harness";
+import {
+	createTestPiHarness,
+	type SessionTreeNode,
+	type TestPiHarness,
+} from "./test-harness";
 
 describe("Pi branching", () => {
 	let harness: TestPiHarness | null = null;
@@ -50,7 +54,10 @@ describe("Pi branching", () => {
 		};
 
 		const firstUserId = findFirstUserId(tree1);
-		expect(firstUserId, "expected a user-message entry in the tree after turn 1").toBeTruthy();
+		expect(
+			firstUserId,
+			"expected a user-message entry in the tree after turn 1",
+		).toBeTruthy();
 		if (!firstUserId) return;
 
 		// Navigate back to that user-message entry → the leaf moves to its
