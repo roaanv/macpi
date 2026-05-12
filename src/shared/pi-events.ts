@@ -64,6 +64,12 @@ export type PiEvent =
 			message: string;
 	  }
 	| {
+			type: "session.tree";
+			piSessionId: string;
+			newLeafEntryId: string | null;
+			oldLeafEntryId: string | null;
+	  }
+	| {
 			type: "package.progress";
 			action: "install" | "remove" | "update" | "clone" | "pull";
 			source: string;
