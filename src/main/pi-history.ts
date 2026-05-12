@@ -1,8 +1,25 @@
-// Pure translator from pi's persisted AgentMessage[] to macpi's renderer-side
+// Pure translator from pi's persisted SessionEntry[] to macpi's renderer-side
 // TimelineEntry[]. Used at session-restore time. Never imports SDK runtime
 // values — only types — so it can be unit-tested without standing up pi.
+//
+// Accepts SessionEntry[] (the tree-aware entries from SessionManager.getEntries())
+// so that each user message can carry the real pi entry id (piEntryId) needed
+// by the branching UI (Task 18).
 
 import type { TimelineEntry } from "../shared/timeline-types";
+
+/** Minimal shape of a pi SessionMessageEntry — only the fields we consume. */
+interface SessionMessageEntryLike {
+	type: "message";
+	id: string;
+	message: unknown;
+}
+
+/** Minimal shape of any pi SessionEntry — used to skip non-message entries. */
+interface SessionEntryLike {
+	type: string;
+	id: string;
+}
 
 interface UserMessageLike {
 	role: "user";
@@ -34,8 +51,20 @@ interface ToolResultMessageLike {
 let counter = 0;
 const nextId = () => `r${++counter}`;
 
+/**
+ * Translate a pi SessionEntry[] (from SessionManager.getEntries()) into a
+ * renderer-side TimelineEntry[]. Only "message" type entries are translated;
+ * other entry types (compaction, model_change, label, etc.) are skipped.
+ *
+ * Each translated user message carries `piEntryId` — the real pi session entry
+ * id — so the branching button (Task 18) can call navigateTree(piEntryId).
+ *
+ * For backwards-compatibility and testing, the function also accepts a plain
+ * AgentMessage[] (objects without a `type` field). In that case piEntryId is
+ * omitted (undefined), preserving pre-branching behaviour.
+ */
 export function agentMessagesToTimeline(
-	messages: ReadonlyArray<unknown>,
+	sessionEntries: ReadonlyArray<unknown>,
 ): TimelineEntry[] {
 	const entries: TimelineEntry[] = [];
 	const toolEntryById = new Map<
@@ -43,7 +72,26 @@ export function agentMessagesToTimeline(
 		Extract<TimelineEntry, { kind: "tool-call" }>
 	>();
 
-	for (const raw of messages) {
+	for (const rawEntry of sessionEntries) {
+		if (!rawEntry || typeof rawEntry !== "object") continue;
+		const entry = rawEntry as SessionEntryLike;
+
+		// Determine whether this is a SessionEntry (has a "type" field) or a
+		// legacy plain AgentMessage (no "type" field, just "role").
+		let raw: unknown;
+		let piEntryId: string | undefined;
+		if (typeof entry.type === "string") {
+			// pi SessionEntry — only "message" entries carry AgentMessages.
+			if (entry.type !== "message") continue;
+			const msgEntry = rawEntry as SessionMessageEntryLike;
+			raw = msgEntry.message;
+			piEntryId = msgEntry.id;
+		} else {
+			// Legacy plain AgentMessage (used in unit tests; no entry id available).
+			raw = rawEntry;
+			piEntryId = undefined;
+		}
+
 		if (!raw || typeof raw !== "object") continue;
 		const msg = raw as { role?: unknown };
 
@@ -52,6 +100,7 @@ export function agentMessagesToTimeline(
 				kind: "user",
 				id: nextId(),
 				text: extractUserText(raw as UserMessageLike),
+				piEntryId,
 			});
 			continue;
 		}
@@ -86,7 +135,7 @@ export function agentMessagesToTimeline(
 				});
 			}
 			for (const tc of calls) {
-				const entry: Extract<TimelineEntry, { kind: "tool-call" }> = {
+				const toolEntry: Extract<TimelineEntry, { kind: "tool-call" }> = {
 					kind: "tool-call",
 					id: tc.id,
 					toolName: tc.name,
@@ -94,8 +143,8 @@ export function agentMessagesToTimeline(
 					state: "pending",
 					result: null,
 				};
-				entries.push(entry);
-				toolEntryById.set(tc.id, entry);
+				entries.push(toolEntry);
+				toolEntryById.set(tc.id, toolEntry);
 			}
 			continue;
 		}

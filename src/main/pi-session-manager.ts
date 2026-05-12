@@ -368,7 +368,7 @@ export class PiSessionManager {
 	getHistory(piSessionId: string): TimelineEntry[] {
 		const active = this.active.get(piSessionId);
 		if (!active) throw new Error(`unknown session ${piSessionId}`);
-		return agentMessagesToTimeline(active.session.messages);
+		return agentMessagesToTimeline(active.session.sessionManager.getEntries());
 	}
 
 	async prompt(

@@ -140,7 +140,10 @@ export function useTimeline(
 		setSnapshot((prev) => ({
 			...prev,
 			streaming: true,
-			timeline: [...prev.timeline, { kind: "user", id: nextEntryId(), text }],
+			timeline: [
+				...prev.timeline,
+				{ kind: "user", id: nextEntryId(), text, piEntryId: undefined },
+			],
 		}));
 	}, []);
 

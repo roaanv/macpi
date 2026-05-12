@@ -6,6 +6,7 @@ export interface UserMessageEntry {
 	kind: "user";
 	id: string;
 	text: string;
+	piEntryId?: string; // pi's SessionEntry.id; absent for not-yet-promoted local entries
 }
 
 export interface AssistantTextEntry {
