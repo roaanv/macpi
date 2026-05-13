@@ -10,6 +10,7 @@ import { CreateSessionDialog } from "./components/CreateSessionDialog";
 import { ExtensionsMode } from "./components/ExtensionsMode";
 import { GlobalSettingsDialog } from "./components/GlobalSettingsDialog";
 import { type Mode, ModeRail } from "./components/ModeRail";
+import { NotesMode } from "./components/NotesMode";
 import { PromptsMode } from "./components/PromptsMode";
 import { ResizablePane } from "./components/ResizablePane";
 import { SettingsApplier } from "./components/SettingsApplier";
@@ -59,6 +60,7 @@ export function App() {
 				{mode === "skills" && <SkillsMode />}
 				{mode === "extensions" && <ExtensionsMode />}
 				{mode === "prompts" && <PromptsMode />}
+				{mode === "notes" && <NotesMode />}
 			</div>
 			<GlobalSettingsDialog
 				open={globalSettingsOpen}

@@ -2,7 +2,7 @@
 // `title` (native hover tooltip) and `aria-label` (screen readers) — the
 // emoji alone is ambiguous, especially the flask/scroll icons.
 
-type Mode = "chat" | "skills" | "extensions" | "prompts";
+type Mode = "chat" | "skills" | "extensions" | "prompts" | "notes";
 
 interface ModeItem {
 	mode: Mode;
@@ -30,6 +30,12 @@ const ITEMS: ModeItem[] = [
 		icon: "📜",
 		label: "Prompts",
 		tooltip: "Prompts — manage slash-command prompts",
+	},
+	{
+		mode: "notes",
+		icon: "📝",
+		label: "Notes",
+		tooltip: "Notes — quick capture, stored in ~/.macpi/NOTES.md",
 	},
 ];
 
