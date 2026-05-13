@@ -121,4 +121,33 @@ describe("NotesService", () => {
 		expect(listed.notes).toHaveLength(1);
 		expect(readFileSync(filePath, "utf8")).toBe("");
 	});
+
+	it("save on a stale file does not mutate in-memory state", async () => {
+		const svc = new NotesService({ filePath });
+		const { id } = await svc.create();
+		await svc.save({ id, blob: "first version" });
+
+		const future = new Date(Date.now() + 5000);
+		utimesSync(filePath, future, future);
+
+		const stale = await svc.save({ id, blob: "second version" });
+		expect(stale.ok).toBe(false);
+
+		// After the stale return, an in-memory read should still show
+		// the pre-stale content — not the rejected new content.
+		const detail = await svc.read(id);
+		expect(detail.title).toBe("first version");
+	});
+
+	it("two consecutive create() calls both produce findable IDs", async () => {
+		const svc = new NotesService({ filePath });
+		const { id: firstId } = await svc.create();
+		const { id: secondId } = await svc.create();
+		expect(firstId).not.toBe(secondId);
+		// Both empty placeholders should be readable.
+		const first = await svc.read(firstId);
+		expect(first.title).toBe("");
+		const second = await svc.read(secondId);
+		expect(second.title).toBe("");
+	});
 });
