@@ -8,6 +8,7 @@ import type {
 	ExtensionManifest,
 	ExtensionSummary,
 } from "./extensions-types";
+import type { NoteDetail, NoteSummary } from "./notes-types";
 import type {
 	PromptLoadError,
 	PromptManifest,
@@ -284,6 +285,34 @@ export interface IpcMethods {
 	"session.setEntryLabel": {
 		req: { piSessionId: string; entryId: string; label: string };
 		res: Record<string, never>;
+	};
+	"notes.list": {
+		req: Record<string, never>;
+		res: {
+			notes: NoteSummary[];
+			preamble: string;
+			mtime: number;
+		};
+	};
+	"notes.read": {
+		req: { id: string };
+		res: NoteDetail;
+	};
+	"notes.save": {
+		req: { id: string; blob: string; force?: boolean };
+		res:
+			| { ok: true; mtime: number }
+			| { ok: false; error: "stale"; currentMtime: number };
+	};
+	"notes.create": {
+		req: Record<string, never>;
+		res: { id: string };
+	};
+	"notes.delete": {
+		req: { id: string; force?: boolean };
+		res:
+			| { ok: true; mtime: number }
+			| { ok: false; error: "stale"; currentMtime: number };
 	};
 }
 

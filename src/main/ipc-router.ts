@@ -10,6 +10,7 @@ import {
 	getDefaultCwd as readDefaultCwdFromSettings,
 } from "../shared/app-settings-keys";
 import { resolveCwd } from "../shared/cwd-resolver";
+import { friendlyNameForSource } from "../shared/friendly-name";
 import {
 	err,
 	type IpcMethodName,
@@ -21,7 +22,7 @@ import type { BranchService } from "./branch-service";
 import type { DialogHandlers } from "./dialog-handlers";
 import type { ExtensionsService } from "./extensions-service";
 import type { Logger } from "./logger";
-import { friendlyNameForSource } from "../shared/friendly-name";
+import type { NotesService } from "./notes-service";
 import {
 	importSelectedPiTopLevelFiles,
 	listPiTopLevelFiles,
@@ -45,6 +46,7 @@ export interface RouterDeps {
 	skillsService: SkillsService;
 	extensionsService: ExtensionsService;
 	promptsService: PromptsService;
+	notesService: NotesService;
 	branchService: BranchService;
 	dialog: DialogHandlers;
 	getDefaultCwd: () => string;
@@ -510,6 +512,27 @@ export class IpcRouter {
 				if (msg.includes("not found")) return err("not_found", msg);
 				return err("label_failed", msg);
 			}
+		});
+		this.register("notes.list", async () => {
+			return ok(await this.deps.notesService.list());
+		});
+		this.register("notes.read", async (args) => {
+			try {
+				return ok(await this.deps.notesService.read(args.id));
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				if (msg.includes("not found")) return err("not_found", msg);
+				throw e;
+			}
+		});
+		this.register("notes.save", async (args) => {
+			return ok(await this.deps.notesService.save(args));
+		});
+		this.register("notes.create", async () => {
+			return ok(await this.deps.notesService.create());
+		});
+		this.register("notes.delete", async (args) => {
+			return ok(await this.deps.notesService.delete(args));
 		});
 	}
 

@@ -8,6 +8,7 @@ import { runMigrations } from "../../src/main/db/migrations";
 import type { ExtensionsService } from "../../src/main/extensions-service";
 import { IpcRouter } from "../../src/main/ipc-router";
 import type { Logger } from "../../src/main/logger";
+import type { NotesService } from "../../src/main/notes-service";
 import type { PiSessionManager } from "../../src/main/pi-session-manager";
 import type { PromptsService } from "../../src/main/prompts-service";
 import { AppSettingsRepo } from "../../src/main/repos/app-settings";
@@ -120,6 +121,13 @@ beforeEach(() => {
 		fork: vi.fn().mockResolvedValue({ newSessionId: "new-s" }),
 		setEntryLabel: vi.fn().mockResolvedValue(undefined),
 	};
+	const notesServiceStub = {
+		list: vi.fn().mockResolvedValue({ notes: [], preamble: "", mtime: 0 }),
+		read: vi.fn().mockResolvedValue({ id: "n1", title: "", body: "", blob: "" }),
+		save: vi.fn().mockResolvedValue({ ok: true, mtime: 0 }),
+		create: vi.fn().mockResolvedValue({ id: "n1" }),
+		delete: vi.fn().mockResolvedValue({ ok: true, mtime: 0 }),
+	};
 	router = new IpcRouter({
 		channels: new ChannelsRepo(db),
 		channelSessions: new ChannelSessionsRepo(db),
@@ -128,6 +136,7 @@ beforeEach(() => {
 		skillsService: skillsServiceStub as unknown as SkillsService,
 		extensionsService: extensionsServiceStub as unknown as ExtensionsService,
 		promptsService: promptsServiceStub as unknown as PromptsService,
+		notesService: notesServiceStub as unknown as NotesService,
 		branchService: branchServiceStub as unknown as BranchService,
 		dialog: {
 			openFolder: async ({ defaultPath }) => {

@@ -12,6 +12,7 @@ import { electronDialogHandlers } from "./dialog-handlers";
 import { ExtensionsService } from "./extensions-service";
 import { IpcRouter } from "./ipc-router";
 import { createLogger, type Logger } from "./logger";
+import { NotesService } from "./notes-service";
 import { configureNpmGlobalPrefix } from "./npm-global-prefix";
 import { PiSessionManager } from "./pi-session-manager";
 import { PromptsService } from "./prompts-service";
@@ -133,6 +134,10 @@ app.whenReady().then(async () => {
 	const npmGlobalPrefix = configureNpmGlobalPrefix(macpiRoot);
 	mainLogger.info(`npm_config_prefix set to ${npmGlobalPrefix}`);
 
+	const notesService = new NotesService({
+		filePath: path.join(macpiRoot, "NOTES.md"),
+	});
+
 	const manager = new PiSessionManager({
 		appSettings,
 		homeDir: os.homedir(),
@@ -196,6 +201,7 @@ app.whenReady().then(async () => {
 		skillsService,
 		extensionsService,
 		promptsService,
+		notesService,
 		branchService,
 		dialog: electronDialogHandlers,
 		getDefaultCwd,
