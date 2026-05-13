@@ -21,6 +21,8 @@ export function NoteEditor({ id }: NoteEditorProps) {
 	const [draft, setDraft] = React.useState("");
 	const [staleConflict, setStaleConflict] = React.useState(false);
 	const lastSavedRef = React.useRef<string>("");
+	const currentIdRef = React.useRef<string | null>(null);
+	currentIdRef.current = id;
 
 	// Sync draft from server when the selected note changes.
 	React.useEffect(() => {
@@ -37,10 +39,12 @@ export function NoteEditor({ id }: NoteEditorProps) {
 		if (draft === lastSavedRef.current) return;
 		if (staleConflict) return;
 		const handle = setTimeout(() => {
+			const savedFor = id;
 			save.mutate(
-				{ id, blob: draft },
+				{ id: savedFor, blob: draft },
 				{
 					onSuccess: (result) => {
+						if (currentIdRef.current !== savedFor) return;
 						if (result.ok) {
 							lastSavedRef.current = draft;
 						} else if (result.error === "stale") {
@@ -81,10 +85,13 @@ export function NoteEditor({ id }: NoteEditorProps) {
 		setStaleConflict(false);
 	};
 	const overwrite = () => {
+		if (!id) return;
+		const savedFor = id;
 		save.mutate(
-			{ id, blob: draft, force: true },
+			{ id: savedFor, blob: draft, force: true },
 			{
 				onSuccess: (result) => {
+					if (currentIdRef.current !== savedFor) return;
 					if (result.ok) {
 						lastSavedRef.current = draft;
 						setStaleConflict(false);
