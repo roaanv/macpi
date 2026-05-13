@@ -299,6 +299,55 @@ export function useSavePrompt() {
 	});
 }
 
+export function useNotes() {
+	return useQuery({
+		queryKey: ["notes.list"],
+		queryFn: () => invoke("notes.list", {}),
+	});
+}
+
+export function useNoteDetail(id: string | null) {
+	return useQuery({
+		queryKey: ["notes.read", id],
+		queryFn: () =>
+			id ? invoke("notes.read", { id }) : Promise.reject(new Error("no id")),
+		enabled: id !== null,
+	});
+}
+
+export function useSaveNote() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (input: { id: string; blob: string; force?: boolean }) =>
+			invoke("notes.save", input),
+		onSuccess: (_d, vars) => {
+			qc.invalidateQueries({ queryKey: ["notes.list"] });
+			qc.invalidateQueries({ queryKey: ["notes.read", vars.id] });
+		},
+	});
+}
+
+export function useCreateNote() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: () => invoke("notes.create", {}),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["notes.list"] });
+		},
+	});
+}
+
+export function useDeleteNote() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (input: { id: string; force?: boolean }) =>
+			invoke("notes.delete", input),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["notes.list"] });
+		},
+	});
+}
+
 export function useInstallPrompt() {
 	const qc = useQueryClient();
 	return useMutation({
