@@ -3,7 +3,7 @@
 
 import os from "node:os";
 import path from "node:path";
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, shell } from "electron";
 import { runBiomeCheck } from "./biome-runner";
 import { type BranchAgentSession, BranchService } from "./branch-service";
 import { installCrashHandler } from "./crash-handler";
@@ -47,6 +47,19 @@ let router: IpcRouter | null = null;
 let mainLogger: Logger | null = null;
 let rendererLogger: Logger | null = null;
 
+// Schemes that are safe to hand to shell.openExternal. anything else
+// (javascript:, file:, data:, …) is silently dropped — the click does
+// nothing rather than risking an unexpected nav or shell action.
+const EXTERNAL_LINK_SCHEMES = new Set(["http:", "https:", "mailto:"]);
+
+function isSafeExternalUrl(url: string): boolean {
+	try {
+		return EXTERNAL_LINK_SCHEMES.has(new URL(url).protocol);
+	} catch {
+		return false;
+	}
+}
+
 function createWindow() {
 	const mainWindow = new BrowserWindow({
 		width: 1280,
@@ -66,6 +79,23 @@ function createWindow() {
 			path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
 		);
 	}
+
+	// Route markdown-rendered links (target="_blank") through the user's
+	// default browser and refuse to open a new BrowserWindow.
+	mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+		if (isSafeExternalUrl(url)) void shell.openExternal(url);
+		return { action: "deny" };
+	});
+
+	// Refuse in-page navigation away from the renderer's own URL — a stray
+	// <a href> without target=_blank would otherwise replace the SPA.
+	mainWindow.webContents.on("will-navigate", (event, url) => {
+		const here = mainWindow.webContents.getURL();
+		if (url !== here) {
+			event.preventDefault();
+			if (isSafeExternalUrl(url)) void shell.openExternal(url);
+		}
+	});
 }
 
 app.whenReady().then(async () => {

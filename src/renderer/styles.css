@@ -200,6 +200,80 @@ html {
  * resolve through the CSS variables above, so theme changes are instant
  * (no rebuild) and per-component code stays theme-agnostic.
  */
+/*
+ * Markdown rendering for assistant chat messages. Tailwind's preflight
+ * strips browser default margins, so we restore minimal vertical rhythm
+ * here. Inline code + fenced blocks pick up font tokens from the
+ * inline styles set in MarkdownText.tsx; this block only handles
+ * spacing + list markers + table layout.
+ */
+.macpi-markdown > * + * {
+	margin-top: 0.5em;
+}
+.macpi-markdown h1,
+.macpi-markdown h2,
+.macpi-markdown h3,
+.macpi-markdown h4,
+.macpi-markdown h5,
+.macpi-markdown h6 {
+	font-weight: 600;
+	margin-top: 0.75em;
+}
+.macpi-markdown h1 {
+	font-size: 1.4em;
+}
+.macpi-markdown h2 {
+	font-size: 1.25em;
+}
+.macpi-markdown h3 {
+	font-size: 1.1em;
+}
+.macpi-markdown ul,
+.macpi-markdown ol {
+	padding-left: 1.5em;
+}
+.macpi-markdown ul {
+	list-style: disc;
+}
+.macpi-markdown ol {
+	list-style: decimal;
+}
+.macpi-markdown li + li {
+	margin-top: 0.25em;
+}
+.macpi-markdown blockquote {
+	border-left: 2px solid var(--divider);
+	padding-left: 0.75em;
+	color: var(--text-muted);
+}
+.macpi-markdown strong {
+	font-weight: 600;
+}
+.macpi-markdown em {
+	font-style: italic;
+}
+.macpi-markdown table {
+	border-collapse: collapse;
+	display: block;
+	overflow-x: auto;
+}
+.macpi-markdown th,
+.macpi-markdown td {
+	border: 1px solid var(--divider);
+	padding: 0.25em 0.5em;
+}
+.macpi-markdown th {
+	font-weight: 600;
+}
+.macpi-markdown :not(pre) > code {
+	background: var(--row-bg);
+	padding: 0.1em 0.3em;
+	border-radius: 0.25em;
+}
+.macpi-markdown a:hover {
+	text-decoration-style: solid;
+}
+
 @layer components {
 	.surface-app {
 		background: var(--app-bg);
