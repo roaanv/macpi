@@ -97,8 +97,8 @@ export function serialiseNotesMd(input: ParseResult): string {
  *
  * Rules:
  *   - Skip leading blank/whitespace-only lines.
- *   - First non-empty line is the title (after stripping an optional
- *     `## ` prefix the user may have typed).
+ *   - First non-empty line is the title (after stripping ALL leading
+ *     `## ` prefixes the user may have typed).
  *   - Everything after that first line is the body, verbatim.
  *   - All-whitespace blob → empty note { title: "", body: "" }.
  */
@@ -115,7 +115,7 @@ export function blobToNote(blob: string): ParsedNote {
 	if (titleIndex === -1) {
 		return { title: "", body: "" };
 	}
-	const title = (lines[titleIndex] ?? "").replace(/^## /, "").trimEnd();
+	const title = (lines[titleIndex] ?? "").replace(/^(## )+/, "").trimEnd();
 	const body = lines.slice(titleIndex + 1).join("\n");
 	return { title, body };
 }

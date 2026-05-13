@@ -67,6 +67,15 @@ describe("parseNotesMd", () => {
 	it("trims trailing whitespace from heading lines", () => {
 		expect(parseNotesMd("## title  \nbody\n").notes[0].title).toBe("title");
 	});
+
+	it("does not treat a bare `##` (no space) as a note heading", () => {
+		// The format spec requires `## ` (with space). Bare `##` lines fall
+		// into the surrounding body (or preamble) as ordinary content.
+		const text = "## real note\n##\nstill in body\n";
+		expect(parseNotesMd(text).notes).toEqual([
+			{ title: "real note", body: "##\nstill in body" },
+		]);
+	});
 });
 
 describe("serialiseNotesMd", () => {
@@ -115,6 +124,12 @@ describe("serialiseNotesMd", () => {
 		};
 		const text = serialiseNotesMd(original);
 		expect(parseNotesMd(text)).toEqual(original);
+	});
+
+	it("round-trips: serialise(parse(text)) === text for canonical input", () => {
+		const canonical =
+			"# header\n\n## alpha\nalpha body\n\n## beta\nbeta body\n\n## gamma\n\n";
+		expect(serialiseNotesMd(parseNotesMd(canonical))).toBe(canonical);
 	});
 });
 
