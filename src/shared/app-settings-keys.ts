@@ -5,7 +5,7 @@
 
 export type ThemeMode = "light" | "dark" | "auto";
 
-export type ThemeFamily = "slate" | "sunrise" | "meadow";
+export type ThemeFamily = "slate" | "sunrise" | "meadow" | "catppuccin";
 
 export type FontSizeRegion =
 	| "sidebar"
@@ -38,6 +38,7 @@ const THEME_FAMILY_VALUES: ReadonlySet<ThemeFamily> = new Set<ThemeFamily>([
 	"slate",
 	"sunrise",
 	"meadow",
+	"catppuccin",
 ]);
 
 export function getTheme(settings: Record<string, unknown>): ThemeMode {

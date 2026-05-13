@@ -87,6 +87,27 @@ const FAMILY_OPTIONS: FamilyOption[] = [
 			},
 		},
 	},
+	{
+		value: "catppuccin",
+		label: "Catppuccin",
+		tagline: "Soothing pastels. Latte + Mocha. Inter + JetBrains Mono.",
+		emoji: "🐈",
+		displayFont: '"Inter Variable", "Inter", ui-sans-serif, sans-serif',
+		swatches: {
+			light: {
+				bg: "#eff1f5",
+				panel: "#e6e9ef",
+				row: "#ccd0da",
+				accent: "#8839ef",
+			},
+			dark: {
+				bg: "#1e1e2e",
+				panel: "#313244",
+				row: "#45475a",
+				accent: "#cba6f7",
+			},
+		},
+	},
 ];
 
 const MODE_OPTIONS: { value: ThemeMode; label: string; description: string }[] =

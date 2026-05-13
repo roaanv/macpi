@@ -5,6 +5,8 @@
 @import "@fontsource/plus-jakarta-sans/700.css";
 @import "@fontsource/gloock/400.css";
 @import "@fontsource-variable/manrope/index.css";
+@import "@fontsource-variable/inter/index.css";
+@import "@fontsource-variable/jetbrains-mono/index.css";
 
 @tailwind base;
 @tailwind components;
@@ -12,10 +14,13 @@
 
 /*
  * Theme system has two dimensions:
- *   html[data-theme-family="slate" | "sunrise" | "meadow"]  — color personality + fonts
- *   html.dark                                                — light/dark surface inversion
- * Six combined states. Each declares CSS variables consumed by .surface-* and .text-*
- * component classes below. SettingsApplier sets data-theme-family and toggles .dark.
+ *   html[data-theme-family="slate" | "sunrise" | "meadow" | "catppuccin"]
+ *     — color personality + fonts
+ *   html.dark
+ *     — light/dark surface inversion
+ * Eight combined states. Each declares CSS variables consumed by .surface-*
+ * and .text-* component classes below. SettingsApplier sets
+ * data-theme-family and toggles .dark.
  */
 
 :root {
@@ -125,6 +130,51 @@ html.dark[data-theme-family="meadow"] {
 	--divider: #1c4a3a;
 	--accent: #fde047; /* sunlit pollen */
 	--accent-fg: #052e16;
+}
+
+/*
+ * 🐈 Catppuccin — soothing pastels. Light = Latte, dark = Mocha.
+ * Accent = Mauve (the iconic Catppuccin pop). Hex values are taken
+ * verbatim from the official palette so colours match third-party
+ * Catppuccin-themed tools.
+ * Display + body: Inter (variable, the Catppuccin docs' default).
+ * Mono: JetBrains Mono (variable).
+ */
+html[data-theme-family="catppuccin"] {
+	--font-display:
+		"Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
+	--font-body: "Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
+	--font-mono:
+		"JetBrains Mono Variable", "JetBrains Mono", ui-monospace, SFMono-Regular,
+		monospace;
+
+	/* Latte */
+	--app-bg: #eff1f5; /* base */
+	--app-fg: #4c4f69; /* text */
+	--panel-bg: #e6e9ef; /* mantle */
+	--row-bg: #ccd0da; /* surface0 */
+	--rail-bg: #dce0e8; /* crust */
+	--text-primary: #4c4f69; /* text */
+	--text-muted: #6c6f85; /* subtext0 */
+	--text-faint: #8c8fa1; /* overlay1 */
+	--divider: #ccd0da; /* surface0 */
+	--accent: #8839ef; /* mauve */
+	--accent-fg: #eff1f5; /* base, for legibility on mauve fills */
+}
+
+html.dark[data-theme-family="catppuccin"] {
+	/* Mocha */
+	--app-bg: #1e1e2e; /* base */
+	--app-fg: #cdd6f4; /* text */
+	--panel-bg: #313244; /* surface0 (raised above app-bg) */
+	--row-bg: #45475a; /* surface1 */
+	--rail-bg: #181825; /* mantle (slightly recessed for separation) */
+	--text-primary: #cdd6f4; /* text */
+	--text-muted: #a6adc8; /* subtext0 */
+	--text-faint: #7f849c; /* overlay1 */
+	--divider: #313244; /* surface0 */
+	--accent: #cba6f7; /* mauve */
+	--accent-fg: #1e1e2e; /* base, for legibility on mauve fills */
 }
 
 html,
