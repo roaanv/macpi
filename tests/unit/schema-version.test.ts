@@ -45,6 +45,17 @@ describe("schema-version", () => {
 		db.close();
 	});
 
+	it("passes when _migrations table doesn't exist (brand-new SQLite file)", () => {
+		// First-run on a new machine: openDb creates an empty file, then
+		// assertSchemaCompatible runs BEFORE runMigrations creates the
+		// _migrations table. Must not throw.
+		const raw = new DatabaseSync(":memory:");
+		expect(() =>
+			assertSchemaCompatible({ raw, close: () => raw.close() }),
+		).not.toThrow();
+		raw.close();
+	});
+
 	it("KNOWN_MAX_VERSION matches the highest migration file on disk", () => {
 		const migrationsDir = path.resolve(
 			__dirname,
