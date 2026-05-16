@@ -256,6 +256,31 @@ export class IpcRouter {
 				return err("model_not_found", msg);
 			}
 		});
+		this.register("modelsAuth.startOAuthLogin", async (args) => {
+			try {
+				return ok(await this.deps.modelAuthService.startOAuthLogin(args.provider));
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				return err("oauth_failed", msg);
+			}
+		});
+		this.register("modelsAuth.respondOAuthPrompt", async (args) => {
+			try {
+				this.deps.modelAuthService.respondOAuthPrompt(
+					args.loginId,
+					args.promptId,
+					args.value,
+				);
+				return ok({});
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				return err("oauth_failed", msg);
+			}
+		});
+		this.register("modelsAuth.cancelOAuthLogin", async (args) => {
+			this.deps.modelAuthService.cancelOAuthLogin(args.loginId);
+			return ok({});
+		});
 		this.register("modelsAuth.saveApiKey", async (args) => {
 			try {
 				await this.deps.modelAuthService.saveApiKey(args.provider, args.apiKey);

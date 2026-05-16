@@ -144,6 +144,11 @@ app.whenReady().then(async () => {
 		appSettings,
 	});
 	await modelAuthService.ready();
+	modelAuthService.onOAuthEvent((event) => {
+		for (const w of BrowserWindow.getAllWindows()) {
+			w.webContents.send("macpi:oauth-event", event);
+		}
+	});
 
 	const manager = new PiSessionManager({
 		appSettings,

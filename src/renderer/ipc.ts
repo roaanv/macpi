@@ -2,6 +2,7 @@
 // provides a typed invoke() helper for use in React components and queries.
 
 import type { IpcMethodName, IpcMethods, IpcResult } from "../shared/ipc-types";
+import type { OAuthEvent } from "../shared/model-auth-types";
 
 export class IpcError extends Error {
 	constructor(
@@ -27,6 +28,10 @@ export async function invoke<M extends IpcMethodName>(
 
 export function onPiEvent(listener: (event: unknown) => void): () => void {
 	return window.macpi.onPiEvent(listener);
+}
+
+export function onOAuthEvent(listener: (event: OAuthEvent) => void): () => void {
+	return window.macpi.onOAuthEvent(listener);
 }
 
 export function logToMain(

@@ -237,6 +237,27 @@ export function useSetSelectedModel() {
 	});
 }
 
+export function useStartOAuthLogin() {
+	return useMutation({
+		mutationFn: (input: { provider: string }) =>
+			invoke("modelsAuth.startOAuthLogin", input),
+	});
+}
+
+export function useRespondOAuthPrompt() {
+	return useMutation({
+		mutationFn: (input: { loginId: string; promptId: string; value: string }) =>
+			invoke("modelsAuth.respondOAuthPrompt", input),
+	});
+}
+
+export function useCancelOAuthLogin() {
+	return useMutation({
+		mutationFn: (input: { loginId: string }) =>
+			invoke("modelsAuth.cancelOAuthLogin", input),
+	});
+}
+
 export function useSaveApiKey() {
 	const qc = useQueryClient();
 	return useMutation({

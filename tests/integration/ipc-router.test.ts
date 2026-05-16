@@ -57,6 +57,9 @@ let modelAuthServiceMock: {
 	listModels: ReturnType<typeof vi.fn>;
 	getSelectedModel: ReturnType<typeof vi.fn>;
 	setSelectedModel: ReturnType<typeof vi.fn>;
+	startOAuthLogin: ReturnType<typeof vi.fn>;
+	respondOAuthPrompt: ReturnType<typeof vi.fn>;
+	cancelOAuthLogin: ReturnType<typeof vi.fn>;
 	saveApiKey: ReturnType<typeof vi.fn>;
 	logoutProvider: ReturnType<typeof vi.fn>;
 	getImportStatus: ReturnType<typeof vi.fn>;
@@ -143,6 +146,9 @@ beforeEach(() => {
 		listModels: vi.fn().mockResolvedValue({ models: [] }),
 		getSelectedModel: vi.fn().mockResolvedValue({ model: null, valid: true }),
 		setSelectedModel: vi.fn().mockResolvedValue(undefined),
+		startOAuthLogin: vi.fn().mockResolvedValue({ loginId: "login-1" }),
+		respondOAuthPrompt: vi.fn(),
+		cancelOAuthLogin: vi.fn(),
 		saveApiKey: vi.fn().mockResolvedValue(undefined),
 		logoutProvider: vi.fn().mockResolvedValue(undefined),
 		getImportStatus: vi.fn().mockReturnValue({
@@ -749,6 +755,38 @@ describe("IpcRouter", () => {
 			ok: false,
 			error: { code: "model_not_found", message: "Selected model missing" },
 		});
+	});
+
+	it("modelsAuth.startOAuthLogin returns login id", async () => {
+		const r = await router.dispatch("modelsAuth.startOAuthLogin", {
+			provider: "anthropic",
+		});
+
+		expect(r).toEqual({ ok: true, data: { loginId: "login-1" } });
+	});
+
+	it("modelsAuth.respondOAuthPrompt forwards prompt responses", async () => {
+		const r = await router.dispatch("modelsAuth.respondOAuthPrompt", {
+			loginId: "login-1",
+			promptId: "prompt-1",
+			value: "abc",
+		});
+
+		expect(r).toEqual({ ok: true, data: {} });
+		expect(modelAuthServiceMock.respondOAuthPrompt).toHaveBeenCalledWith(
+			"login-1",
+			"prompt-1",
+			"abc",
+		);
+	});
+
+	it("modelsAuth.cancelOAuthLogin cancels login sessions", async () => {
+		const r = await router.dispatch("modelsAuth.cancelOAuthLogin", {
+			loginId: "login-1",
+		});
+
+		expect(r).toEqual({ ok: true, data: {} });
+		expect(modelAuthServiceMock.cancelOAuthLogin).toHaveBeenCalledWith("login-1");
 	});
 
 	it("modelsAuth.saveApiKey returns no secret value", async () => {

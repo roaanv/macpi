@@ -3,6 +3,7 @@
 
 import { contextBridge, ipcRenderer } from "electron";
 import type { IpcMethodName, IpcMethods, IpcResult } from "../shared/ipc-types";
+import type { OAuthEvent } from "../shared/model-auth-types";
 
 const api = {
 	invoke<M extends IpcMethodName>(
@@ -17,6 +18,14 @@ const api = {
 		ipcRenderer.on("macpi:pi-event", wrapped);
 		return () => {
 			ipcRenderer.off("macpi:pi-event", wrapped);
+		};
+	},
+	onOAuthEvent(listener: (event: OAuthEvent) => void): () => void {
+		const wrapped = (_e: Electron.IpcRendererEvent, ev: OAuthEvent) =>
+			listener(ev);
+		ipcRenderer.on("macpi:oauth-event", wrapped);
+		return () => {
+			ipcRenderer.off("macpi:oauth-event", wrapped);
 		};
 	},
 };
