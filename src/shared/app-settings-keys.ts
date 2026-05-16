@@ -5,7 +5,22 @@
 
 export type ThemeMode = "light" | "dark" | "auto";
 
-export type ThemeFamily = "slate" | "sunrise" | "meadow" | "catppuccin";
+export type ThemeFamily =
+	| "slate"
+	| "linen"
+	| "pebble"
+	| "sage"
+	| "graphite"
+	| "nocturne";
+
+// Legacy family names that pre-date the toned-down palette. We accept them at
+// read-time and remap to the nearest surviving family so existing users don't
+// see a blank or invalid theme after upgrade.
+const LEGACY_FAMILY_MAP: Record<string, ThemeFamily> = {
+	sunrise: "linen",
+	meadow: "sage",
+	catppuccin: "nocturne",
+};
 
 export type FontSizeRegion =
 	| "sidebar"
@@ -36,9 +51,11 @@ const THEME_VALUES: ReadonlySet<ThemeMode> = new Set<ThemeMode>([
 ]);
 const THEME_FAMILY_VALUES: ReadonlySet<ThemeFamily> = new Set<ThemeFamily>([
 	"slate",
-	"sunrise",
-	"meadow",
-	"catppuccin",
+	"linen",
+	"pebble",
+	"sage",
+	"graphite",
+	"nocturne",
 ]);
 
 export function getTheme(settings: Record<string, unknown>): ThemeMode {
@@ -51,10 +68,24 @@ export function getTheme(settings: Record<string, unknown>): ThemeMode {
 
 export function getThemeFamily(settings: Record<string, unknown>): ThemeFamily {
 	const v = settings.themeFamily;
-	if (typeof v === "string" && THEME_FAMILY_VALUES.has(v as ThemeFamily)) {
-		return v as ThemeFamily;
+	if (typeof v === "string") {
+		if (THEME_FAMILY_VALUES.has(v as ThemeFamily)) return v as ThemeFamily;
+		const legacy = LEGACY_FAMILY_MAP[v];
+		if (legacy) return legacy;
 	}
 	return APP_SETTINGS_DEFAULTS.themeFamily;
+}
+
+// Graphite and Nocturne are intentionally dark-only — they have no light
+// surface palette. Use this when applying the light/dark toggle so the user
+// cannot land on an undefined combination.
+const DARK_ONLY_FAMILIES: ReadonlySet<ThemeFamily> = new Set<ThemeFamily>([
+	"graphite",
+	"nocturne",
+]);
+
+export function isDarkOnlyFamily(family: ThemeFamily): boolean {
+	return DARK_ONLY_FAMILIES.has(family);
 }
 
 export function getFontFamily(settings: Record<string, unknown>): string {

@@ -1,6 +1,7 @@
 // Left sidebar: channels (with hover ⋮ menu + right-click for new session)
-// and sessions in the selected channel. Channel + session creation
-// happens via dialogs hosted in App.tsx.
+// and sessions in the selected channel. Sessions render as a proper tree with
+// vertical rails + L-connectors; the active lineage paints in the accent
+// colour. Channel + session creation happens via dialogs hosted in App.tsx.
 
 import React from "react";
 import { IpcError } from "../ipc";
@@ -24,6 +25,7 @@ interface SessionRef {
 
 interface SessionTreeNode {
 	piSessionId: string;
+	parentPiSessionId: string | null;
 	depth: number;
 	children: SessionTreeNode[];
 }
@@ -33,6 +35,7 @@ function buildSessionForest(rows: readonly SessionRef[]): SessionTreeNode[] {
 	for (const r of rows) {
 		byId.set(r.piSessionId, {
 			piSessionId: r.piSessionId,
+			parentPiSessionId: r.parentPiSessionId,
 			depth: 0,
 			children: [],
 		});
@@ -60,13 +63,56 @@ function buildSessionForest(rows: readonly SessionRef[]): SessionTreeNode[] {
 	return roots;
 }
 
-function flattenForest(roots: SessionTreeNode[]): SessionTreeNode[] {
-	const out: SessionTreeNode[] = [];
-	const visit = (n: SessionTreeNode) => {
-		out.push(n);
-		for (const c of n.children) visit(c);
+interface FlatTreeRow {
+	node: SessionTreeNode;
+	depth: number;
+	isLastChild: boolean;
+	// Depths < depth where an ancestor still has a later sibling.
+	throughRailDepths: number[];
+}
+
+function flattenForestWithRails(roots: SessionTreeNode[]): FlatTreeRow[] {
+	const out: FlatTreeRow[] = [];
+	// Stack of booleans: for each ancestor depth, true if it has a later
+	// sibling at that depth (i.e. we still need a through-rail).
+	const ancestorHasLaterSibling: boolean[] = [];
+
+	const visitSiblings = (siblings: SessionTreeNode[]) => {
+		siblings.forEach((node, i) => {
+			const isLast = i === siblings.length - 1;
+			const throughRailDepths: number[] = [];
+			for (let d = 0; d < node.depth; d++) {
+				if (ancestorHasLaterSibling[d]) throughRailDepths.push(d);
+			}
+			out.push({
+				node,
+				depth: node.depth,
+				isLastChild: isLast,
+				throughRailDepths,
+			});
+			ancestorHasLaterSibling[node.depth] = !isLast;
+			visitSiblings(node.children);
+			// Pop our entry so siblings of our parent see only their own state.
+			ancestorHasLaterSibling.length = node.depth;
+		});
 	};
-	for (const r of roots) visit(r);
+	visitSiblings(roots);
+	return out;
+}
+
+function computeActiveLineage(
+	rows: readonly SessionRef[],
+	selectedId: string | null,
+): Set<string> {
+	const out = new Set<string>();
+	if (!selectedId) return out;
+	const byId = new Map<string, SessionRef>();
+	for (const r of rows) byId.set(r.piSessionId, r);
+	let cur = byId.get(selectedId);
+	while (cur) {
+		out.add(cur.piSessionId);
+		cur = cur.parentPiSessionId ? byId.get(cur.parentPiSessionId) : undefined;
+	}
 	return out;
 }
 
@@ -162,16 +208,26 @@ export function ChannelSidebar({
 		? channels.data?.channels.find((c) => c.id === channelContextMenu.channelId)
 		: null;
 
+	const sessionRows = sessions.data?.sessions ?? [];
+	const treeRows = React.useMemo(
+		() => flattenForestWithRails(buildSessionForest(sessionRows)),
+		[sessionRows],
+	);
+	const activeLineage = React.useMemo(
+		() => computeActiveLineage(sessionRows, selectedSessionId),
+		[sessionRows, selectedSessionId],
+	);
+
 	return (
-		<div className="flex h-full w-full min-w-0 flex-col gap-1 surface-panel p-3 text-[length:var(--font-size-sidebar)] text-primary">
-			<div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-widest text-muted">
-				<span>Channels</span>
+		<div className="flex h-full w-full min-w-0 flex-col gap-px surface-panel p-3 text-[length:var(--font-size-sidebar)] text-primary">
+			<div className="mb-1 flex items-center justify-between px-2 pt-1 text-[10px] text-faint uppercase tracking-widest">
+				<span className="font-semibold">Channels</span>
 				<button
 					type="button"
 					onClick={onOpenCreateChannel}
 					title="New channel"
 					aria-label="New channel"
-					className="rounded surface-row px-1.5 text-xs hover:opacity-80"
+					className="rounded px-1.5 text-xs text-muted hover:surface-row hover:text-primary"
 				>
 					+
 				</button>
@@ -206,7 +262,7 @@ export function ChannelSidebar({
 						key={c.id}
 						className={`group flex items-center gap-1 rounded ${
 							selectedChannelId === c.id
-								? "surface-row text-white"
+								? "surface-row-active text-primary"
 								: "text-muted hover:surface-row"
 						}`}
 						title={`# ${c.name}\n${c.cwd ?? "(global default)"}`}
@@ -224,7 +280,14 @@ export function ChannelSidebar({
 							onClick={() => onSelectChannel(c.id)}
 							className="flex-1 px-2 py-1 text-left"
 						>
-							# {c.name}
+							<span
+								className={
+									selectedChannelId === c.id ? "text-accent" : "text-faint"
+								}
+							>
+								#
+							</span>{" "}
+							{c.name}
 						</button>
 						<RowMenu items={channelMenuItems(c.id, c.name)} />
 					</div>
@@ -233,16 +296,32 @@ export function ChannelSidebar({
 
 			{selectedChannelId && (
 				<>
-					<div className="mt-3 text-[10px] uppercase tracking-widest text-muted">
-						Sessions
+					<div className="mt-3 flex items-center justify-between px-2 pb-1 text-[10px] text-faint uppercase tracking-widest">
+						<span className="font-semibold">Sessions</span>
+						{treeRows.length > 0 && (
+							<span className="font-medium normal-case tracking-normal">
+								{treeRows.length}
+							</span>
+						)}
 					</div>
-					{flattenForest(buildSessionForest(sessions.data?.sessions ?? [])).map(
-						(node) => (
+					{/*
+					 * Sessions render at 90% of the channel size so the tree feels
+					 * subordinate to its channel — the wrapper sets the base size
+					 * once and SessionRow inherits it.
+					 */}
+					<div
+						className="flex flex-col gap-px"
+						style={{ fontSize: "calc(var(--font-size-sidebar) * 0.9)" }}
+					>
+						{treeRows.map(({ node, depth, isLastChild, throughRailDepths }) => (
 							<SessionRow
 								key={node.piSessionId}
 								piSessionId={node.piSessionId}
 								selected={selectedSessionId === node.piSessionId}
-								depth={node.depth}
+								depth={depth}
+								throughRailDepths={throughRailDepths}
+								isLastChild={isLastChild}
+								onActiveLineage={activeLineage.has(node.piSessionId)}
 								onSelect={() => onSelectSession(node.piSessionId)}
 								onRename={(label) =>
 									renameSession.mutate({
@@ -254,8 +333,8 @@ export function ChannelSidebar({
 									setConfirmSessionDelete({ piSessionId: node.piSessionId })
 								}
 							/>
-						),
-					)}
+						))}
+					</div>
 				</>
 			)}
 
@@ -307,3 +386,12 @@ export function ChannelSidebar({
 		</div>
 	);
 }
+
+// Exported for tests.
+export {
+	buildSessionForest,
+	computeActiveLineage,
+	type FlatTreeRow,
+	flattenForestWithRails,
+	type SessionTreeNode,
+};

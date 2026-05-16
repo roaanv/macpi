@@ -1,11 +1,12 @@
-// Theme category: theme-family picker (Slate / Sunrise / Meadow) with visual
-// preview swatches, plus the existing light/dark/auto mode radio. Selecting a
-// family changes the entire colour personality + typography of the app; the
-// mode radio only flips the light/dark surface inversion.
+// Theme category: low-chroma family picker + light/dark/auto mode radio.
+// The redesign replaced the loud Sunrise / Meadow / Catppuccin palettes
+// with six quieter families (Slate / Linen / Pebble / Sage and dark-only
+// Graphite / Nocturne) calibrated for a dev-tool aesthetic.
 
 import {
 	getTheme,
 	getThemeFamily,
+	isDarkOnlyFamily,
 	type ThemeFamily,
 	type ThemeMode,
 } from "../../shared/app-settings-keys";
@@ -15,8 +16,7 @@ interface FamilyOption {
 	value: ThemeFamily;
 	label: string;
 	tagline: string;
-	emoji: string;
-	displayFont: string;
+	darkOnly?: boolean;
 	swatches: {
 		light: { bg: string; panel: string; row: string; accent: string };
 		dark: { bg: string; panel: string; row: string; accent: string };
@@ -27,84 +27,116 @@ const FAMILY_OPTIONS: FamilyOption[] = [
 	{
 		value: "slate",
 		label: "Slate",
-		tagline: "Neutral cool grey. System fonts. Quiet and classic.",
-		emoji: "🪨",
-		displayFont: "ui-sans-serif, system-ui, sans-serif",
+		tagline: "Neutral cool grey. Quiet and classic.",
 		swatches: {
 			light: {
-				bg: "#ffffff",
-				panel: "#f4f4f5",
-				row: "#e4e4e7",
-				accent: "#2563eb",
+				bg: "#fcfcfd",
+				panel: "#f4f4f6",
+				row: "#e6e6ea",
+				accent: "#3f6cd8",
+			},
+			dark: {
+				bg: "#1c1c21",
+				panel: "#26262b",
+				row: "#34343a",
+				accent: "#7aa9ee",
+			},
+		},
+	},
+	{
+		value: "linen",
+		label: "Linen",
+		tagline: "Warm paper. Low-saturation terracotta accent.",
+		swatches: {
+			light: {
+				bg: "#fbf7ee",
+				panel: "#f3ecdb",
+				row: "#e6dabc",
+				accent: "#b14d20",
+			},
+			dark: {
+				bg: "#1f1814",
+				panel: "#2a2018",
+				row: "#3a2a1c",
+				accent: "#cf7c40",
+			},
+		},
+	},
+	{
+		value: "pebble",
+		label: "Pebble",
+		tagline: "Cool stone. Light steel-blue accent.",
+		swatches: {
+			light: {
+				bg: "#f7f9fb",
+				panel: "#eef1f5",
+				row: "#dfe4ea",
+				accent: "#3a6da8",
+			},
+			dark: {
+				bg: "#171b1f",
+				panel: "#1f242a",
+				row: "#2c333a",
+				accent: "#7aa8d1",
+			},
+		},
+	},
+	{
+		value: "sage",
+		label: "Sage",
+		tagline: "Calm green. Low-chroma forest tones.",
+		swatches: {
+			light: {
+				bg: "#f4f7f2",
+				panel: "#e6ece2",
+				row: "#d3ddc8",
+				accent: "#3f7050",
+			},
+			dark: {
+				bg: "#171b18",
+				panel: "#1f2520",
+				row: "#2c342c",
+				accent: "#83b693",
+			},
+		},
+	},
+	{
+		value: "graphite",
+		label: "Graphite",
+		tagline: "Neutral charcoal. The serious-coding mode.",
+		darkOnly: true,
+		swatches: {
+			light: {
+				bg: "#28282d",
+				panel: "#1d1d22",
+				row: "#34343a",
+				accent: "#7fb4d8",
 			},
 			dark: {
 				bg: "#1a1a1f",
-				panel: "#27272a",
-				row: "#3f3f46",
-				accent: "#60a5fa",
+				panel: "#222226",
+				row: "#2c2c33",
+				accent: "#7fb4d8",
 			},
 		},
 	},
 	{
-		value: "sunrise",
-		label: "Sunrise",
-		tagline: "Warm citrus & coral. Fraunces serif + Plus Jakarta Sans.",
-		emoji: "🌅",
-		displayFont: '"Fraunces Variable", "Fraunces", Georgia, serif',
+		value: "nocturne",
+		label: "Nocturne",
+		tagline: "Near-black with one warm amber accent.",
+		darkOnly: true,
 		swatches: {
 			light: {
-				bg: "#fdf6ec",
-				panel: "#faecd3",
-				row: "#f3d9a4",
-				accent: "#c2410c",
+				bg: "#141418",
+				panel: "#1b1b21",
+				row: "#23232a",
+				accent: "#c98a4f",
 			},
 			dark: {
-				bg: "#1c130c",
-				panel: "#2a1e14",
-				row: "#3d2b1c",
-				accent: "#fb923c",
-			},
-		},
-	},
-	{
-		value: "meadow",
-		label: "Meadow",
-		tagline: "Verdant & energetic. Gloock serif + Manrope.",
-		emoji: "🌿",
-		displayFont: '"Gloock", Georgia, serif',
-		swatches: {
-			light: {
-				bg: "#f0fdf4",
-				panel: "#dcfce7",
-				row: "#bbf7d0",
-				accent: "#f59e0b",
-			},
-			dark: {
-				bg: "#0a1f17",
-				panel: "#11332a",
-				row: "#1c4a3a",
-				accent: "#fde047",
-			},
-		},
-	},
-	{
-		value: "catppuccin",
-		label: "Catppuccin",
-		tagline: "Soothing pastels. Latte + Mocha. Inter + JetBrains Mono.",
-		emoji: "🐈",
-		displayFont: '"Inter Variable", "Inter", ui-sans-serif, sans-serif',
-		swatches: {
-			light: {
-				bg: "#eff1f5",
-				panel: "#e6e9ef",
-				row: "#ccd0da",
-				accent: "#8839ef",
-			},
-			dark: {
-				bg: "#1e1e2e",
-				panel: "#313244",
-				row: "#45475a",
-				accent: "#cba6f7",
+				bg: "#101014",
+				panel: "#181820",
+				row: "#23232c",
+				accent: "#c98a4f",
 			},
 		},
 	},
@@ -132,21 +164,12 @@ function Swatches({
 		<div
 			role="img"
 			aria-label={`${mode} preview`}
-			className="flex h-14 w-full overflow-hidden rounded border border-divider"
+			className="flex h-9 w-full overflow-hidden rounded border border-divider"
 		>
-			<div
-				style={{ backgroundColor: colors.bg }}
-				className="flex-1 border-r border-divider"
-			/>
-			<div
-				style={{ backgroundColor: colors.panel }}
-				className="flex-1 border-r border-divider"
-			/>
-			<div
-				style={{ backgroundColor: colors.row }}
-				className="flex-1 border-r border-divider"
-			/>
-			<div style={{ backgroundColor: colors.accent }} className="w-3" />
+			<div style={{ backgroundColor: colors.bg }} className="flex-1" />
+			<div style={{ backgroundColor: colors.panel }} className="flex-1" />
+			<div style={{ backgroundColor: colors.row }} className="flex-1" />
+			<div style={{ backgroundColor: colors.accent }} className="w-2" />
 		</div>
 	);
 }
@@ -159,16 +182,15 @@ export function ThemeSettings() {
 	const currentMode = getTheme(settings);
 
 	return (
-		<div className="flex flex-col gap-6">
+		<div className="flex max-w-3xl flex-col gap-6">
 			<section className="flex flex-col gap-3">
 				<div>
-					<h2 className="text-base font-semibold text-primary">Theme family</h2>
-					<p className="text-xs text-muted">
-						The personality — colour, typography, mood. Pair with any mode
-						below.
+					<h2 className="font-semibold text-primary text-sm">Family</h2>
+					<p className="text-muted text-xs">
+						Surface colour and accent. Calibrated low-saturation palettes.
 					</p>
 				</div>
-				<div className="grid grid-cols-1 gap-3">
+				<div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
 					{FAMILY_OPTIONS.map((opt) => {
 						const active = currentFamily === opt.value;
 						return (
@@ -178,53 +200,50 @@ export function ThemeSettings() {
 								onClick={() =>
 									setSetting.mutate({ key: "themeFamily", value: opt.value })
 								}
-								className={`flex flex-col gap-3 rounded-lg border p-4 text-left transition-all ${
+								className={`flex flex-col gap-2 rounded-md border p-3 text-left transition-colors ${
 									active
-										? "border-divider surface-row"
-										: "border-divider hover:opacity-90"
+										? "border-divider surface-panel"
+										: "border-divider hover:surface-row"
 								}`}
 								style={
 									active
 										? {
-												borderColor: opt.swatches.light.accent,
-												boxShadow: `0 0 0 1px ${opt.swatches.light.accent}`,
+												borderColor: "var(--accent)",
+												boxShadow: "inset 0 0 0 1px var(--accent)",
 											}
 										: undefined
 								}
 							>
-								<div className="flex items-baseline justify-between gap-3">
-									<div className="flex items-baseline gap-2">
-										<span className="text-2xl leading-none">{opt.emoji}</span>
-										<span
-											className="text-2xl font-semibold text-primary"
-											style={{ fontFamily: opt.displayFont }}
-										>
-											{opt.label}
-										</span>
-									</div>
-									{active && (
-										<span
-											className="text-[10px] uppercase tracking-wider"
-											style={{ color: opt.swatches.light.accent }}
-										>
+								<div className="flex items-baseline justify-between gap-2">
+									<span className="font-semibold text-primary text-sm">
+										{opt.label}
+									</span>
+									{active ? (
+										<span className="font-semibold text-[10px] uppercase tracking-wider text-accent">
 											● Active
 										</span>
-									)}
+									) : opt.darkOnly ? (
+										<span className="font-semibold text-[10px] text-faint uppercase tracking-wider">
+											Dark only
+										</span>
+									) : null}
 								</div>
-								<p className="text-xs text-muted">{opt.tagline}</p>
+								<p className="text-muted text-xs leading-snug">{opt.tagline}</p>
 								<div className="flex gap-2">
-									<div className="flex flex-1 flex-col gap-1">
-										<span className="text-[10px] uppercase tracking-wider text-faint">
-											Light
-										</span>
+									{!opt.darkOnly && (
 										<Swatches mode="light" colors={opt.swatches.light} />
-									</div>
-									<div className="flex flex-1 flex-col gap-1">
-										<span className="text-[10px] uppercase tracking-wider text-faint">
-											Dark
-										</span>
-										<Swatches mode="dark" colors={opt.swatches.dark} />
-									</div>
+									)}
+									<Swatches mode="dark" colors={opt.swatches.dark} />
+								</div>
+								<div className="flex justify-between text-[10px] text-faint">
+									{opt.darkOnly ? (
+										<span>Dark</span>
+									) : (
+										<>
+											<span>Light</span>
+											<span>Dark</span>
+										</>
+									)}
 								</div>
 							</button>
 						);
@@ -234,36 +253,38 @@ export function ThemeSettings() {
 
 			<section className="flex flex-col gap-3">
 				<div>
-					<h2 className="text-base font-semibold text-primary">Mode</h2>
-					<p className="text-xs text-muted">
-						Light or dark surfaces within the chosen family.
+					<h2 className="font-semibold text-primary text-sm">Mode</h2>
+					<p className="text-muted text-xs">
+						{isDarkOnlyFamily(currentFamily)
+							? "This family is dark only — the mode setting is ignored."
+							: "Light or dark surfaces within the chosen family."}
 					</p>
 				</div>
-				{MODE_OPTIONS.map((opt) => (
-					<label
-						key={opt.value}
-						className={`flex cursor-pointer items-start gap-3 rounded border border-divider p-3 ${
-							currentMode === opt.value ? "surface-row" : ""
-						}`}
-					>
-						<input
-							type="radio"
-							name="theme-mode"
-							value={opt.value}
-							checked={currentMode === opt.value}
-							onChange={() =>
-								setSetting.mutate({ key: "theme", value: opt.value })
-							}
-							className="mt-1"
-						/>
-						<div>
-							<div className="text-sm font-medium text-primary">
+				<div className="flex gap-2">
+					{MODE_OPTIONS.map((opt) => {
+						const isActive = currentMode === opt.value;
+						const disabled = isDarkOnlyFamily(currentFamily);
+						return (
+							<button
+								key={opt.value}
+								type="button"
+								disabled={disabled}
+								onClick={() =>
+									setSetting.mutate({ key: "theme", value: opt.value })
+								}
+								className={`min-w-[88px] rounded border px-3 py-1.5 text-xs transition-colors ${
+									isActive
+										? "border-transparent text-[color:var(--accent-fg)]"
+										: "border-divider text-muted hover:surface-row hover:text-primary"
+								} disabled:cursor-not-allowed disabled:opacity-50`}
+								style={isActive ? { background: "var(--accent)" } : undefined}
+								title={opt.description}
+							>
 								{opt.label}
-							</div>
-							<div className="text-xs text-muted">{opt.description}</div>
-						</div>
-					</label>
-				))}
+							</button>
+						);
+					})}
+				</div>
 			</section>
 		</div>
 	);

@@ -9,6 +9,8 @@ import {
 	getResourceRoot,
 	getSelectedModel,
 	getTheme,
+	getThemeFamily,
+	isDarkOnlyFamily,
 } from "../../src/shared/app-settings-keys";
 
 describe("app-settings-keys", () => {
@@ -103,6 +105,41 @@ describe("resourceRoot setting", () => {
 		expect(
 			(APP_SETTINGS_DEFAULTS as Record<string, unknown>).resourceRoot,
 		).toBeUndefined();
+	});
+});
+
+describe("themeFamily setting", () => {
+	it("returns 'slate' default when unset", () => {
+		expect(getThemeFamily({})).toBe("slate");
+	});
+
+	it("accepts all six current family ids", () => {
+		expect(getThemeFamily({ themeFamily: "slate" })).toBe("slate");
+		expect(getThemeFamily({ themeFamily: "linen" })).toBe("linen");
+		expect(getThemeFamily({ themeFamily: "pebble" })).toBe("pebble");
+		expect(getThemeFamily({ themeFamily: "sage" })).toBe("sage");
+		expect(getThemeFamily({ themeFamily: "graphite" })).toBe("graphite");
+		expect(getThemeFamily({ themeFamily: "nocturne" })).toBe("nocturne");
+	});
+
+	it("migrates retired families to their nearest replacement", () => {
+		expect(getThemeFamily({ themeFamily: "sunrise" })).toBe("linen");
+		expect(getThemeFamily({ themeFamily: "meadow" })).toBe("sage");
+		expect(getThemeFamily({ themeFamily: "catppuccin" })).toBe("nocturne");
+	});
+
+	it("falls back to default for unknown values", () => {
+		expect(getThemeFamily({ themeFamily: "unicorn" })).toBe("slate");
+		expect(getThemeFamily({ themeFamily: 7 })).toBe("slate");
+	});
+
+	it("marks graphite and nocturne as dark-only", () => {
+		expect(isDarkOnlyFamily("graphite")).toBe(true);
+		expect(isDarkOnlyFamily("nocturne")).toBe(true);
+		expect(isDarkOnlyFamily("slate")).toBe(false);
+		expect(isDarkOnlyFamily("linen")).toBe(false);
+		expect(isDarkOnlyFamily("pebble")).toBe(false);
+		expect(isDarkOnlyFamily("sage")).toBe(false);
 	});
 });
 

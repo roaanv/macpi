@@ -10,21 +10,28 @@ import {
 } from "../../shared/app-settings-keys";
 import { useSetSetting, useSettings } from "../queries";
 
+// Empty string = no override; falls through to the theme's --font-body /
+// --font-mono token (Inter Variable / JetBrains Mono Variable by default).
 const UI_FAMILIES = [
+	"",
+	'"Inter Variable", "Inter", -apple-system, system-ui, sans-serif',
 	"system-ui, -apple-system, sans-serif",
-	'"Inter", system-ui, sans-serif',
 	'"SF Pro Display", system-ui, sans-serif',
 	'"Helvetica Neue", Helvetica, sans-serif',
 	'Georgia, "Times New Roman", serif',
 ];
 
 const MONO_FAMILIES = [
+	"",
+	'"JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace',
 	"ui-monospace, SFMono-Regular, monospace",
-	'"JetBrains Mono", ui-monospace, monospace',
 	'"Fira Code", ui-monospace, monospace',
 	'"Cascadia Code", ui-monospace, monospace',
 	'"Menlo", ui-monospace, monospace',
 ];
+
+const UI_DEFAULT_LABEL = "Default (Inter)";
+const MONO_DEFAULT_LABEL = "Default (JetBrains Mono)";
 
 const REGIONS: { id: FontSizeRegion; label: string }[] = [
 	{ id: "sidebar", label: "Sidebar" },
@@ -58,12 +65,14 @@ export function FontSettings() {
 				label="UI font family"
 				value={getFontFamily(settings)}
 				options={UI_FAMILIES}
+				defaultLabel={UI_DEFAULT_LABEL}
 				onChange={(v) => setSetting.mutate({ key: "fontFamily", value: v })}
 			/>
 			<FamilyControl
 				label="Monospace font family"
 				value={getFontFamilyMono(settings)}
 				options={MONO_FAMILIES}
+				defaultLabel={MONO_DEFAULT_LABEL}
 				onChange={(v) => setSetting.mutate({ key: "fontFamilyMono", value: v })}
 			/>
 
@@ -100,11 +109,13 @@ function FamilyControl({
 	label,
 	value,
 	options,
+	defaultLabel,
 	onChange,
 }: {
 	label: string;
 	value: string;
 	options: string[];
+	defaultLabel: string;
 	onChange: (v: string) => void;
 }) {
 	const [text, setText] = React.useState(value);
@@ -113,36 +124,41 @@ function FamilyControl({
 		setText(value);
 	}, [value]);
 
+	const selectValue = options.includes(value) ? value : "__custom__";
+
 	return (
 		<div className="flex flex-col gap-1">
 			<div className="text-sm font-medium">{label}</div>
 			<div className="flex gap-2">
 				<select
-					value={options.includes(value) ? value : ""}
+					value={selectValue}
 					onChange={(e) => {
-						if (e.target.value) {
-							setText(e.target.value);
-							onChange(e.target.value);
-						}
+						const next =
+							e.target.value === "__custom__" ? value : e.target.value;
+						setText(next);
+						if (next !== value) onChange(next);
 					}}
 					className="surface-row rounded px-2 py-1 text-sm"
 				>
-					<option value="">— pick —</option>
 					{options.map((opt) => (
 						<option key={opt} value={opt}>
-							{opt.split(",")[0].replace(/"/g, "")}
+							{opt === "" ? defaultLabel : opt.split(",")[0].replace(/"/g, "")}
 						</option>
 					))}
+					{selectValue === "__custom__" && (
+						<option value="__custom__">Custom…</option>
+					)}
 				</select>
 				<input
 					type="text"
 					value={text}
 					onChange={(e) => setText(e.target.value)}
 					onBlur={() => {
-						if (text.trim() && text !== value) onChange(text.trim());
+						const next = text.trim();
+						if (next !== value) onChange(next);
 					}}
 					className="flex-1 surface-row rounded px-2 py-1 text-sm"
-					placeholder="custom font-family"
+					placeholder="custom font-family (leave blank for default)"
 				/>
 			</div>
 		</div>

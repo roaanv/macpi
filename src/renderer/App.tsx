@@ -1,20 +1,18 @@
 // Root application component that composes the three-pane shell:
-// ModeRail | ChannelSidebar | ChatPane.
-// Hosts SettingsApplier (writes class+CSS vars on <html>) and dialog state.
+// ModeRail | ChannelSidebar | ChatPane. Skills, Extensions, and Prompts
+// have moved into the global settings dialog, so the rail now only swaps
+// between Chat and Notes. Hosts SettingsApplier and dialog state.
 
 import React from "react";
 import { ChannelSidebar } from "./components/ChannelSidebar";
 import { ChatPane } from "./components/ChatPane";
 import { CreateChannelDialog } from "./components/CreateChannelDialog";
 import { CreateSessionDialog } from "./components/CreateSessionDialog";
-import { ExtensionsMode } from "./components/ExtensionsMode";
 import { GlobalSettingsDialog } from "./components/GlobalSettingsDialog";
 import { type Mode, ModeRail } from "./components/ModeRail";
 import { NotesMode } from "./components/NotesMode";
-import { PromptsMode } from "./components/PromptsMode";
 import { ResizablePane } from "./components/ResizablePane";
 import { SettingsApplier } from "./components/SettingsApplier";
-import { SkillsMode } from "./components/SkillsMode";
 
 export function App() {
 	const [mode, setMode] = React.useState<Mode>("chat");
@@ -57,9 +55,6 @@ export function App() {
 						/>
 					</>
 				)}
-				{mode === "skills" && <SkillsMode />}
-				{mode === "extensions" && <ExtensionsMode />}
-				{mode === "prompts" && <PromptsMode />}
 				{mode === "notes" && <NotesMode />}
 			</div>
 			<GlobalSettingsDialog
