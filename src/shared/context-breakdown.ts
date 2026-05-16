@@ -93,12 +93,14 @@ const addAssistantTokens = (
 	for (const part of contentParts(content)) {
 		if (part.type === "text" && typeof part.text === "string") {
 			segments.assistant += estimateTextTokens(part.text);
-		}
-		if (part.type === "thinking" && typeof part.thinking === "string") {
+		} else if (part.type === "thinking" && typeof part.thinking === "string") {
 			segments.thinking += estimateTextTokens(part.thinking);
-		}
-		if (part.type === "toolCall") {
+		} else if (part.type === "toolCall") {
 			segments.assistant += estimateToolCallTokens(part);
+		} else if (part.type === "image") {
+			// Rare on assistant messages today but counted for symmetry with user
+			// content (and forward-compat with vision-out models).
+			segments.assistant += IMAGE_TOKEN_ESTIMATE;
 		}
 	}
 };
@@ -129,13 +131,19 @@ export const segmentTotal = (segments: ContextSegments): number =>
  * Largest-remainder method: each segment gets the floor of its fair share,
  * then leftover slots go to the segments with the biggest fractional parts.
  * Preserves the property that the per-segment counts sum to exactly `target`.
+ *
+ * Degenerate inputs:
+ * - target <= 0 → return empty segments (nothing to allocate).
+ * - total <= 0 (no estimated content) → return the input unchanged; the caller
+ *   would have to invent the segment distribution and we'd rather show empty.
  */
 export function scaleSegmentsToTarget(
 	segments: ContextSegments,
 	target: number,
 ): ContextSegments {
+	if (target <= 0) return emptySegments();
 	const total = segmentTotal(segments);
-	if (target <= 0 || total <= 0) return segments;
+	if (total <= 0) return segments;
 	const rounded = Math.round(target);
 	const raw = SEGMENT_KEYS.map((k) => (segments[k] / total) * rounded);
 	const out = raw.map(Math.floor);

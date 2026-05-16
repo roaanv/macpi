@@ -3,25 +3,15 @@
 // percent used / max. Stays in sync via the session.footerStats query which
 // is invalidated whenever a turn ends.
 
-import { useQueryClient } from "@tanstack/react-query";
-import React from "react";
-import { onPiEvent } from "../ipc";
-import { useSessionFooterStats } from "../queries";
-
-type ThinkingLevel =
-	| "off"
-	| "minimal"
-	| "low"
-	| "medium"
-	| "high"
-	| "xhigh"
-	| string;
+import { formatTokens } from "../../shared/context-breakdown";
+import type { ThinkingLevel } from "../../shared/ipc-types";
+import { useInvalidateOnTurnEnd, useSessionFooterStats } from "../queries";
 
 interface ChatFooterProps {
 	piSessionId: string | null;
 }
 
-const THINKING_LABELS: Record<string, string> = {
+const THINKING_LABELS: Record<ThinkingLevel, string> = {
 	off: "off",
 	minimal: "min",
 	low: "low",
@@ -30,22 +20,20 @@ const THINKING_LABELS: Record<string, string> = {
 	xhigh: "xhigh",
 };
 
-function formatTokens(n: number): string {
-	if (n < 1000) return n.toString();
-	if (n < 10000) return `${(n / 1000).toFixed(1)}k`;
-	if (n < 1_000_000) return `${Math.round(n / 1000)}k`;
-	return `${(n / 1_000_000).toFixed(1)}M`;
-}
-
 function stripClaudePrefix(name: string): string {
 	return name.startsWith("Claude ") ? name.slice(7) : name;
 }
 
-function contextPillTone(percent: number | null): string {
-	if (percent === null) return "text-muted";
-	if (percent >= 90) return "text-red-400";
-	if (percent >= 75) return "text-amber-300";
-	return "text-muted";
+/**
+ * Pick a CSS color var based on context usage. Theme variables stay in the
+ * theme system so dark/light always have legible severities (`text-red-400`
+ * etc. don't track the theme).
+ */
+function contextPillVar(percent: number | null): string | undefined {
+	if (percent === null) return undefined;
+	if (percent >= 90) return "var(--err)";
+	if (percent >= 75) return "var(--warn)";
+	return undefined;
 }
 
 function thinkingPillTone(level: ThinkingLevel): string {
@@ -56,26 +44,7 @@ function thinkingPillTone(level: ThinkingLevel): string {
 
 export function ChatFooter({ piSessionId }: ChatFooterProps) {
 	const stats = useSessionFooterStats(piSessionId);
-	const qc = useQueryClient();
-
-	// Refresh after each turn so context % jumps once the model reports usage.
-	React.useEffect(() => {
-		if (!piSessionId) return;
-		const off = onPiEvent((raw) => {
-			if (!raw || typeof raw !== "object") return;
-			const ev = raw as { type?: unknown; piSessionId?: unknown };
-			if (ev.piSessionId !== piSessionId) return;
-			if (
-				ev.type === "session.turn_end" ||
-				ev.type === "session.compaction_end"
-			) {
-				qc.invalidateQueries({
-					queryKey: ["session.footerStats", piSessionId],
-				});
-			}
-		});
-		return off;
-	}, [piSessionId, qc]);
+	useInvalidateOnTurnEnd(piSessionId, ["session.footerStats", piSessionId]);
 
 	if (!piSessionId || !stats.data) return null;
 
@@ -83,7 +52,7 @@ export function ChatFooter({ piSessionId }: ChatFooterProps) {
 	const modelName = model
 		? stripClaudePrefix(model.name || model.id)
 		: "no model";
-	const thinkLabel = THINKING_LABELS[thinkingLevel] ?? thinkingLevel;
+	const thinkLabel = THINKING_LABELS[thinkingLevel];
 
 	let contextDisplay: string;
 	if (contextUsage && contextUsage.percent !== null) {
@@ -97,6 +66,8 @@ export function ChatFooter({ piSessionId }: ChatFooterProps) {
 	} else {
 		contextDisplay = "—";
 	}
+
+	const contextColor = contextPillVar(contextUsage?.percent ?? null);
 
 	return (
 		<div
@@ -124,7 +95,8 @@ export function ChatFooter({ piSessionId }: ChatFooterProps) {
 				·
 			</span>
 			<span
-				className={`inline-flex items-center gap-1 ${contextPillTone(contextUsage?.percent ?? null)}`}
+				className="inline-flex items-center gap-1"
+				style={contextColor ? { color: contextColor } : undefined}
 				title={
 					contextUsage
 						? `${contextUsage.tokens ?? 0} tokens of ${contextUsage.contextWindow} context window`

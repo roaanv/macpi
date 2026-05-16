@@ -4,9 +4,12 @@
 // description + argumentHint so the edits round-trip through pi's loader.
 
 import React from "react";
-import { usePromptDetail, useRemovePrompt, useSavePrompt } from "../queries";
+import { usePromptDetail, useSavePrompt } from "../queries";
 import { CodeEditor } from "./CodeEditor";
-import { ConfirmDialog } from "./ConfirmDialog";
+import {
+	UninstallResourceDialog,
+	type UninstallTarget,
+} from "./UninstallResourceDialog";
 
 interface PromptDetailProps {
 	id: string | null;
@@ -16,12 +19,11 @@ interface PromptDetailProps {
 export function PromptDetail({ id, onUninstalled }: PromptDetailProps) {
 	const detail = usePromptDetail(id);
 	const save = useSavePrompt();
-	const remove = useRemovePrompt();
 	const [body, setBody] = React.useState("");
 	const [description, setDescription] = React.useState("");
 	const [argumentHint, setArgumentHint] = React.useState("");
-	const [confirmRemove, setConfirmRemove] = React.useState(false);
-	const [removeError, setRemoveError] = React.useState<string | null>(null);
+	const [removeTarget, setRemoveTarget] =
+		React.useState<UninstallTarget | null>(null);
 
 	React.useEffect(() => {
 		if (!detail.data) return;
@@ -58,17 +60,6 @@ export function PromptDetail({ id, onUninstalled }: PromptDetailProps) {
 		description !== (m.description ?? "") ||
 		argumentHint !== (m.argumentHint ?? "");
 
-	const handleUninstall = async () => {
-		setRemoveError(null);
-		try {
-			await remove.mutateAsync({ source: m.source });
-			setConfirmRemove(false);
-			onUninstalled?.();
-		} catch (e) {
-			setRemoveError(e instanceof Error ? e.message : String(e));
-		}
-	};
-
 	return (
 		<section className="flex flex-1 flex-col surface-panel">
 			<header className="flex flex-col gap-2 border-b border-divider p-3">
@@ -104,9 +95,10 @@ export function PromptDetail({ id, onUninstalled }: PromptDetailProps) {
 				{dirty && <span className="text-xs text-amber-300">• unsaved</span>}
 				<button
 					type="button"
-					onClick={() => setConfirmRemove(true)}
-					disabled={remove.isPending}
-					className="mr-auto rounded px-3 py-1 text-xs text-red-400 hover:bg-red-500/10 disabled:opacity-40"
+					onClick={() =>
+						setRemoveTarget({ id, name: m.name, source: m.source })
+					}
+					className="mr-auto rounded px-3 py-1 text-xs text-red-400 hover:bg-red-500/10"
 				>
 					Uninstall…
 				</button>
@@ -126,25 +118,14 @@ export function PromptDetail({ id, onUninstalled }: PromptDetailProps) {
 					{save.isPending ? "Saving…" : "Save"}
 				</button>
 			</footer>
-			<ConfirmDialog
-				open={confirmRemove}
-				title="Uninstall prompt?"
-				body={
-					<>
-						Remove <code>{m.name}</code> from <code>{m.source}</code>. The files
-						are deleted from disk; you can reinstall any time.
-						{removeError && (
-							<div className="mt-2 text-red-400">⚠ {removeError}</div>
-						)}
-					</>
-				}
-				confirmLabel={remove.isPending ? "Uninstalling…" : "Uninstall"}
-				destructive
-				onConfirm={handleUninstall}
-				onCancel={() => {
-					setConfirmRemove(false);
-					setRemoveError(null);
+			<UninstallResourceDialog
+				kind="prompt"
+				target={removeTarget}
+				onUninstalled={() => {
+					setRemoveTarget(null);
+					onUninstalled?.();
 				}}
+				onCancel={() => setRemoveTarget(null)}
 			/>
 		</section>
 	);

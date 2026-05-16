@@ -23,6 +23,11 @@ interface SessionRef {
 	parentPiSessionId: string | null;
 }
 
+// Frozen empty fallback so `useMemo` deps stay referentially stable while the
+// session query is loading; otherwise the `?? []` fallback below allocates a
+// new array each render and forces the tree to rebuild every time.
+const EMPTY_SESSIONS: readonly SessionRef[] = Object.freeze([]);
+
 interface SessionTreeNode {
 	piSessionId: string;
 	parentPiSessionId: string | null;
@@ -208,7 +213,8 @@ export function ChannelSidebar({
 		? channels.data?.channels.find((c) => c.id === channelContextMenu.channelId)
 		: null;
 
-	const sessionRows = sessions.data?.sessions ?? [];
+	const sessionRows: readonly SessionRef[] =
+		sessions.data?.sessions ?? EMPTY_SESSIONS;
 	const treeRows = React.useMemo(
 		() => flattenForestWithRails(buildSessionForest(sessionRows)),
 		[sessionRows],

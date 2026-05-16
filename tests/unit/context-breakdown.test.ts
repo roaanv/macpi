@@ -83,15 +83,20 @@ describe("segmentMessages", () => {
 });
 
 describe("scaleSegmentsToTarget", () => {
-	it("returns the input untouched when target is zero or total is zero", () => {
+	it("returns empty segments when target is zero (nothing to allocate)", () => {
 		const seg = { system: 5, prompt: 0, assistant: 0, thinking: 0, tools: 0 };
-		expect(scaleSegmentsToTarget(seg, 0)).toBe(seg);
-		expect(
-			scaleSegmentsToTarget(
-				{ system: 0, prompt: 0, assistant: 0, thinking: 0, tools: 0 },
-				10,
-			),
-		).toEqual({ system: 0, prompt: 0, assistant: 0, thinking: 0, tools: 0 });
+		expect(scaleSegmentsToTarget(seg, 0)).toEqual({
+			system: 0,
+			prompt: 0,
+			assistant: 0,
+			thinking: 0,
+			tools: 0,
+		});
+	});
+
+	it("returns the input unchanged when total is zero (nothing to scale from)", () => {
+		const empty = { system: 0, prompt: 0, assistant: 0, thinking: 0, tools: 0 };
+		expect(scaleSegmentsToTarget(empty, 10)).toEqual(empty);
 	});
 
 	it("preserves the sum equal to target via the largest-remainder method", () => {

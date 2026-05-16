@@ -27,6 +27,14 @@ export function CapabilitySettings({ kind }: { kind: Kind }) {
 	const [importOpen, setImportOpen] = React.useState(false);
 	const resourceKind = RESOURCE_KIND[kind];
 
+	// Clear selection when the user switches categories: a stale id from a
+	// different kind would route the detail pane to a not-found state for a
+	// resource that doesn't belong to it.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: kind is the trigger; setSelectedId is stable
+	React.useEffect(() => {
+		setSelectedId(null);
+	}, [kind]);
+
 	const listProps = {
 		selectedId,
 		onSelect: setSelectedId,

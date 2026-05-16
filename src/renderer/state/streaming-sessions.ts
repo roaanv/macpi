@@ -13,6 +13,10 @@ function notify() {
 	for (const cb of subscribers) cb();
 }
 
+// Intentionally retained for the lifetime of the renderer process — the
+// registry is a singleton and the cost of staying subscribed is one no-op
+// per pi event when no consumers exist. Storing the unsubscriber so a future
+// teardown (e.g. test harness) can be wired without touching consumers.
 let unsubscribe: (() => void) | null = null;
 
 function ensureSubscribed() {

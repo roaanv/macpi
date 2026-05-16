@@ -51,15 +51,24 @@ export function SettingsDialog({
 	React.useEffect(() => {
 		if (!open) return;
 		const onKey = (e: KeyboardEvent) => {
-			if (e.key === "Escape") onClose();
+			if (e.key === "Escape") {
+				onClose();
+				return;
+			}
+			// Cmd/Ctrl+W closes the dialog (matches the visible "Close ⌘W" hint).
+			// We preventDefault so Electron doesn't close the entire window.
+			if (e.key.toLowerCase() === "w" && (e.metaKey || e.ctrlKey)) {
+				e.preventDefault();
+				onClose();
+			}
 		};
 		window.addEventListener("keydown", onKey);
 		return () => window.removeEventListener("keydown", onKey);
 	}, [open, onClose]);
 
-	if (!open) return null;
 	const active = categories.find((c) => c.id === activeId) ?? categories[0];
-	const groups = groupCategories(categories);
+	const groups = React.useMemo(() => groupCategories(categories), [categories]);
+	if (!open) return null;
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: Escape handled via keydown listener
 		<div

@@ -1,6 +1,34 @@
 // IPC envelope used everywhere across renderer↔main and main↔pi-host boundaries.
 // We never throw across the wire — every call returns ok() or err().
 
+export type ThinkingLevel =
+	| "off"
+	| "minimal"
+	| "low"
+	| "medium"
+	| "high"
+	| "xhigh";
+
+const KNOWN_THINKING_LEVELS = new Set<ThinkingLevel>([
+	"off",
+	"minimal",
+	"low",
+	"medium",
+	"high",
+	"xhigh",
+]);
+
+/** Coerce an SDK-supplied string to a known thinking level, defaulting to "off". */
+export function coerceThinkingLevel(value: unknown): ThinkingLevel {
+	if (
+		typeof value === "string" &&
+		KNOWN_THINKING_LEVELS.has(value as ThinkingLevel)
+	) {
+		return value as ThinkingLevel;
+	}
+	return "off";
+}
+
 import type { BranchTreeSnapshot } from "./branch-types";
 import type {
 	ExtensionDiagnostic,
@@ -176,6 +204,8 @@ export interface IpcMethods {
 			};
 			cwd: string | null;
 			sessionLabel: string | null;
+			/** OS home dir, so the renderer can render `~/foo` without guessing. */
+			homeDir: string;
 		};
 	};
 	"session.getFooterStats": {
@@ -186,14 +216,7 @@ export interface IpcMethods {
 				name: string;
 				contextWindow: number | null;
 			} | null;
-			thinkingLevel:
-				| "off"
-				| "minimal"
-				| "low"
-				| "medium"
-				| "high"
-				| "xhigh"
-				| string;
+			thinkingLevel: ThinkingLevel;
 			contextUsage: {
 				tokens: number | null;
 				contextWindow: number;

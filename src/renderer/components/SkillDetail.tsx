@@ -3,9 +3,12 @@
 // so the editor stays snappy and we can show an "unsaved" indicator.
 
 import React from "react";
-import { useRemoveSkill, useSaveSkill, useSkillDetail } from "../queries";
+import { useSaveSkill, useSkillDetail } from "../queries";
 import { CodeEditor } from "./CodeEditor";
-import { ConfirmDialog } from "./ConfirmDialog";
+import {
+	UninstallResourceDialog,
+	type UninstallTarget,
+} from "./UninstallResourceDialog";
 
 interface SkillDetailProps {
 	id: string | null;
@@ -15,10 +18,9 @@ interface SkillDetailProps {
 export function SkillDetail({ id, onUninstalled }: SkillDetailProps) {
 	const detail = useSkillDetail(id);
 	const save = useSaveSkill();
-	const remove = useRemoveSkill();
 	const [draft, setDraft] = React.useState("");
-	const [confirmRemove, setConfirmRemove] = React.useState(false);
-	const [removeError, setRemoveError] = React.useState<string | null>(null);
+	const [removeTarget, setRemoveTarget] =
+		React.useState<UninstallTarget | null>(null);
 
 	React.useEffect(() => {
 		if (detail.data) setDraft(detail.data.body);
@@ -50,17 +52,6 @@ export function SkillDetail({ id, onUninstalled }: SkillDetailProps) {
 	const source = detail.data.manifest.source;
 	const skillName = detail.data.manifest.name;
 
-	const handleUninstall = async () => {
-		setRemoveError(null);
-		try {
-			await remove.mutateAsync({ source });
-			setConfirmRemove(false);
-			onUninstalled?.();
-		} catch (e) {
-			setRemoveError(e instanceof Error ? e.message : String(e));
-		}
-	};
-
 	return (
 		<section className="flex flex-1 flex-col surface-panel">
 			<header className="border-b border-divider p-3">
@@ -74,9 +65,8 @@ export function SkillDetail({ id, onUninstalled }: SkillDetailProps) {
 				{dirty && <span className="text-xs text-amber-300">• unsaved</span>}
 				<button
 					type="button"
-					onClick={() => setConfirmRemove(true)}
-					disabled={remove.isPending}
-					className="mr-auto rounded px-3 py-1 text-xs text-red-400 hover:bg-red-500/10 disabled:opacity-40"
+					onClick={() => setRemoveTarget({ id, name: skillName, source })}
+					className="mr-auto rounded px-3 py-1 text-xs text-red-400 hover:bg-red-500/10"
 				>
 					Uninstall…
 				</button>
@@ -89,25 +79,14 @@ export function SkillDetail({ id, onUninstalled }: SkillDetailProps) {
 					{save.isPending ? "Saving…" : "Save"}
 				</button>
 			</footer>
-			<ConfirmDialog
-				open={confirmRemove}
-				title="Uninstall skill?"
-				body={
-					<>
-						Remove <code>{skillName}</code> from <code>{source}</code>. The
-						files are deleted from disk; you can reinstall any time.
-						{removeError && (
-							<div className="mt-2 text-red-400">⚠ {removeError}</div>
-						)}
-					</>
-				}
-				confirmLabel={remove.isPending ? "Uninstalling…" : "Uninstall"}
-				destructive
-				onConfirm={handleUninstall}
-				onCancel={() => {
-					setConfirmRemove(false);
-					setRemoveError(null);
+			<UninstallResourceDialog
+				kind="skill"
+				target={removeTarget}
+				onUninstalled={() => {
+					setRemoveTarget(null);
+					onUninstalled?.();
 				}}
+				onCancel={() => setRemoveTarget(null)}
 			/>
 		</section>
 	);

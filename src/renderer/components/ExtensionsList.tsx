@@ -6,13 +6,12 @@
 
 import React from "react";
 import { friendlyNameForSource } from "../../shared/friendly-name";
-import {
-	useExtensions,
-	useRemoveExtension,
-	useSetExtensionEnabled,
-} from "../queries";
-import { ConfirmDialog } from "./ConfirmDialog";
+import { useExtensions, useSetExtensionEnabled } from "../queries";
 import { RowMenu } from "./RowMenu";
+import {
+	UninstallResourceDialog,
+	type UninstallTarget,
+} from "./UninstallResourceDialog";
 
 interface ExtensionsListProps {
 	selectedId: string | null;
@@ -29,25 +28,8 @@ export function ExtensionsList({
 }: ExtensionsListProps) {
 	const ext = useExtensions();
 	const setEnabled = useSetExtensionEnabled();
-	const remove = useRemoveExtension();
-	const [confirmRemove, setConfirmRemove] = React.useState<{
-		id: string;
-		name: string;
-		source: string;
-	} | null>(null);
-	const [removeError, setRemoveError] = React.useState<string | null>(null);
-
-	const handleUninstall = async () => {
-		if (!confirmRemove) return;
-		setRemoveError(null);
-		try {
-			await remove.mutateAsync({ source: confirmRemove.source });
-			if (selectedId === confirmRemove.id) onSelect(null);
-			setConfirmRemove(null);
-		} catch (e) {
-			setRemoveError(e instanceof Error ? e.message : String(e));
-		}
-	};
+	const [removeTarget, setRemoveTarget] =
+		React.useState<UninstallTarget | null>(null);
 
 	return (
 		<aside className="flex h-full w-full min-w-0 flex-col surface-rail border-r border-divider">
@@ -130,7 +112,7 @@ export function ExtensionsList({
 										label: "Uninstall",
 										destructive: true,
 										onClick: () =>
-											setConfirmRemove({
+											setRemoveTarget({
 												id: e.id,
 												name: e.name,
 												source: e.source,
@@ -142,28 +124,14 @@ export function ExtensionsList({
 					);
 				})}
 			</div>
-			<ConfirmDialog
-				open={!!confirmRemove}
-				title="Uninstall extension?"
-				body={
-					confirmRemove && (
-						<>
-							Remove <code>{confirmRemove.name}</code> from{" "}
-							<code>{confirmRemove.source}</code>. The files are deleted from
-							disk; you can reinstall any time.
-							{removeError && (
-								<div className="mt-2 text-red-400">⚠ {removeError}</div>
-							)}
-						</>
-					)
-				}
-				confirmLabel={remove.isPending ? "Uninstalling…" : "Uninstall"}
-				destructive
-				onConfirm={handleUninstall}
-				onCancel={() => {
-					setConfirmRemove(null);
-					setRemoveError(null);
+			<UninstallResourceDialog
+				kind="extension"
+				target={removeTarget}
+				onUninstalled={(t) => {
+					if (selectedId === t.id) onSelect(null);
+					setRemoveTarget(null);
 				}}
+				onCancel={() => setRemoveTarget(null)}
 			/>
 		</aside>
 	);

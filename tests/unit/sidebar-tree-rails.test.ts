@@ -78,6 +78,24 @@ describe("flattenForestWithRails", () => {
 		expect(byId.get("d")?.isLastChild).toBe(true); // last child of a
 	});
 
+	it("draws a depth-0 through-rail for children of a non-final root", () => {
+		// Two roots r1, r2. c1 sits under r1; r1 has a later sibling at
+		// depth 0 (namely r2), so c1's rendering needs a vertical through-rail
+		// at depth 0 to visually continue the trunk down toward r2. c2 (under
+		// the last root) gets no through-rail.
+		const flat = flattenForestWithRails(
+			buildSessionForest(
+				rows(["r1", null], ["c1", "r1"], ["r2", null], ["c2", "r2"]),
+			),
+		);
+		const byId = new Map(flat.map((f) => [f.node.piSessionId, f]));
+		expect(byId.get("c1")?.throughRailDepths).toEqual([0]);
+		expect(byId.get("c2")?.throughRailDepths).toEqual([]);
+		// Roots themselves never have rails (depth 0 loop body never runs).
+		expect(byId.get("r1")?.throughRailDepths).toEqual([]);
+		expect(byId.get("r2")?.throughRailDepths).toEqual([]);
+	});
+
 	it("tracks through-rail depths for ancestors with later siblings", () => {
 		// a
 		//  ├ b (has later sibling d at depth 1)

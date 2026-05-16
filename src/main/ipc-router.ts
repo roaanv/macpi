@@ -16,6 +16,7 @@ import {
 import { resolveCwd } from "../shared/cwd-resolver";
 import { friendlyNameForSource } from "../shared/friendly-name";
 import {
+	coerceThinkingLevel,
 	err,
 	type IpcMethodName,
 	type IpcMethods,
@@ -280,6 +281,7 @@ export class IpcRouter {
 				cumulativeUsage: usage,
 				cwd: meta?.cwd ?? null,
 				sessionLabel: meta?.label ?? null,
+				homeDir: os.homedir(),
 			});
 		});
 		this.register("session.getFooterStats", async (args) => {
@@ -302,7 +304,7 @@ export class IpcRouter {
 									: null,
 						}
 					: null,
-				thinkingLevel: session.thinkingLevel ?? "off",
+				thinkingLevel: coerceThinkingLevel(session.thinkingLevel),
 				contextUsage: usage
 					? {
 							tokens: usage.tokens,

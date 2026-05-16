@@ -7,14 +7,11 @@
 // Refreshes on turn_end / compaction_end events so it stays current without
 // polling.
 
-import { useQueryClient } from "@tanstack/react-query";
-import React from "react";
 import {
 	type ContextSegmentKey,
 	formatTokens,
 } from "../../shared/context-breakdown";
-import { onPiEvent } from "../ipc";
-import { useSessionContextBreakdown } from "../queries";
+import { useInvalidateOnTurnEnd, useSessionContextBreakdown } from "../queries";
 
 interface ChatContextBarProps {
 	piSessionId: string | null;
@@ -79,6 +76,20 @@ function Segment({
 	);
 }
 
+/**
+ * Replace a leading home-dir match with `~`. Handles the exact-home case
+ * (`/Users/x` → `~`), a child path (`/Users/x/code` → `~/code`), and anything
+ * outside home (returned unchanged). Cross-platform: works for any homeDir
+ * the main process supplies, not just `/Users/...`.
+ */
+function abbreviateHome(cwd: string | null, homeDir: string): string {
+	if (!cwd) return "";
+	if (!homeDir) return cwd;
+	if (cwd === homeDir) return "~";
+	if (cwd.startsWith(`${homeDir}/`)) return `~${cwd.slice(homeDir.length)}`;
+	return cwd;
+}
+
 function FreeSegment({ tokens, percent }: { tokens: number; percent: number }) {
 	if (tokens <= 0) return null;
 	const sizeText = formatTokens(tokens);
@@ -103,25 +114,10 @@ function FreeSegment({ tokens, percent }: { tokens: number; percent: number }) {
 
 export function ChatContextBar({ piSessionId }: ChatContextBarProps) {
 	const breakdown = useSessionContextBreakdown(piSessionId);
-	const qc = useQueryClient();
-
-	React.useEffect(() => {
-		if (!piSessionId) return;
-		const off = onPiEvent((raw) => {
-			if (!raw || typeof raw !== "object") return;
-			const ev = raw as { type?: unknown; piSessionId?: unknown };
-			if (ev.piSessionId !== piSessionId) return;
-			if (
-				ev.type === "session.turn_end" ||
-				ev.type === "session.compaction_end"
-			) {
-				qc.invalidateQueries({
-					queryKey: ["session.contextBreakdown", piSessionId],
-				});
-			}
-		});
-		return off;
-	}, [piSessionId, qc]);
+	useInvalidateOnTurnEnd(piSessionId, [
+		"session.contextBreakdown",
+		piSessionId,
+	]);
 
 	if (!piSessionId || !breakdown.data) return null;
 	const d = breakdown.data;
@@ -141,11 +137,7 @@ export function ChatContextBar({ piSessionId }: ChatContextBarProps) {
 		u.cost > 0 ? `$${u.cost.toFixed(3)}` : "",
 	].filter(Boolean);
 
-	const home = "/Users/";
-	const cwd = d.cwd ?? "";
-	const displayCwd = cwd.startsWith(home)
-		? `~${cwd.slice(cwd.indexOf("/", home.length))}`
-		: cwd;
+	const displayCwd = abbreviateHome(d.cwd, d.homeDir);
 
 	return (
 		<div className="mt-1.5 flex flex-col gap-1">
@@ -181,7 +173,7 @@ export function ChatContextBar({ piSessionId }: ChatContextBarProps) {
 				{displayCwd && (
 					<>
 						<span aria-hidden>·</span>
-						<span className="truncate" title={cwd}>
+						<span className="truncate" title={d.cwd ?? undefined}>
 							{displayCwd}
 						</span>
 					</>

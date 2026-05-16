@@ -7,12 +7,14 @@ import type { ExtensionDiagnostic } from "../../shared/extensions-types";
 import {
 	useExtensionDetail,
 	useLintExtension,
-	useRemoveExtension,
 	useSaveExtension,
 } from "../queries";
 import { CodeEditor } from "./CodeEditor";
-import { ConfirmDialog } from "./ConfirmDialog";
 import { DiagnosticsPanel } from "./DiagnosticsPanel";
+import {
+	UninstallResourceDialog,
+	type UninstallTarget,
+} from "./UninstallResourceDialog";
 
 interface ExtensionDetailProps {
 	id: string | null;
@@ -23,13 +25,12 @@ export function ExtensionDetail({ id, onUninstalled }: ExtensionDetailProps) {
 	const detail = useExtensionDetail(id);
 	const save = useSaveExtension();
 	const lint = useLintExtension();
-	const remove = useRemoveExtension();
 	const [draft, setDraft] = React.useState("");
 	const [diagnostics, setDiagnostics] = React.useState<ExtensionDiagnostic[]>(
 		[],
 	);
-	const [confirmRemove, setConfirmRemove] = React.useState(false);
-	const [removeError, setRemoveError] = React.useState<string | null>(null);
+	const [removeTarget, setRemoveTarget] =
+		React.useState<UninstallTarget | null>(null);
 
 	React.useEffect(() => {
 		if (detail.data) {
@@ -87,17 +88,6 @@ export function ExtensionDetail({ id, onUninstalled }: ExtensionDetailProps) {
 		lint.mutate({ id }, { onSuccess: (r) => setDiagnostics(r.diagnostics) });
 	};
 
-	const handleUninstall = async () => {
-		setRemoveError(null);
-		try {
-			await remove.mutateAsync({ source });
-			setConfirmRemove(false);
-			onUninstalled?.();
-		} catch (e) {
-			setRemoveError(e instanceof Error ? e.message : String(e));
-		}
-	};
-
 	return (
 		<section className="flex flex-1 flex-col surface-panel">
 			<header className="border-b border-divider p-3">
@@ -111,9 +101,8 @@ export function ExtensionDetail({ id, onUninstalled }: ExtensionDetailProps) {
 				{dirty && <span className="text-xs text-amber-300">• unsaved</span>}
 				<button
 					type="button"
-					onClick={() => setConfirmRemove(true)}
-					disabled={remove.isPending}
-					className="mr-auto rounded px-3 py-1 text-xs text-red-400 hover:bg-red-500/10 disabled:opacity-40"
+					onClick={() => setRemoveTarget({ id, name: extName, source })}
+					className="mr-auto rounded px-3 py-1 text-xs text-red-400 hover:bg-red-500/10"
 				>
 					Uninstall…
 				</button>
@@ -135,25 +124,14 @@ export function ExtensionDetail({ id, onUninstalled }: ExtensionDetailProps) {
 				</button>
 			</footer>
 			<DiagnosticsPanel diagnostics={diagnostics} />
-			<ConfirmDialog
-				open={confirmRemove}
-				title="Uninstall extension?"
-				body={
-					<>
-						Remove <code>{extName}</code> from <code>{source}</code>. The files
-						are deleted from disk; you can reinstall any time.
-						{removeError && (
-							<div className="mt-2 text-red-400">⚠ {removeError}</div>
-						)}
-					</>
-				}
-				confirmLabel={remove.isPending ? "Uninstalling…" : "Uninstall"}
-				destructive
-				onConfirm={handleUninstall}
-				onCancel={() => {
-					setConfirmRemove(false);
-					setRemoveError(null);
+			<UninstallResourceDialog
+				kind="extension"
+				target={removeTarget}
+				onUninstalled={() => {
+					setRemoveTarget(null);
+					onUninstalled?.();
 				}}
+				onCancel={() => setRemoveTarget(null)}
 			/>
 		</section>
 	);

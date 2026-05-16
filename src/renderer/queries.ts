@@ -2,7 +2,36 @@
 // Mutations handle cache invalidation so callers don't need to.
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { invoke } from "./ipc";
+import React from "react";
+import { invoke, onPiEvent } from "./ipc";
+
+/**
+ * Subscribes to pi events for one session and invalidates `queryKey` whenever
+ * the model finishes a turn (or compaction). Use this from any component that
+ * shows derived session state that needs to refresh after each round-trip —
+ * footer stats, context breakdown, token usage, etc.
+ */
+export function useInvalidateOnTurnEnd(
+	piSessionId: string | null,
+	queryKey: readonly unknown[],
+) {
+	const qc = useQueryClient();
+	// biome-ignore lint/correctness/useExhaustiveDependencies: queryKey is array-stable per caller; consumers pass literal-shaped tuples
+	React.useEffect(() => {
+		if (!piSessionId) return;
+		return onPiEvent((raw) => {
+			if (!raw || typeof raw !== "object") return;
+			const ev = raw as { type?: unknown; piSessionId?: unknown };
+			if (ev.piSessionId !== piSessionId) return;
+			if (
+				ev.type === "session.turn_end" ||
+				ev.type === "session.compaction_end"
+			) {
+				qc.invalidateQueries({ queryKey });
+			}
+		});
+	}, [piSessionId, qc]);
+}
 
 export function useChannels() {
 	return useQuery({
@@ -439,16 +468,40 @@ export function useInstallSkill() {
 	});
 }
 
-export function useRemoveSkill() {
+type ResourceKind = "skills" | "extensions" | "prompts";
+
+const RESOURCE_REMOVE_METHOD = {
+	skills: "skills.remove",
+	extensions: "extensions.remove",
+	prompts: "prompts.remove",
+} as const satisfies Record<ResourceKind, string>;
+
+const RESOURCE_CHANGE_EVENT = {
+	skills: "macpi:skills-changed",
+	extensions: "macpi:extensions-changed",
+	prompts: "macpi:prompts-changed",
+} as const satisfies Record<ResourceKind, string>;
+
+/**
+ * Generic remove-resource mutation. Invalidates both the list and any cached
+ * detail queries (a removed id should never serve stale data on reinstall),
+ * and broadcasts the well-known `macpi:<kind>-changed` event so the timeline
+ * banner can prompt a session reload.
+ */
+function useRemoveResource(kind: ResourceKind) {
 	const qc = useQueryClient();
 	return useMutation({
-		mutationFn: (input: { source: string }) => invoke("skills.remove", input),
+		mutationFn: (input: { source: string }) =>
+			invoke(RESOURCE_REMOVE_METHOD[kind], input),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["skills.list"] });
-			window.dispatchEvent(new CustomEvent("macpi:skills-changed"));
+			qc.invalidateQueries({ queryKey: [`${kind}.list`] });
+			qc.removeQueries({ queryKey: [`${kind}.read`] });
+			window.dispatchEvent(new CustomEvent(RESOURCE_CHANGE_EVENT[kind]));
 		},
 	});
 }
+
+export const useRemoveSkill = () => useRemoveResource("skills");
 
 export function usePrompts() {
 	return useQuery({
@@ -555,16 +608,7 @@ export function useInstallPrompt() {
 	});
 }
 
-export function useRemovePrompt() {
-	const qc = useQueryClient();
-	return useMutation({
-		mutationFn: (input: { source: string }) => invoke("prompts.remove", input),
-		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["prompts.list"] });
-			window.dispatchEvent(new CustomEvent("macpi:prompts-changed"));
-		},
-	});
-}
+export const useRemovePrompt = () => useRemoveResource("prompts");
 
 export function useExtensions() {
 	return useQuery({
@@ -597,17 +641,7 @@ export function useInstallExtension() {
 	});
 }
 
-export function useRemoveExtension() {
-	const qc = useQueryClient();
-	return useMutation({
-		mutationFn: (input: { source: string }) =>
-			invoke("extensions.remove", input),
-		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["extensions.list"] });
-			window.dispatchEvent(new CustomEvent("macpi:extensions-changed"));
-		},
-	});
-}
+export const useRemoveExtension = () => useRemoveResource("extensions");
 
 export function usePiResources(
 	kind: "skill" | "extension" | "prompt",
