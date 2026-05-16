@@ -57,6 +57,8 @@ let modelAuthServiceMock: {
 	listModels: ReturnType<typeof vi.fn>;
 	getSelectedModel: ReturnType<typeof vi.fn>;
 	setSelectedModel: ReturnType<typeof vi.fn>;
+	getImportStatus: ReturnType<typeof vi.fn>;
+	importFromPi: ReturnType<typeof vi.fn>;
 };
 
 beforeEach(() => {
@@ -139,6 +141,19 @@ beforeEach(() => {
 		listModels: vi.fn().mockResolvedValue({ models: [] }),
 		getSelectedModel: vi.fn().mockResolvedValue({ model: null, valid: true }),
 		setSelectedModel: vi.fn().mockResolvedValue(undefined),
+		getImportStatus: vi.fn().mockReturnValue({
+			sourceAuthExists: false,
+			sourceModelsExists: false,
+			destAuthExists: false,
+			destModelsExists: false,
+			sourceAuthPath: "/src/auth.json",
+			sourceModelsPath: "/src/models.json",
+			destAuthPath: "/dst/auth.json",
+			destModelsPath: "/dst/models.json",
+		}),
+		importFromPi: vi
+			.fn()
+			.mockResolvedValue({ copiedAuth: false, copiedModels: false }),
 	};
 	router = new IpcRouter({
 		channels: new ChannelsRepo(db),
@@ -729,6 +744,28 @@ describe("IpcRouter", () => {
 		expect(r).toEqual({
 			ok: false,
 			error: { code: "model_not_found", message: "Selected model missing" },
+		});
+	});
+
+	it("modelsAuth.getImportStatus returns import paths", async () => {
+		const r = await router.dispatch("modelsAuth.getImportStatus", {});
+
+		expect(r.ok).toBe(true);
+		if (r.ok) expect(r.data.destAuthPath).toBe("/dst/auth.json");
+	});
+
+	it("modelsAuth.importFromPi maps import failures", async () => {
+		modelAuthServiceMock.importFromPi.mockRejectedValue(new Error("nope"));
+
+		const r = await router.dispatch("modelsAuth.importFromPi", {
+			auth: true,
+			models: true,
+			replaceExisting: false,
+		});
+
+		expect(r).toEqual({
+			ok: false,
+			error: { code: "import_failed", message: "nope" },
 		});
 	});
 

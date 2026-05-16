@@ -237,6 +237,30 @@ export function useSetSelectedModel() {
 	});
 }
 
+export function useModelAuthImportStatus() {
+	return useQuery({
+		queryKey: ["modelsAuth.importStatus"],
+		queryFn: () => invoke("modelsAuth.getImportStatus", {}),
+	});
+}
+
+export function useImportPiAuthModels() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (input: {
+			auth: boolean;
+			models: boolean;
+			replaceExisting: boolean;
+		}) => invoke("modelsAuth.importFromPi", input),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["modelsAuth.importStatus"] });
+			qc.invalidateQueries({ queryKey: ["modelsAuth.providers"] });
+			qc.invalidateQueries({ queryKey: ["modelsAuth.models"] });
+			qc.invalidateQueries({ queryKey: ["modelsAuth.selectedModel"] });
+		},
+	});
+}
+
 export function useSkills() {
 	return useQuery({
 		queryKey: ["skills.list"],

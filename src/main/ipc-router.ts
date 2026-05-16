@@ -256,6 +256,22 @@ export class IpcRouter {
 				return err("model_not_found", msg);
 			}
 		});
+		this.register("modelsAuth.getImportStatus", async () =>
+			ok(this.deps.modelAuthService.getImportStatus(os.homedir())),
+		);
+		this.register("modelsAuth.importFromPi", async (args) => {
+			try {
+				return ok(
+					await this.deps.modelAuthService.importFromPi({
+						homeDir: os.homedir(),
+						...args,
+					}),
+				);
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				return err("import_failed", msg);
+			}
+		});
 		this.register("skills.list", async () => {
 			const skills = await this.deps.skillsService.list();
 			return ok({ skills });

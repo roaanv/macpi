@@ -1,4 +1,5 @@
 import { useModelAuthModels, useModelAuthProviders, useSelectedModel, useSetSelectedModel } from "../queries";
+import { ImportPiAuthModels } from "./ImportPiAuthModels";
 import { ModelPicker } from "./ModelPicker";
 import { ProviderAuthList } from "./ProviderAuthList";
 
@@ -34,6 +35,10 @@ export function ModelsAuthSettings() {
 						</div>
 					) : null}
 				</div>
+			</section>
+
+			<section className="flex flex-col gap-2">
+				<ImportPiAuthModels />
 			</section>
 
 			<section className="flex flex-col gap-2">
