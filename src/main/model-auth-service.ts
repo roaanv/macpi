@@ -2,11 +2,13 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Api, Model } from "@earendil-works/pi-ai";
 import type { AuthStorage, ModelRegistry } from "@earendil-works/pi-coding-agent";
+import { getSelectedModel as getSelectedModelSetting } from "../shared/app-settings-keys";
 import type {
 	AuthSource,
 	ModelSummary,
 	ProviderAuthType,
 	ProviderSummary,
+	SelectedModelRef,
 } from "../shared/model-auth-types";
 
 interface ModelAuthPiModule {
@@ -18,6 +20,10 @@ interface ModelAuthPiModule {
 
 export interface ModelAuthServiceDeps {
 	macpiRoot: string;
+	appSettings?: {
+		getAll(): Record<string, unknown>;
+		set(key: string, value: unknown): void;
+	};
 	loadPi?: () => Promise<ModelAuthPiModule>;
 }
 
@@ -73,6 +79,46 @@ export class ModelAuthService {
 		const registry = await this.getModelRegistry();
 		auth.reload();
 		registry.refresh();
+	}
+
+	async getSelectedModel(): Promise<{
+		model: SelectedModelRef | null;
+		valid: boolean;
+		error?: string;
+	}> {
+		const model = getSelectedModelSetting(this.deps.appSettings?.getAll() ?? {});
+		if (!model) return { model: null, valid: true };
+		const registry = await this.getModelRegistry();
+		if (registry.find(model.provider, model.modelId)) {
+			return { model, valid: true };
+		}
+		return {
+			model,
+			valid: false,
+			error: this.selectedModelMissingMessage(model),
+		};
+	}
+
+	async setSelectedModel(model: SelectedModelRef | null): Promise<void> {
+		if (!this.deps.appSettings) {
+			throw new Error("ModelAuthService requires appSettings to set model");
+		}
+		if (model) {
+			const registry = await this.getModelRegistry();
+			if (!registry.find(model.provider, model.modelId)) {
+				throw new Error(this.selectedModelMissingMessage(model));
+			}
+		}
+		this.deps.appSettings.set("selectedModel", model);
+	}
+
+	async resolveSelectedModel(): Promise<Model<Api> | undefined> {
+		const model = getSelectedModelSetting(this.deps.appSettings?.getAll() ?? {});
+		if (!model) return undefined;
+		const registry = await this.getModelRegistry();
+		const resolved = registry.find(model.provider, model.modelId);
+		if (!resolved) throw new Error(this.selectedModelMissingMessage(model));
+		return resolved;
 	}
 
 	async listProviders(): Promise<ProviderSummary[]> {
@@ -145,6 +191,10 @@ export class ModelAuthService {
 			contextWindow: model.contextWindow ?? 0,
 			maxTokens: model.maxTokens ?? 0,
 		}));
+	}
+
+	private selectedModelMissingMessage(model: SelectedModelRef): string {
+		return `Selected model ${model.provider}/${model.modelId} not found`;
 	}
 
 	private authTypeForProvider(input: {

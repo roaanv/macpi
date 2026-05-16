@@ -35,6 +35,80 @@ describe("ModelAuthService paths", () => {
 	});
 });
 
+describe("ModelAuthService selected model", () => {
+	it("returns null when selected model is unset", async () => {
+		const settings = fakeSettings({});
+		const service = new ModelAuthService({
+			macpiRoot: tempRoot(),
+			appSettings: settings,
+			loadPi: async () => ({
+				AuthStorage: { create: () => fakeAuthStorage() },
+				ModelRegistry: { create: () => fakeModelRegistry() },
+			}),
+		});
+
+		await expect(service.getSelectedModel()).resolves.toEqual({
+			model: null,
+			valid: true,
+		});
+		await expect(service.resolveSelectedModel()).resolves.toBeUndefined();
+	});
+
+	it("validates and persists selected model references", async () => {
+		const settings = fakeSettings({});
+		const selected = fakeModel("anthropic", "claude-sonnet");
+		const service = new ModelAuthService({
+			macpiRoot: tempRoot(),
+			appSettings: settings,
+			loadPi: async () => ({
+				AuthStorage: { create: () => fakeAuthStorage() },
+				ModelRegistry: {
+					create: () =>
+						fakeModelRegistry({
+							models: [selected],
+							findModel: selected,
+						}),
+				},
+			}),
+		});
+
+		await service.setSelectedModel({
+			provider: "anthropic",
+			modelId: "claude-sonnet",
+		});
+
+		expect(settings.getAll()).toEqual({
+			selectedModel: { provider: "anthropic", modelId: "claude-sonnet" },
+		});
+		await expect(service.resolveSelectedModel()).resolves.toBe(selected);
+	});
+
+	it("rejects missing selected model references", async () => {
+		const service = new ModelAuthService({
+			macpiRoot: tempRoot(),
+			appSettings: fakeSettings({
+				selectedModel: { provider: "anthropic", modelId: "missing" },
+			}),
+			loadPi: async () => ({
+				AuthStorage: { create: () => fakeAuthStorage() },
+				ModelRegistry: { create: () => fakeModelRegistry() },
+			}),
+		});
+
+		await expect(service.getSelectedModel()).resolves.toEqual({
+			model: { provider: "anthropic", modelId: "missing" },
+			valid: false,
+			error: "Selected model anthropic/missing not found",
+		});
+		await expect(service.resolveSelectedModel()).rejects.toThrow(
+			"Selected model anthropic/missing not found",
+		);
+		await expect(
+			service.setSelectedModel({ provider: "anthropic", modelId: "missing" }),
+		).rejects.toThrow("Selected model anthropic/missing not found");
+	});
+});
+
 describe("ModelAuthService summaries", () => {
 	it("combines model, OAuth, and stored credential providers", async () => {
 		const root = tempRoot();
@@ -153,13 +227,17 @@ function fakeModelRegistry(opts?: {
 	authenticatedModelKeys?: Set<string>;
 	oauthModelKeys?: Set<string>;
 	registryError?: string;
+	findModel?: ReturnType<typeof fakeModel>;
 }) {
 	return {
 		getAll: () => opts?.models ?? [],
 		getAvailable: () => opts?.availableModels ?? [],
 		getError: () => opts?.registryError,
 		refresh: () => {},
-		find: () => undefined,
+		find: (provider: string, modelId: string) =>
+			opts?.findModel?.provider === provider && opts.findModel.id === modelId
+				? opts.findModel
+				: undefined,
 		getProviderAuthStatus: (provider: string) =>
 			opts?.authStatuses?.[provider] ?? { configured: false },
 		getProviderDisplayName: (provider: string) =>
@@ -168,5 +246,15 @@ function fakeModelRegistry(opts?: {
 			opts?.authenticatedModelKeys?.has(`${model.provider}/${model.id}`) ?? false,
 		isUsingOAuth: (model: ReturnType<typeof fakeModel>) =>
 			opts?.oauthModelKeys?.has(`${model.provider}/${model.id}`) ?? false,
+	};
+}
+
+function fakeSettings(initial: Record<string, unknown>) {
+	const values = { ...initial };
+	return {
+		getAll: () => ({ ...values }),
+		set: (key: string, value: unknown) => {
+			values[key] = value;
+		},
 	};
 }
