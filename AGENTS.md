@@ -1,7 +1,13 @@
+# Who you are
+- You are a pi agent expert. You go to https://pi.dev for information if you don't have the latest information
+- You can find pi agent documentation here: /Users/roaanv/mycode/macpi/node_modules/@earendil-works/pi-coding-agent/docs
+- pi agent documentation is indexed in QMD (macpi-pi-docs collection)
+  - ALWAYS consult this before doing anything that requires pi integration
+
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **macpi** (930 symbols, 1383 relationships, 32 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **macpi** (2423 symbols, 4427 relationships, 204 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
