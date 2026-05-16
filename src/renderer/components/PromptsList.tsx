@@ -1,10 +1,14 @@
 // Left-pane prompts list. Mirrors SkillsList but each row exposes the
 // description and (optional) argument hint on a secondary line — the two
-// fields unique to prompts. Top toolbar offers Install + Import. Pi
-// sources are collapsed via friendlyNameForSource for readability.
+// fields unique to prompts. Top toolbar offers Install + Import. Per-row
+// hover-revealed ⋮ menu surfaces Uninstall. Pi sources are collapsed via
+// friendlyNameForSource for readability.
 
+import React from "react";
 import { friendlyNameForSource } from "../../shared/friendly-name";
-import { usePrompts, useSetPromptEnabled } from "../queries";
+import { usePrompts, useRemovePrompt, useSetPromptEnabled } from "../queries";
+import { ConfirmDialog } from "./ConfirmDialog";
+import { RowMenu } from "./RowMenu";
 
 interface PromptsListProps {
 	selectedId: string | null;
@@ -21,6 +25,25 @@ export function PromptsList({
 }: PromptsListProps) {
 	const prompts = usePrompts();
 	const setEnabled = useSetPromptEnabled();
+	const remove = useRemovePrompt();
+	const [confirmRemove, setConfirmRemove] = React.useState<{
+		id: string;
+		name: string;
+		source: string;
+	} | null>(null);
+	const [removeError, setRemoveError] = React.useState<string | null>(null);
+
+	const handleUninstall = async () => {
+		if (!confirmRemove) return;
+		setRemoveError(null);
+		try {
+			await remove.mutateAsync({ source: confirmRemove.source });
+			if (selectedId === confirmRemove.id) onSelect(null);
+			setConfirmRemove(null);
+		} catch (e) {
+			setRemoveError(e instanceof Error ? e.message : String(e));
+		}
+	};
 
 	return (
 		<aside className="flex h-full w-full min-w-0 flex-col surface-rail border-r border-divider">
@@ -65,7 +88,7 @@ export function PromptsList({
 					return (
 						<div
 							key={p.id}
-							className={`flex items-start gap-2 rounded px-2 py-1 text-sm ${
+							className={`group flex items-start gap-2 rounded px-2 py-1 text-sm ${
 								selectedId === p.id
 									? "surface-row text-primary"
 									: "text-muted hover:surface-row"
@@ -103,10 +126,47 @@ export function PromptsList({
 									</div>
 								)}
 							</button>
+							<RowMenu
+								items={[
+									{
+										label: "Uninstall",
+										destructive: true,
+										onClick: () =>
+											setConfirmRemove({
+												id: p.id,
+												name: p.name,
+												source: p.source,
+											}),
+									},
+								]}
+							/>
 						</div>
 					);
 				})}
 			</div>
+			<ConfirmDialog
+				open={!!confirmRemove}
+				title="Uninstall prompt?"
+				body={
+					confirmRemove && (
+						<>
+							Remove <code>{confirmRemove.name}</code> from{" "}
+							<code>{confirmRemove.source}</code>. The files are deleted from
+							disk; you can reinstall any time.
+							{removeError && (
+								<div className="mt-2 text-red-400">⚠ {removeError}</div>
+							)}
+						</>
+					)
+				}
+				confirmLabel={remove.isPending ? "Uninstalling…" : "Uninstall"}
+				destructive
+				onConfirm={handleUninstall}
+				onCancel={() => {
+					setConfirmRemove(null);
+					setRemoveError(null);
+				}}
+			/>
 		</aside>
 	);
 }

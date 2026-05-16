@@ -162,6 +162,11 @@ export class PromptsService {
 			pm.setProgressCallback(undefined);
 		}
 	}
+
+	async remove(source: string): Promise<void> {
+		const pm = await this.deps.loadPackageManager();
+		await pm.removeAndPersist(source, { local: false });
+	}
 }
 
 /**

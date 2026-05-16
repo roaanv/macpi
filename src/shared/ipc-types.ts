@@ -161,21 +161,66 @@ export interface IpcMethods {
 		req: { key: string; value: unknown };
 		res: Record<string, never>;
 	};
-	"modelsAuth.listProviders": { req: Record<string, never>; res: { providers: ProviderSummary[] } };
-	"modelsAuth.listModels": { req: Record<string, never>; res: { models: ModelSummary[]; registryError?: string } };
-	"modelsAuth.getSelectedModel": { req: Record<string, never>; res: { model: SelectedModelRef | null; valid: boolean; error?: string } };
-	"modelsAuth.setSelectedModel": { req: { model: SelectedModelRef | null }; res: Record<string, never> };
-	"modelsAuth.saveApiKey": { req: { provider: string; apiKey: string }; res: Record<string, never> };
-	"modelsAuth.logoutProvider": { req: { provider: string }; res: Record<string, never> };
-	"modelsAuth.startOAuthLogin": { req: { provider: string }; res: { loginId: string } };
-	"modelsAuth.respondOAuthPrompt": { req: { loginId: string; promptId: string; value: string }; res: Record<string, never> };
-	"modelsAuth.cancelOAuthLogin": { req: { loginId: string }; res: Record<string, never> };
-	"modelsAuth.readModelsJson": { req: Record<string, never>; res: ModelsJsonReadResult };
-	"modelsAuth.writeModelsJson": { req: { text: string }; res: { registryError?: string } };
-	"modelsAuth.getImportStatus": { req: Record<string, never>; res: ImportPiAuthModelsStatus };
-	"modelsAuth.importFromPi": { req: { auth: boolean; models: boolean; replaceExisting: boolean }; res: { copiedAuth: boolean; copiedModels: boolean } };
-	"modelsAuth.listLocalOpenAIModels": { req: { baseUrl: string; apiKey: string }; res: { models: LocalOpenAIModelCandidate[] } };
-	"modelsAuth.saveLocalOpenAIProvider": { req: LocalOpenAIProviderInput; res: { provider: string; selectedModel: SelectedModelRef } };
+	"modelsAuth.listProviders": {
+		req: Record<string, never>;
+		res: { providers: ProviderSummary[] };
+	};
+	"modelsAuth.listModels": {
+		req: Record<string, never>;
+		res: { models: ModelSummary[]; registryError?: string };
+	};
+	"modelsAuth.getSelectedModel": {
+		req: Record<string, never>;
+		res: { model: SelectedModelRef | null; valid: boolean; error?: string };
+	};
+	"modelsAuth.setSelectedModel": {
+		req: { model: SelectedModelRef | null };
+		res: Record<string, never>;
+	};
+	"modelsAuth.saveApiKey": {
+		req: { provider: string; apiKey: string };
+		res: Record<string, never>;
+	};
+	"modelsAuth.logoutProvider": {
+		req: { provider: string };
+		res: Record<string, never>;
+	};
+	"modelsAuth.startOAuthLogin": {
+		req: { provider: string };
+		res: { loginId: string };
+	};
+	"modelsAuth.respondOAuthPrompt": {
+		req: { loginId: string; promptId: string; value: string };
+		res: Record<string, never>;
+	};
+	"modelsAuth.cancelOAuthLogin": {
+		req: { loginId: string };
+		res: Record<string, never>;
+	};
+	"modelsAuth.readModelsJson": {
+		req: Record<string, never>;
+		res: ModelsJsonReadResult;
+	};
+	"modelsAuth.writeModelsJson": {
+		req: { text: string };
+		res: { registryError?: string };
+	};
+	"modelsAuth.getImportStatus": {
+		req: Record<string, never>;
+		res: ImportPiAuthModelsStatus;
+	};
+	"modelsAuth.importFromPi": {
+		req: { auth: boolean; models: boolean; replaceExisting: boolean };
+		res: { copiedAuth: boolean; copiedModels: boolean };
+	};
+	"modelsAuth.listLocalOpenAIModels": {
+		req: { baseUrl: string; apiKey: string };
+		res: { models: LocalOpenAIModelCandidate[] };
+	};
+	"modelsAuth.saveLocalOpenAIProvider": {
+		req: LocalOpenAIProviderInput;
+		res: { provider: string; selectedModel: SelectedModelRef };
+	};
 	"dialog.openFolder": {
 		req: { defaultPath?: string };
 		/** path is null when the user cancelled the dialog. */
@@ -247,6 +292,10 @@ export interface IpcMethods {
 		res: Record<string, never>;
 	};
 	"prompts.install": {
+		req: { source: string };
+		res: Record<string, never>;
+	};
+	"prompts.remove": {
 		req: { source: string };
 		res: Record<string, never>;
 	};

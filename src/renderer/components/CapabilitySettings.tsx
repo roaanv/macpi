@@ -54,7 +54,12 @@ export function CapabilitySettings({ kind }: { kind: Kind }) {
 						onUninstalled={() => setSelectedId(null)}
 					/>
 				)}
-				{kind === "prompts" && <PromptDetail id={selectedId} />}
+				{kind === "prompts" && (
+					<PromptDetail
+						id={selectedId}
+						onUninstalled={() => setSelectedId(null)}
+					/>
+				)}
 			</div>
 			<InstallSkillDialog
 				open={installOpen}

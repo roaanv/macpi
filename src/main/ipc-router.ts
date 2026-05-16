@@ -132,8 +132,14 @@ export class IpcRouter {
 				created = await this.deps.piSessionManager.createSession({ cwd });
 			} catch (e) {
 				const msg = e instanceof Error ? e.message : String(e);
-				if (msg.toLowerCase().includes("selected model") && msg.toLowerCase().includes("not found")) {
-					return err("model", `${msg}. Open Models & Auth to choose a replacement.`);
+				if (
+					msg.toLowerCase().includes("selected model") &&
+					msg.toLowerCase().includes("not found")
+				) {
+					return err(
+						"model",
+						`${msg}. Open Models & Auth to choose a replacement.`,
+					);
 				}
 				throw e;
 			}
@@ -279,7 +285,9 @@ export class IpcRouter {
 		});
 		this.register("modelsAuth.startOAuthLogin", async (args) => {
 			try {
-				return ok(await this.deps.modelAuthService.startOAuthLogin(args.provider));
+				return ok(
+					await this.deps.modelAuthService.startOAuthLogin(args.provider),
+				);
 			} catch (e) {
 				const msg = e instanceof Error ? e.message : String(e);
 				return err("oauth_failed", msg);
@@ -359,7 +367,9 @@ export class IpcRouter {
 		});
 		this.register("modelsAuth.saveLocalOpenAIProvider", async (args) => {
 			try {
-				return ok(await this.deps.modelAuthService.saveLocalOpenAIProvider(args));
+				return ok(
+					await this.deps.modelAuthService.saveLocalOpenAIProvider(args),
+				);
 			} catch (e) {
 				const msg = e instanceof Error ? e.message : String(e);
 				return err("local_provider_failed", msg);
@@ -450,6 +460,14 @@ export class IpcRouter {
 			} catch (e) {
 				const msg = e instanceof Error ? e.message : String(e);
 				return err("install_failed", msg);
+			}
+		});
+		this.register("prompts.remove", async (args) => {
+			try {
+				await this.deps.promptsService.remove(args.source);
+				return ok({});
+			} catch (e) {
+				return err("remove_failed", e instanceof Error ? e.message : String(e));
 			}
 		});
 		this.register("resources.listPiResources", async (args) => {

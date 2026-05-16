@@ -520,6 +520,17 @@ export function useInstallPrompt() {
 	});
 }
 
+export function useRemovePrompt() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (input: { source: string }) => invoke("prompts.remove", input),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["prompts.list"] });
+			window.dispatchEvent(new CustomEvent("macpi:prompts-changed"));
+		},
+	});
+}
+
 export function useExtensions() {
 	return useQuery({
 		queryKey: ["extensions.list"],
