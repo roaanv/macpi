@@ -52,6 +52,12 @@ let piSessionManagerMock: {
 	getHistory: ReturnType<typeof vi.fn>;
 	disposeSession: ReturnType<typeof vi.fn>;
 };
+let modelAuthServiceMock: {
+	listProviders: ReturnType<typeof vi.fn>;
+	listModels: ReturnType<typeof vi.fn>;
+	getSelectedModel: ReturnType<typeof vi.fn>;
+	setSelectedModel: ReturnType<typeof vi.fn>;
+};
 
 beforeEach(() => {
 	process.env.MACPI_MIGRATIONS_DIR = path.resolve(
@@ -128,7 +134,7 @@ beforeEach(() => {
 		create: vi.fn().mockResolvedValue({ id: "n1" }),
 		delete: vi.fn().mockResolvedValue({ ok: true, mtime: 0 }),
 	};
-	const modelAuthServiceStub = {
+	modelAuthServiceMock = {
 		listProviders: vi.fn().mockResolvedValue([]),
 		listModels: vi.fn().mockResolvedValue({ models: [] }),
 		getSelectedModel: vi.fn().mockResolvedValue({ model: null, valid: true }),
@@ -139,7 +145,7 @@ beforeEach(() => {
 		channelSessions: new ChannelSessionsRepo(db),
 		piSessionManager: piSessionManagerMock as unknown as PiSessionManager,
 		appSettings: new AppSettingsRepo(db),
-		modelAuthService: modelAuthServiceStub as never,
+		modelAuthService: modelAuthServiceMock as never,
 		skillsService: skillsServiceStub as unknown as SkillsService,
 		extensionsService: extensionsServiceStub as unknown as ExtensionsService,
 		promptsService: promptsServiceStub as unknown as PromptsService,
@@ -652,6 +658,78 @@ describe("IpcRouter", () => {
 		const r = await router.dispatch("settings.getAll", {});
 		expect(r.ok).toBe(true);
 		if (r.ok) expect(r.data.settings["fontSize.sidebar"]).toBe(16);
+	});
+
+	it("modelsAuth.listProviders returns provider summaries", async () => {
+		modelAuthServiceMock.listProviders.mockResolvedValue([
+			{
+				id: "anthropic",
+				name: "Anthropic",
+				authType: "api_key",
+				authStatus: { configured: true, source: "stored" },
+				modelCount: 1,
+				availableModelCount: 1,
+				supportsOAuth: false,
+				supportsStoredApiKey: true,
+			},
+		]);
+
+		const r = await router.dispatch("modelsAuth.listProviders", {});
+
+		expect(r.ok).toBe(true);
+		if (r.ok) expect(r.data.providers[0].id).toBe("anthropic");
+	});
+
+	it("modelsAuth.listModels returns model summaries", async () => {
+		modelAuthServiceMock.listModels.mockResolvedValue({
+			models: [
+				{
+					provider: "anthropic",
+					providerName: "Anthropic",
+					id: "claude",
+					name: "Claude",
+					authConfigured: true,
+					usingOAuth: false,
+					reasoning: true,
+					thinkingLevels: ["high"],
+					input: ["text"],
+					contextWindow: 200000,
+					maxTokens: 8192,
+				},
+			],
+		});
+
+		const r = await router.dispatch("modelsAuth.listModels", {});
+
+		expect(r.ok).toBe(true);
+		if (r.ok) expect(r.data.models[0].id).toBe("claude");
+	});
+
+	it("modelsAuth.getSelectedModel returns selected model state", async () => {
+		modelAuthServiceMock.getSelectedModel.mockResolvedValue({
+			model: { provider: "anthropic", modelId: "claude" },
+			valid: true,
+		});
+
+		const r = await router.dispatch("modelsAuth.getSelectedModel", {});
+
+		expect(r.ok).toBe(true);
+		if (r.ok) expect(r.data.model?.modelId).toBe("claude");
+	});
+
+	it("modelsAuth.setSelectedModel maps missing model to model_not_found", async () => {
+		modelAuthServiceMock.setSelectedModel.mockRejectedValue(
+			new Error("Selected model missing"),
+		);
+
+		const r = await router.dispatch("modelsAuth.setSelectedModel", {
+			model: { provider: "anthropic", modelId: "missing" },
+		});
+
+		expect(r).toEqual({
+			ok: false,
+			error: { code: "model_not_found", message: "Selected model missing" },
+		});
 	});
 
 	it("channels.create persists cwd when provided", async () => {

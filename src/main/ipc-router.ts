@@ -236,6 +236,26 @@ export class IpcRouter {
 			this.deps.appSettings.set(args.key, args.value);
 			return ok({});
 		});
+		this.register("modelsAuth.listProviders", async () =>
+			ok({
+				providers: await this.deps.modelAuthService.listProviders(),
+			}),
+		);
+		this.register("modelsAuth.listModels", async () =>
+			ok(await this.deps.modelAuthService.listModels()),
+		);
+		this.register("modelsAuth.getSelectedModel", async () =>
+			ok(await this.deps.modelAuthService.getSelectedModel()),
+		);
+		this.register("modelsAuth.setSelectedModel", async (args) => {
+			try {
+				await this.deps.modelAuthService.setSelectedModel(args.model);
+				return ok({});
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				return err("model_not_found", msg);
+			}
+		});
 		this.register("skills.list", async () => {
 			const skills = await this.deps.skillsService.list();
 			return ok({ skills });
