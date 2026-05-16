@@ -128,11 +128,18 @@ beforeEach(() => {
 		create: vi.fn().mockResolvedValue({ id: "n1" }),
 		delete: vi.fn().mockResolvedValue({ ok: true, mtime: 0 }),
 	};
+	const modelAuthServiceStub = {
+		listProviders: vi.fn().mockResolvedValue([]),
+		listModels: vi.fn().mockResolvedValue({ models: [] }),
+		getSelectedModel: vi.fn().mockResolvedValue({ model: null, valid: true }),
+		setSelectedModel: vi.fn().mockResolvedValue(undefined),
+	};
 	router = new IpcRouter({
 		channels: new ChannelsRepo(db),
 		channelSessions: new ChannelSessionsRepo(db),
 		piSessionManager: piSessionManagerMock as unknown as PiSessionManager,
 		appSettings: new AppSettingsRepo(db),
+		modelAuthService: modelAuthServiceStub as never,
 		skillsService: skillsServiceStub as unknown as SkillsService,
 		extensionsService: extensionsServiceStub as unknown as ExtensionsService,
 		promptsService: promptsServiceStub as unknown as PromptsService,

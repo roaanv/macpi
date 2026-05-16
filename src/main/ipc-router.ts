@@ -22,6 +22,7 @@ import type { BranchService } from "./branch-service";
 import type { DialogHandlers } from "./dialog-handlers";
 import type { ExtensionsService } from "./extensions-service";
 import type { Logger } from "./logger";
+import type { ModelAuthService } from "./model-auth-service";
 import type { NotesService } from "./notes-service";
 import {
 	importSelectedPiTopLevelFiles,
@@ -43,6 +44,7 @@ export interface RouterDeps {
 	channelSessions: ChannelSessionsRepo;
 	piSessionManager: PiSessionManager;
 	appSettings: AppSettingsRepo;
+	modelAuthService: ModelAuthService;
 	skillsService: SkillsService;
 	extensionsService: ExtensionsService;
 	promptsService: PromptsService;

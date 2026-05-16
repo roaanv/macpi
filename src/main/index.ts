@@ -12,6 +12,7 @@ import { electronDialogHandlers } from "./dialog-handlers";
 import { ExtensionsService } from "./extensions-service";
 import { IpcRouter } from "./ipc-router";
 import { createLogger, type Logger } from "./logger";
+import { ModelAuthService } from "./model-auth-service";
 import { NotesService } from "./notes-service";
 import { configureNpmGlobalPrefix } from "./npm-global-prefix";
 import { PiSessionManager } from "./pi-session-manager";
@@ -138,9 +139,16 @@ app.whenReady().then(async () => {
 		filePath: path.join(macpiRoot, "NOTES.md"),
 	});
 
+	const modelAuthService = new ModelAuthService({
+		macpiRoot,
+		appSettings,
+	});
+	await modelAuthService.ready();
+
 	const manager = new PiSessionManager({
 		appSettings,
 		homeDir: os.homedir(),
+		modelAuth: modelAuthService,
 	});
 	piSessionManager = manager;
 	manager.onEvent((event) => {
@@ -198,6 +206,7 @@ app.whenReady().then(async () => {
 		channelSessions,
 		piSessionManager: manager,
 		appSettings,
+		modelAuthService,
 		skillsService,
 		extensionsService,
 		promptsService,
