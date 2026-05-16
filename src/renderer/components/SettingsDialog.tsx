@@ -46,7 +46,7 @@ export function SettingsDialog({
 			role="presentation"
 		>
 			<div
-				className="surface-panel flex h-[80vh] w-[800px] flex-col overflow-hidden rounded shadow-xl"
+				className="surface-panel flex h-[80vh] w-[88vw] max-w-[1280px] flex-col overflow-hidden rounded shadow-xl"
 				onClick={(e) => e.stopPropagation()}
 				onKeyDown={() => undefined}
 				role="dialog"
