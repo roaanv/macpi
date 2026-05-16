@@ -2,13 +2,23 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Api, Model } from "@earendil-works/pi-ai";
 import type { AuthStorage, ModelRegistry } from "@earendil-works/pi-coding-agent";
-import type { ModelSummary, ProviderSummary } from "../shared/model-auth-types";
+import type {
+	AuthSource,
+	ModelSummary,
+	ProviderAuthType,
+	ProviderSummary,
+} from "../shared/model-auth-types";
 
-type PiCodingModule = typeof import("@earendil-works/pi-coding-agent");
+interface ModelAuthPiModule {
+	AuthStorage: { create(authPath?: string): unknown };
+	ModelRegistry: {
+		create(authStorage: unknown, modelsJsonPath?: string): unknown;
+	};
+}
 
 export interface ModelAuthServiceDeps {
 	macpiRoot: string;
-	loadPi?: () => Promise<Pick<PiCodingModule, "AuthStorage" | "ModelRegistry">>;
+	loadPi?: () => Promise<ModelAuthPiModule>;
 }
 
 export class ModelAuthService {
@@ -17,14 +27,12 @@ export class ModelAuthService {
 	private initPromise: Promise<void> | null = null;
 	private auth: AuthStorage | null = null;
 	private registry: ModelRegistry | null = null;
-	private readonly loadPi: () => Promise<
-		Pick<PiCodingModule, "AuthStorage" | "ModelRegistry">
-	>;
+	private readonly loadPi: () => Promise<ModelAuthPiModule>;
 
 	constructor(private readonly deps: ModelAuthServiceDeps) {
 		this.authPath = path.join(deps.macpiRoot, "auth.json");
 		this.modelsPath = path.join(deps.macpiRoot, "models.json");
-		this.loadPi = deps.loadPi ?? (() => import("@earendil-works/pi-coding-agent"));
+		this.loadPi = deps.loadPi ?? (async () => import("@earendil-works/pi-coding-agent"));
 	}
 
 	async ready(): Promise<void> {
@@ -37,8 +45,11 @@ export class ModelAuthService {
 	private async init(): Promise<void> {
 		fs.mkdirSync(path.dirname(this.authPath), { recursive: true });
 		const mod = await this.loadPi();
-		this.auth = mod.AuthStorage.create(this.authPath);
-		this.registry = mod.ModelRegistry.create(this.auth, this.modelsPath);
+		this.auth = mod.AuthStorage.create(this.authPath) as AuthStorage;
+		this.registry = mod.ModelRegistry.create(
+			this.auth,
+			this.modelsPath,
+		) as ModelRegistry;
 	}
 
 	async getAuthStorage(): Promise<AuthStorage> {
@@ -65,31 +76,88 @@ export class ModelAuthService {
 	}
 
 	async listProviders(): Promise<ProviderSummary[]> {
-		await this.ready();
-		return [];
+		const auth = await this.getAuthStorage();
+		const registry = await this.getModelRegistry();
+		const allModels = registry.getAll();
+		const availableModels = registry.getAvailable();
+		const oauthProviders = auth.getOAuthProviders();
+		const oauthProviderIds = new Set(oauthProviders.map((p) => p.id));
+		const providerIds = new Set<string>();
+
+		for (const model of allModels) providerIds.add(model.provider);
+		for (const provider of availableModels) providerIds.add(provider.provider);
+		for (const provider of oauthProviders) providerIds.add(provider.id);
+		for (const provider of auth.list()) providerIds.add(provider);
+
+		return [...providerIds]
+			.sort((a, b) => a.localeCompare(b))
+			.map((provider) => {
+				const modelCount = allModels.filter(
+					(model) => model.provider === provider,
+				).length;
+				const availableModelCount = availableModels.filter(
+					(model) => model.provider === provider,
+				).length;
+				const authStatus = registry.getProviderAuthStatus(provider);
+				return {
+					id: provider,
+					name: registry.getProviderDisplayName(provider),
+					authType: this.authTypeForProvider({
+						provider,
+						modelCount,
+						supportsOAuth: oauthProviderIds.has(provider),
+					}),
+					authStatus: {
+						configured: authStatus.configured,
+						source: authStatus.source as AuthSource | undefined,
+						label: authStatus.label,
+					},
+					modelCount,
+					availableModelCount,
+					supportsOAuth: oauthProviderIds.has(provider),
+					supportsStoredApiKey: !oauthProviderIds.has(provider),
+				};
+			});
 	}
 
 	async listModels(): Promise<{ models: ModelSummary[]; registryError?: string }> {
 		const registry = await this.getModelRegistry();
 		return {
-			models: this.summarizeModels(registry.getAll()),
+			models: this.summarizeModels(registry, registry.getAll()),
 			registryError: registry.getError(),
 		};
 	}
 
-	private summarizeModels(models: Model<Api>[]): ModelSummary[] {
+	private summarizeModels(
+		registry: ModelRegistry,
+		models: Model<Api>[],
+	): ModelSummary[] {
 		return models.map((model) => ({
 			provider: model.provider,
-			providerName: model.provider,
+			providerName: registry.getProviderDisplayName(model.provider),
 			id: model.id,
 			name: model.name ?? model.id,
-			authConfigured: false,
-			usingOAuth: false,
+			authConfigured: registry.hasConfiguredAuth(model),
+			usingOAuth: registry.isUsingOAuth(model),
 			reasoning: Boolean(model.reasoning),
 			thinkingLevels: Object.keys(model.thinkingLevelMap ?? {}),
 			input: (model.input ?? ["text"]) as Array<"text" | "image">,
 			contextWindow: model.contextWindow ?? 0,
 			maxTokens: model.maxTokens ?? 0,
 		}));
+	}
+
+	private authTypeForProvider(input: {
+		provider: string;
+		modelCount: number;
+		supportsOAuth: boolean;
+	}): ProviderAuthType {
+		if (input.supportsOAuth) return "oauth";
+		const provider = input.provider.toLowerCase();
+		if (provider.includes("bedrock") || provider.includes("vertex")) {
+			return "cloud";
+		}
+		if (input.modelCount > 0) return "api_key";
+		return "unknown";
 	}
 }
