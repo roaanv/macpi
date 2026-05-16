@@ -1,6 +1,7 @@
 // Main chat area. Subscribes to pi events via useTimeline() and renders the
 // resulting timeline. Banners and queue pills are wired in Phase E/F.
 
+import React from "react";
 import {
 	useAbortSession,
 	useAttachSession,
@@ -39,6 +40,13 @@ export function ChatPane({
 	const { snapshot, appendUserMessage } = useTimeline(
 		piSessionId,
 		initialTimeline,
+	);
+	const messageHistory = React.useMemo(
+		() =>
+			snapshot.timeline
+				.filter((entry) => entry.kind === "user")
+				.map((entry) => entry.text),
+		[snapshot.timeline],
 	);
 	const promptMutation = usePromptSession();
 	const clearQueueMutation = useClearQueue();
@@ -177,7 +185,11 @@ export function ChatPane({
 					}}
 				/>
 			</div>
-			<Composer streaming={snapshot.streaming} onSend={send} />
+			<Composer
+				streaming={snapshot.streaming}
+				onSend={send}
+				messageHistory={messageHistory}
+			/>
 		</div>
 	);
 }

@@ -4,21 +4,29 @@
 // agent is mid-turn.
 
 import React from "react";
+import { navigateComposerHistory } from "../utils/composer-history";
 
 export type SendIntent = "send" | "steer" | "followUp";
 
 export interface ComposerProps {
 	streaming: boolean;
 	onSend: (text: string, intent: SendIntent) => Promise<void>;
+	messageHistory?: readonly string[];
 }
 
-export function Composer({ streaming, onSend }: ComposerProps) {
+export function Composer({
+	streaming,
+	onSend,
+	messageHistory = [],
+}: ComposerProps) {
 	const [input, setInput] = React.useState("");
+	const [historyIndex, setHistoryIndex] = React.useState<number | null>(null);
 
 	async function submit(intent: SendIntent) {
 		const text = input.trim();
 		if (!text) return;
 		setInput("");
+		setHistoryIndex(null);
 		await onSend(text, intent);
 	}
 
@@ -28,6 +36,30 @@ export function Composer({ streaming, onSend }: ComposerProps) {
 		// - not streaming → "send"
 		// - streaming → "followUp" (the safer default; doesn't interrupt the agent)
 		void submit(streaming ? "followUp" : "send");
+	}
+
+	function onInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+		setInput(e.target.value);
+		if (historyIndex !== null && messageHistory[historyIndex] !== e.target.value) {
+			setHistoryIndex(null);
+		}
+	}
+
+	function onInputKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+		if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+		const result = navigateComposerHistory({
+			key: e.key,
+			input,
+			history: messageHistory,
+			activeIndex: historyIndex,
+		});
+		if (!result.handled) {
+			if (result.activeIndex !== historyIndex) setHistoryIndex(result.activeIndex);
+			return;
+		}
+		e.preventDefault();
+		setInput(result.input);
+		setHistoryIndex(result.activeIndex);
 	}
 
 	const hasText = input.trim().length > 0;
@@ -43,7 +75,8 @@ export function Composer({ streaming, onSend }: ComposerProps) {
 					streaming ? "Steer or queue while streaming…" : "Type a message"
 				}
 				value={input}
-				onChange={(e) => setInput(e.target.value)}
+				onChange={onInputChange}
+				onKeyDown={onInputKeyDown}
 			/>
 			{streaming ? (
 				<>
