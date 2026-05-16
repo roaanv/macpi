@@ -7,6 +7,7 @@ import {
 	getFontSize,
 	getResourceEnabled,
 	getResourceRoot,
+	getSelectedModel,
 	getTheme,
 } from "../../src/shared/app-settings-keys";
 
@@ -58,6 +59,30 @@ describe("app-settings-keys", () => {
 
 	it("getDefaultCwd returns the stored value", () => {
 		expect(getDefaultCwd({ defaultCwd: "/Users/x" })).toBe("/Users/x");
+	});
+});
+
+describe("selected model setting", () => {
+	it("returns null when unset", () => {
+		expect(getSelectedModel({})).toBeNull();
+	});
+
+	it("returns provider/modelId when valid", () => {
+		expect(
+			getSelectedModel({
+				selectedModel: { provider: "anthropic", modelId: "claude" },
+			}),
+		).toEqual({
+			provider: "anthropic",
+			modelId: "claude",
+		});
+	});
+
+	it("rejects malformed values", () => {
+		expect(
+			getSelectedModel({ selectedModel: { provider: "anthropic" } }),
+		).toBeNull();
+		expect(getSelectedModel({ selectedModel: "anthropic/claude" })).toBeNull();
 	});
 });
 

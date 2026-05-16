@@ -109,6 +109,25 @@ export function getResourceRoot(
 	return `${homeDir}/.macpi`;
 }
 
+export interface SelectedModelSetting {
+	provider: string;
+	modelId: string;
+}
+
+export function getSelectedModel(
+	settings: Record<string, unknown>,
+): SelectedModelSetting | null {
+	const v = settings.selectedModel;
+	if (!v || typeof v !== "object" || Array.isArray(v)) return null;
+	const candidate = v as Record<string, unknown>;
+	return typeof candidate.provider === "string" &&
+		candidate.provider.length > 0 &&
+		typeof candidate.modelId === "string" &&
+		candidate.modelId.length > 0
+		? { provider: candidate.provider, modelId: candidate.modelId }
+		: null;
+}
+
 /**
  * Global enabled map for resources. Missing entry = enabled.
  * Keyed by `<type>:<source>:<relative-path>`.
