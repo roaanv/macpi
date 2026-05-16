@@ -5,6 +5,7 @@
 
 import React from "react";
 import { navigateComposerHistory } from "../utils/composer-history";
+import { resolveComposerKeyAction } from "../utils/composer-keyboard";
 
 export type SendIntent = "send" | "steer" | "followUp";
 
@@ -30,22 +31,46 @@ export function Composer({
 		await onSend(text, intent);
 	}
 
-	function onFormSubmit(e: React.FormEvent) {
-		e.preventDefault();
-		// Pressing Enter in the input dispatches the default action:
+	function defaultIntent(): SendIntent {
+		// Pressing Enter dispatches the default action:
 		// - not streaming → "send"
 		// - streaming → "followUp" (the safer default; doesn't interrupt the agent)
-		void submit(streaming ? "followUp" : "send");
+		return streaming ? "followUp" : "send";
 	}
 
-	function onInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+	function onFormSubmit(e: React.FormEvent) {
+		e.preventDefault();
+		void submit(defaultIntent());
+	}
+
+	function clearInput() {
+		setInput("");
+		setHistoryIndex(null);
+	}
+
+	function onInputChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
 		setInput(e.target.value);
 		if (historyIndex !== null && messageHistory[historyIndex] !== e.target.value) {
 			setHistoryIndex(null);
 		}
 	}
 
-	function onInputKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+	function onInputKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+		const action = resolveComposerKeyAction({
+			key: e.key,
+			shiftKey: e.shiftKey,
+		});
+		if (action === "clear") {
+			e.preventDefault();
+			clearInput();
+			return;
+		}
+		if (action === "submit") {
+			e.preventDefault();
+			void submit(defaultIntent());
+			return;
+		}
+
 		if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
 		const result = navigateComposerHistory({
 			key: e.key,
@@ -69,8 +94,9 @@ export function Composer({
 			onSubmit={onFormSubmit}
 			className="flex gap-2 rounded surface-app p-2"
 		>
-			<input
-				className="flex-1 bg-transparent text-[length:var(--font-size-composer)] text-primary placeholder-faint outline-none"
+			<textarea
+				rows={1}
+				className="max-h-40 min-h-9 flex-1 resize-none bg-transparent text-[length:var(--font-size-composer)] text-primary placeholder-faint outline-none"
 				placeholder={
 					streaming ? "Steer or queue while streaming…" : "Type a message"
 				}
