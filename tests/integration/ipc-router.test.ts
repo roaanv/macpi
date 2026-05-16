@@ -62,6 +62,8 @@ let modelAuthServiceMock: {
 	cancelOAuthLogin: ReturnType<typeof vi.fn>;
 	saveApiKey: ReturnType<typeof vi.fn>;
 	logoutProvider: ReturnType<typeof vi.fn>;
+	readModelsJson: ReturnType<typeof vi.fn>;
+	writeModelsJson: ReturnType<typeof vi.fn>;
 	getImportStatus: ReturnType<typeof vi.fn>;
 	importFromPi: ReturnType<typeof vi.fn>;
 };
@@ -151,6 +153,8 @@ beforeEach(() => {
 		cancelOAuthLogin: vi.fn(),
 		saveApiKey: vi.fn().mockResolvedValue(undefined),
 		logoutProvider: vi.fn().mockResolvedValue(undefined),
+		readModelsJson: vi.fn().mockResolvedValue({ path: "/dst/models.json", text: "{}" }),
+		writeModelsJson: vi.fn().mockResolvedValue({ registryError: undefined }),
 		getImportStatus: vi.fn().mockReturnValue({
 			sourceAuthExists: false,
 			sourceModelsExists: false,
@@ -812,6 +816,23 @@ describe("IpcRouter", () => {
 		expect(r).toEqual({
 			ok: false,
 			error: { code: "auth_failed", message: "bad provider" },
+		});
+	});
+
+	it("modelsAuth.readModelsJson returns raw text", async () => {
+		const r = await router.dispatch("modelsAuth.readModelsJson", {});
+
+		expect(r).toEqual({ ok: true, data: { path: "/dst/models.json", text: "{}" } });
+	});
+
+	it("modelsAuth.writeModelsJson maps parse failures", async () => {
+		modelAuthServiceMock.writeModelsJson.mockRejectedValue(new Error("bad json"));
+
+		const r = await router.dispatch("modelsAuth.writeModelsJson", { text: "{" });
+
+		expect(r).toEqual({
+			ok: false,
+			error: { code: "models_json_invalid", message: "bad json" },
 		});
 	});
 

@@ -282,6 +282,26 @@ export function useLogoutProvider() {
 	});
 }
 
+export function useModelsJson() {
+	return useQuery({
+		queryKey: ["modelsAuth.modelsJson"],
+		queryFn: () => invoke("modelsAuth.readModelsJson", {}),
+	});
+}
+
+export function useSaveModelsJson() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (input: { text: string }) =>
+			invoke("modelsAuth.writeModelsJson", input),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["modelsAuth.modelsJson"] });
+			qc.invalidateQueries({ queryKey: ["modelsAuth.providers"] });
+			qc.invalidateQueries({ queryKey: ["modelsAuth.models"] });
+		},
+	});
+}
+
 export function useModelAuthImportStatus() {
 	return useQuery({
 		queryKey: ["modelsAuth.importStatus"],

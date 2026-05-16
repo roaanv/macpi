@@ -169,6 +169,52 @@ describe("ModelAuthService selected model", () => {
 	});
 });
 
+describe("ModelAuthService models.json editor", () => {
+	it("reads missing models.json as empty text", async () => {
+		const root = tempRoot();
+		const service = new ModelAuthService({
+			macpiRoot: root,
+			loadPi: async () => ({
+				AuthStorage: { create: () => fakeAuthStorage() },
+				ModelRegistry: { create: () => fakeModelRegistry({ registryError: "warn" }) },
+			}),
+		});
+
+		await expect(service.readModelsJson()).resolves.toEqual({
+			path: path.join(root, "models.json"),
+			text: "",
+			registryError: "warn",
+		});
+	});
+
+	it("writes strict JSON and refreshes registry", async () => {
+		const root = tempRoot();
+		let refreshed = false;
+		const service = new ModelAuthService({
+			macpiRoot: root,
+			loadPi: async () => ({
+				AuthStorage: { create: () => fakeAuthStorage() },
+				ModelRegistry: {
+					create: () => ({ ...fakeModelRegistry(), refresh: () => { refreshed = true; } }),
+				},
+			}),
+		});
+
+		await expect(service.writeModelsJson("{\"providers\":[]}")).resolves.toEqual({ registryError: undefined });
+
+		expect(fs.readFileSync(path.join(root, "models.json"), "utf8")).toBe("{\"providers\":[]}");
+		expect(refreshed).toBe(true);
+	});
+
+	it("rejects invalid models JSON before writing", async () => {
+		const service = new ModelAuthService({ macpiRoot: tempRoot() });
+
+		await expect(service.writeModelsJson("{" )).rejects.toThrow(
+			"macpi editor currently accepts strict JSON only",
+		);
+	});
+});
+
 describe("ModelAuthService import", () => {
 	it("reports installed pi and macpi auth/model file status", () => {
 		const home = tempRoot();

@@ -268,6 +268,38 @@ export class ModelAuthService {
 		return resolved;
 	}
 
+	async readModelsJson(): Promise<{
+		path: string;
+		text: string;
+		registryError?: string;
+	}> {
+		const registry = await this.getModelRegistry();
+		return {
+			path: this.modelsPath,
+			text: fs.existsSync(this.modelsPath)
+				? fs.readFileSync(this.modelsPath, "utf8")
+				: "",
+			registryError: registry.getError(),
+		};
+	}
+
+	async writeModelsJson(text: string): Promise<{ registryError?: string }> {
+		const trimmed = text.trim();
+		if (trimmed.length > 0) {
+			try {
+				JSON.parse(trimmed);
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				throw new Error(`macpi editor currently accepts strict JSON only: ${msg}`);
+			}
+		}
+		fs.mkdirSync(path.dirname(this.modelsPath), { recursive: true });
+		fs.writeFileSync(this.modelsPath, text);
+		await this.refresh();
+		const registry = await this.getModelRegistry();
+		return { registryError: registry.getError() };
+	}
+
 	getImportStatus(homeDir: string): ImportPiAuthModelsStatus {
 		const sourceAuthPath = path.join(homeDir, ".pi", "agent", "auth.json");
 		const sourceModelsPath = path.join(homeDir, ".pi", "agent", "models.json");

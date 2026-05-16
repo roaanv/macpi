@@ -2,6 +2,7 @@ import { useModelAuthModels, useModelAuthProviders, useSelectedModel, useSetSele
 import React from "react";
 import { ImportPiAuthModels } from "./ImportPiAuthModels";
 import { ModelPicker } from "./ModelPicker";
+import { ModelsJsonEditor } from "./ModelsJsonEditor";
 import { OAuthLoginDialog } from "./OAuthLoginDialog";
 import { ProviderAuthList } from "./ProviderAuthList";
 
@@ -61,6 +62,10 @@ export function ModelsAuthSettings() {
 						onStartOAuth={setOAuthProvider}
 					/>
 				)}
+			</section>
+
+			<section className="flex flex-col gap-2">
+				<ModelsJsonEditor />
 			</section>
 
 			<section className="flex flex-col gap-2">

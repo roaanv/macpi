@@ -311,6 +311,17 @@ export class IpcRouter {
 				return err("auth_failed", msg);
 			}
 		});
+		this.register("modelsAuth.readModelsJson", async () =>
+			ok(await this.deps.modelAuthService.readModelsJson()),
+		);
+		this.register("modelsAuth.writeModelsJson", async (args) => {
+			try {
+				return ok(await this.deps.modelAuthService.writeModelsJson(args.text));
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				return err("models_json_invalid", msg);
+			}
+		});
 		this.register("modelsAuth.getImportStatus", async () =>
 			ok(this.deps.modelAuthService.getImportStatus(os.homedir())),
 		);
