@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import type { Api, Model } from "@earendil-works/pi-ai";
@@ -7,6 +8,7 @@ import type {
 	AuthSource,
 	ImportPiAuthModelsStatus,
 	ModelSummary,
+	OAuthEvent,
 	ProviderAuthType,
 	ProviderSummary,
 	SelectedModelRef,
@@ -18,6 +20,17 @@ interface ModelAuthPiModule {
 		create(authStorage: unknown, modelsJsonPath?: string): unknown;
 	};
 }
+
+type PendingPrompt = {
+	resolve(value: string | undefined): void;
+	reject(error: Error): void;
+};
+
+type LoginState = {
+	provider: string;
+	abort: AbortController;
+	prompts: Map<string, PendingPrompt>;
+};
 
 export interface ModelAuthServiceDeps {
 	macpiRoot: string;
@@ -35,6 +48,8 @@ export class ModelAuthService {
 	private auth: AuthStorage | null = null;
 	private registry: ModelRegistry | null = null;
 	private readonly loadPi: () => Promise<ModelAuthPiModule>;
+	private readonly oauthListeners = new Set<(event: OAuthEvent) => void>();
+	private readonly logins = new Map<string, LoginState>();
 
 	constructor(private readonly deps: ModelAuthServiceDeps) {
 		this.authPath = path.join(deps.macpiRoot, "auth.json");
@@ -80,6 +95,121 @@ export class ModelAuthService {
 		const registry = await this.getModelRegistry();
 		auth.reload();
 		registry.refresh();
+	}
+
+	onOAuthEvent(listener: (event: OAuthEvent) => void): () => void {
+		this.oauthListeners.add(listener);
+		return () => {
+			this.oauthListeners.delete(listener);
+		};
+	}
+
+	async startOAuthLogin(provider: string): Promise<{ loginId: string }> {
+		const normalizedProvider = this.validateProviderId(provider);
+		const auth = await this.getAuthStorage();
+		const loginId = randomUUID();
+		const state: LoginState = {
+			provider: normalizedProvider,
+			abort: new AbortController(),
+			prompts: new Map(),
+		};
+		this.logins.set(loginId, state);
+
+		void auth
+			.login(normalizedProvider, {
+				signal: state.abort.signal,
+				onAuth: (info) => {
+					this.emitOAuth({
+						type: "oauth.authUrl",
+						loginId,
+						provider: normalizedProvider,
+						url: info.url,
+						instructions: info.instructions,
+					});
+				},
+				onPrompt: (prompt) =>
+					this.waitForOAuthPrompt(loginId, {
+						type: "oauth.prompt",
+						loginId,
+						provider: normalizedProvider,
+						promptId: randomUUID(),
+						message: prompt.message,
+						placeholder: prompt.placeholder,
+					}),
+				onProgress: (message) => {
+					this.emitOAuth({
+						type: "oauth.progress",
+						loginId,
+						provider: normalizedProvider,
+						message,
+					});
+				},
+				onManualCodeInput: () =>
+					this.waitForOAuthPrompt(loginId, {
+						type: "oauth.prompt",
+						loginId,
+						provider: normalizedProvider,
+						promptId: randomUUID(),
+						message: "Paste redirect URL",
+						placeholder: "http://127.0.0.1/...",
+					}),
+				onSelect: (prompt) =>
+					this.waitForOAuthPrompt(loginId, {
+						type: "oauth.select",
+						loginId,
+						provider: normalizedProvider,
+						promptId: randomUUID(),
+						message: prompt.message,
+						options: prompt.options.map((option) => option.id),
+					}),
+			})
+			.then(async () => {
+				await this.refresh();
+				this.emitOAuth({
+					type: "oauth.success",
+					loginId,
+					provider: normalizedProvider,
+				});
+			})
+			.catch((e) => {
+				if (state.abort.signal.aborted) return;
+				this.emitOAuth({
+					type: "oauth.error",
+					loginId,
+					provider: normalizedProvider,
+					message: e instanceof Error ? e.message : String(e),
+				});
+			})
+			.finally(() => {
+				this.logins.delete(loginId);
+			});
+
+		return { loginId };
+	}
+
+	respondOAuthPrompt(loginId: string, promptId: string, value: string): void {
+		const state = this.logins.get(loginId);
+		if (!state) throw new Error(`Unknown OAuth login ${loginId}`);
+		const pending = state.prompts.get(promptId);
+		if (!pending) throw new Error(`Unknown OAuth prompt ${promptId}`);
+		state.prompts.delete(promptId);
+		pending.resolve(value);
+	}
+
+	cancelOAuthLogin(loginId: string): void {
+		const state = this.logins.get(loginId);
+		if (!state) return;
+		state.abort.abort();
+		for (const pending of state.prompts.values()) {
+			pending.reject(new Error("OAuth login cancelled"));
+		}
+		state.prompts.clear();
+		this.logins.delete(loginId);
+		this.emitOAuth({
+			type: "oauth.cancelled",
+			loginId,
+			provider: state.provider,
+		});
 	}
 
 	async saveApiKey(provider: string, apiKey: string): Promise<void> {
@@ -261,6 +391,25 @@ export class ModelAuthService {
 			contextWindow: model.contextWindow ?? 0,
 			maxTokens: model.maxTokens ?? 0,
 		}));
+	}
+
+	private waitForOAuthPrompt<T extends Extract<OAuthEvent, { promptId: string }>>(
+		loginId: string,
+		event: T,
+	): Promise<string> {
+		const state = this.logins.get(loginId);
+		if (!state) return Promise.reject(new Error(`Unknown OAuth login ${loginId}`));
+		return new Promise((resolve, reject) => {
+			state.prompts.set(event.promptId, {
+				resolve: (value) => resolve(value ?? ""),
+				reject,
+			});
+			this.emitOAuth(event);
+		});
+	}
+
+	private emitOAuth(event: OAuthEvent): void {
+		for (const listener of this.oauthListeners) listener(event);
 	}
 
 	private validateProviderId(provider: string): string {
