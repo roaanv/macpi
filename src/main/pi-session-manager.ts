@@ -85,6 +85,11 @@ export interface SessionPathStore {
 export interface PiSessionManagerDeps {
 	appSettings: AppSettingsRepo;
 	homeDir: string;
+	modelAuth?: {
+		getAuthStorage(): Promise<AuthStorage>;
+		getModelRegistry(): Promise<ModelRegistry>;
+		resolveSelectedModel(): Promise<Model<Api> | undefined>;
+	};
 }
 
 export class PiSessionManager {
@@ -449,7 +454,7 @@ export class PiSessionManager {
 			modelRegistry: ov?.modelRegistry ?? ctx.registry,
 			resourceLoader: this.buildResourceLoader(ctx, opts.cwd),
 			settingsManager: ov?.settingsManager,
-			model: ov?.model,
+			model: ov?.model ?? (await this.deps?.modelAuth?.resolveSelectedModel()),
 		});
 		const session = result.session;
 		const piSessionId = session.sessionId;
@@ -485,7 +490,7 @@ export class PiSessionManager {
 			modelRegistry: ov?.modelRegistry ?? ctx.registry,
 			resourceLoader: this.buildResourceLoader(ctx, sessionManager.getCwd()),
 			settingsManager: ov?.settingsManager,
-			model: ov?.model,
+			model: ov?.model ?? (await this.deps?.modelAuth?.resolveSelectedModel()),
 			sessionManager,
 		});
 		const session = result.session;
@@ -519,7 +524,7 @@ export class PiSessionManager {
 			modelRegistry: ov?.modelRegistry ?? ctx.registry,
 			resourceLoader: this.buildResourceLoader(ctx, sessionManager.getCwd()),
 			settingsManager: ov?.settingsManager,
-			model: ov?.model,
+			model: ov?.model ?? (await this.deps?.modelAuth?.resolveSelectedModel()),
 			sessionManager,
 		});
 		const session = result.session;
@@ -658,8 +663,12 @@ export class PiSessionManager {
 	private async ensureContext(): Promise<PiContext> {
 		if (this.ctx) return this.ctx;
 		const mod = await loadPi();
-		const auth = mod.AuthStorage.create();
-		const registry = mod.ModelRegistry.create(auth);
+		const auth = this.deps?.modelAuth
+			? await this.deps.modelAuth.getAuthStorage()
+			: mod.AuthStorage.create();
+		const registry = this.deps?.modelAuth
+			? await this.deps.modelAuth.getModelRegistry()
+			: mod.ModelRegistry.create(auth);
 		this.ctx = { mod, auth, registry };
 		return this.ctx;
 	}
