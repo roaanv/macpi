@@ -72,6 +72,18 @@ export const isErr = <T>(
 	r: IpcResult<T>,
 ): r is { ok: false; error: { code: string; message: string } } => !r.ok;
 
+export interface FileEntry {
+	/** basename only (no path separators). */
+	name: string;
+	/** Path relative to the session cwd. "" for the cwd itself. */
+	relPath: string;
+	kind: "file" | "dir";
+	/** False for directories and non-allowlisted files. */
+	isText: boolean;
+	/** Byte size for files; 0 for directories. */
+	sizeBytes: number;
+}
+
 // Method registry. Each entry maps method name → request/response shapes.
 // Adding a method here is the only way to expose a new IPC call to the renderer.
 // Lands progressively across this plan; entries are added when the corresponding
@@ -417,6 +429,14 @@ export interface IpcMethods {
 	"extensions.lint": {
 		req: { id: string };
 		res: { diagnostics: ExtensionDiagnostic[] };
+	};
+	"files.listDir": {
+		req: { piSessionId: string; relPath: string; showHidden: boolean };
+		res: { entries: FileEntry[] };
+	};
+	"files.readText": {
+		req: { piSessionId: string; relPath: string };
+		res: { content: string; sizeBytes: number };
 	};
 	"session.getTree": {
 		req: { piSessionId: string };

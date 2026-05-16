@@ -26,6 +26,7 @@ import {
 import type { BranchService } from "./branch-service";
 import type { DialogHandlers } from "./dialog-handlers";
 import type { ExtensionsService } from "./extensions-service";
+import { FilesError, type FilesService } from "./files-service";
 import type { Logger } from "./logger";
 import type { ModelAuthService } from "./model-auth-service";
 import type { NotesService } from "./notes-service";
@@ -55,6 +56,7 @@ export interface RouterDeps {
 	promptsService: PromptsService;
 	notesService: NotesService;
 	branchService: BranchService;
+	filesService: FilesService;
 	dialog: DialogHandlers;
 	getDefaultCwd: () => string;
 	mainLogger: Logger;
@@ -752,6 +754,35 @@ export class IpcRouter {
 		});
 		this.register("notes.delete", async (args) => {
 			return ok(await this.deps.notesService.delete(args));
+		});
+		this.register("files.listDir", async (args) => {
+			try {
+				const out = await this.deps.filesService.listDir(
+					args.piSessionId,
+					args.relPath,
+					args.showHidden,
+				);
+				return ok(out);
+			} catch (e) {
+				if (e instanceof FilesError) return err(e.code, e.message);
+				const msg = e instanceof Error ? e.message : String(e);
+				this.deps.mainLogger.warn(`files.listDir failed: ${msg}`);
+				return err("exception", msg);
+			}
+		});
+		this.register("files.readText", async (args) => {
+			try {
+				const out = await this.deps.filesService.readText(
+					args.piSessionId,
+					args.relPath,
+				);
+				return ok(out);
+			} catch (e) {
+				if (e instanceof FilesError) return err(e.code, e.message);
+				const msg = e instanceof Error ? e.message : String(e);
+				this.deps.mainLogger.warn(`files.readText failed: ${msg}`);
+				return err("exception", msg);
+			}
 		});
 	}
 

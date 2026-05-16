@@ -1,7 +1,7 @@
 // Renders children inside a fixed-width column with a vertical drag
-// handle on its right edge. Width is persisted per-pane to localStorage
-// so each mode (skills, extensions, prompts) keeps its own preferred
-// size across reloads.
+// handle on one edge (right by default; pass side="left" to flip).
+// Width is persisted per-pane to localStorage so each pane keeps its
+// own preferred size across reloads.
 
 import React from "react";
 
@@ -11,6 +11,8 @@ interface ResizablePaneProps {
 	defaultWidth: number;
 	minWidth?: number;
 	maxWidth?: number;
+	/** Which edge the drag handle sits on. Default "right". */
+	side?: "left" | "right";
 	children: React.ReactNode;
 }
 
@@ -38,6 +40,7 @@ export function ResizablePane({
 	defaultWidth,
 	minWidth = 180,
 	maxWidth = 600,
+	side = "right",
 	children,
 }: ResizablePaneProps) {
 	const [width, setWidth] = React.useState<number>(() =>
@@ -55,7 +58,10 @@ export function ResizablePane({
 
 	const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
 		if (!dragRef.current) return;
-		const delta = e.clientX - dragRef.current.startX;
+		// Right-anchored pane: dragging right grows it.
+		// Left-anchored pane (handle on its left edge): dragging right shrinks it.
+		const rawDelta = e.clientX - dragRef.current.startX;
+		const delta = side === "left" ? -rawDelta : rawDelta;
 		const next = Math.min(
 			Math.max(dragRef.current.startWidth + delta, minWidth),
 			maxWidth,
@@ -92,7 +98,10 @@ export function ResizablePane({
 		if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
 		e.preventDefault();
 		const step = e.shiftKey ? 24 : 8;
-		const direction = e.key === "ArrowLeft" ? -1 : 1;
+		// Arrow keys grow/shrink the pane regardless of which edge the handle is on:
+		// right-pointing arrow always grows the pane.
+		const baseDirection = e.key === "ArrowLeft" ? -1 : 1;
+		const direction = side === "left" ? -baseDirection : baseDirection;
 		const next = Math.min(
 			Math.max(width + direction * step, minWidth),
 			maxWidth,
@@ -100,6 +109,11 @@ export function ResizablePane({
 		setWidth(next);
 		persist(next);
 	};
+
+	const handleClass =
+		side === "left"
+			? "absolute left-0 top-0 h-full w-1 cursor-col-resize outline-none hover:bg-indigo-500/50 focus-visible:bg-indigo-500/50 active:bg-indigo-500/70"
+			: "absolute right-0 top-0 h-full w-1 cursor-col-resize outline-none hover:bg-indigo-500/50 focus-visible:bg-indigo-500/50 active:bg-indigo-500/70";
 
 	return (
 		<div className="relative flex h-full flex-shrink-0" style={{ width }}>
@@ -120,7 +134,7 @@ export function ResizablePane({
 				onPointerUp={endDrag}
 				onPointerCancel={endDrag}
 				onKeyDown={onKeyDown}
-				className="absolute right-0 top-0 h-full w-1 cursor-col-resize outline-none hover:bg-indigo-500/50 focus-visible:bg-indigo-500/50 active:bg-indigo-500/70"
+				className={handleClass}
 			/>
 		</div>
 	);

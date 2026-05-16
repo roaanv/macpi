@@ -26,6 +26,7 @@ import { ChatBreadcrumb } from "./ChatBreadcrumb";
 import { ChatContextBar } from "./ChatContextBar";
 import { ChatFooter } from "./ChatFooter";
 import { Composer, type SendIntent } from "./Composer";
+import { FileBrowserPane } from "./FileBrowserPane";
 import { Timeline } from "./Timeline";
 
 export function ChatPane({
@@ -62,6 +63,23 @@ export function ChatPane({
 	const channelName =
 		channels.data?.channels.find((c) => c.id === sessionChannel.data?.channelId)
 			?.name ?? null;
+	const [filesOpen, setFilesOpen] = React.useState<boolean>(() => {
+		try {
+			return window.localStorage.getItem("macpi:pane-open:files") === "1";
+		} catch {
+			return false;
+		}
+	});
+	React.useEffect(() => {
+		try {
+			window.localStorage.setItem(
+				"macpi:pane-open:files",
+				filesOpen ? "1" : "0",
+			);
+		} catch {
+			// localStorage may be disabled — toggle still works for this session.
+		}
+	}, [filesOpen]);
 
 	if (piSessionId && attachQuery.isLoading) {
 		return (
@@ -143,57 +161,80 @@ export function ChatPane({
 	}
 
 	return (
-		<div className="flex flex-1 flex-col surface-app p-4">
-			<ChatBreadcrumb
-				channelName={channelName}
-				sessionName={sessionMeta.data?.label ?? null}
-			/>
-			<BreadcrumbBar
-				channelName={channelName}
-				piSessionId={piSessionId}
-				cwd={sessionMeta.data?.cwd ?? null}
-				label={sessionMeta.data?.label ?? null}
-			/>
-			<Timeline
-				entries={snapshot.timeline}
-				piSessionId={piSessionId}
-				onForkNavigate={onSelectSession}
-			/>
-			<div className="mt-2 space-y-2">
-				<ErrorBanner
-					key={piSessionId ?? "no-session"}
-					state={snapshot.errorBanner}
-					onOpenSettings={onOpenGlobalSettings}
+		<div className="flex flex-1 min-h-0">
+			<div className="flex flex-1 flex-col surface-app p-4 min-w-0">
+				<div className="flex items-start gap-2">
+					<div className="flex-1 min-w-0">
+						<ChatBreadcrumb
+							channelName={channelName}
+							sessionName={sessionMeta.data?.label ?? null}
+						/>
+						<BreadcrumbBar
+							channelName={channelName}
+							piSessionId={piSessionId}
+							cwd={sessionMeta.data?.cwd ?? null}
+							label={sessionMeta.data?.label ?? null}
+						/>
+					</div>
+					<button
+						type="button"
+						onClick={() => setFilesOpen((v) => !v)}
+						className="mt-1 rounded px-2 py-1 text-xs hover:bg-white/5"
+						title={filesOpen ? "Hide file browser" : "Show file browser"}
+						aria-label={filesOpen ? "Hide file browser" : "Show file browser"}
+						aria-pressed={filesOpen}
+					>
+						📁
+					</button>
+				</div>
+				<Timeline
+					entries={snapshot.timeline}
+					piSessionId={piSessionId}
+					onForkNavigate={onSelectSession}
 				/>
-				<SkillsChangedBanner
-					changed={snapshot.skillsChanged}
-					reloading={reload.isPending}
-					onReload={() => piSessionId && reload.mutate({ piSessionId })}
+				<div className="mt-2 space-y-2">
+					<ErrorBanner
+						key={piSessionId ?? "no-session"}
+						state={snapshot.errorBanner}
+						onOpenSettings={onOpenGlobalSettings}
+					/>
+					<SkillsChangedBanner
+						changed={snapshot.skillsChanged}
+						reloading={reload.isPending}
+						onReload={() => piSessionId && reload.mutate({ piSessionId })}
+					/>
+					<RetryBanner retry={snapshot.retry} />
+					<CompactionBanner
+						compaction={snapshot.compaction}
+						lastResult={snapshot.lastCompactionResult}
+					/>
+					<QueuePills
+						queue={snapshot.queue}
+						onClear={() => {
+							if (!piSessionId) return;
+							clearQueueMutation.mutate({ piSessionId });
+						}}
+						onRemove={(queue, index) => {
+							if (!piSessionId) return;
+							removeFromQueueMutation.mutate({ piSessionId, queue, index });
+						}}
+					/>
+				</div>
+				<Composer
+					streaming={snapshot.streaming}
+					onSend={send}
+					messageHistory={messageHistory}
 				/>
-				<RetryBanner retry={snapshot.retry} />
-				<CompactionBanner
-					compaction={snapshot.compaction}
-					lastResult={snapshot.lastCompactionResult}
-				/>
-				<QueuePills
-					queue={snapshot.queue}
-					onClear={() => {
-						if (!piSessionId) return;
-						clearQueueMutation.mutate({ piSessionId });
-					}}
-					onRemove={(queue, index) => {
-						if (!piSessionId) return;
-						removeFromQueueMutation.mutate({ piSessionId, queue, index });
-					}}
-				/>
+				<ChatFooter piSessionId={piSessionId} />
+				<ChatContextBar piSessionId={piSessionId} />
 			</div>
-			<Composer
-				streaming={snapshot.streaming}
-				onSend={send}
-				messageHistory={messageHistory}
-			/>
-			<ChatFooter piSessionId={piSessionId} />
-			<ChatContextBar piSessionId={piSessionId} />
+			{filesOpen && (
+				<FileBrowserPane
+					piSessionId={piSessionId}
+					sessionCwd={sessionMeta.data?.cwd ?? null}
+					onClose={() => setFilesOpen(false)}
+				/>
+			)}
 		</div>
 	);
 }

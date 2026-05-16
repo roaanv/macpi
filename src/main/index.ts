@@ -10,6 +10,7 @@ import { installCrashHandler } from "./crash-handler";
 import { getDefaultCwd } from "./default-cwd";
 import { electronDialogHandlers } from "./dialog-handlers";
 import { ExtensionsService } from "./extensions-service";
+import { FilesService } from "./files-service";
 import { IpcRouter } from "./ipc-router";
 import { createLogger, type Logger } from "./logger";
 import { ModelAuthService } from "./model-auth-service";
@@ -206,6 +207,10 @@ app.whenReady().then(async () => {
 		emitEvent: (event) => manager.broadcastEvent(event),
 	});
 
+	const filesService = new FilesService({
+		getSessionCwd: (id) => channelSessions.getMeta(id)?.cwd ?? null,
+	});
+
 	router = new IpcRouter({
 		channels,
 		channelSessions,
@@ -217,6 +222,7 @@ app.whenReady().then(async () => {
 		promptsService,
 		notesService,
 		branchService,
+		filesService,
 		dialog: electronDialogHandlers,
 		getDefaultCwd,
 		mainLogger,

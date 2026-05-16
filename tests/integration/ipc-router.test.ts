@@ -6,6 +6,7 @@ import type { BranchService } from "../../src/main/branch-service";
 import { type DbHandle, openDb } from "../../src/main/db/connection";
 import { runMigrations } from "../../src/main/db/migrations";
 import type { ExtensionsService } from "../../src/main/extensions-service";
+import type { FilesService } from "../../src/main/files-service";
 import { IpcRouter } from "../../src/main/ipc-router";
 import type { Logger } from "../../src/main/logger";
 import type { NotesService } from "../../src/main/notes-service";
@@ -145,6 +146,10 @@ beforeEach(() => {
 		create: vi.fn().mockResolvedValue({ id: "n1" }),
 		delete: vi.fn().mockResolvedValue({ ok: true, mtime: 0 }),
 	};
+	const filesServiceStub = {
+		listDir: vi.fn().mockResolvedValue({ entries: [] }),
+		readText: vi.fn().mockResolvedValue({ content: "", sizeBytes: 0 }),
+	};
 	modelAuthServiceMock = {
 		listProviders: vi.fn().mockResolvedValue([]),
 		listModels: vi.fn().mockResolvedValue({ models: [] }),
@@ -189,6 +194,7 @@ beforeEach(() => {
 		promptsService: promptsServiceStub as unknown as PromptsService,
 		notesService: notesServiceStub as unknown as NotesService,
 		branchService: branchServiceStub as unknown as BranchService,
+		filesService: filesServiceStub as unknown as FilesService,
 		dialog: {
 			openFolder: async ({ defaultPath }) => {
 				const result = await dialogShowOpenDialog({

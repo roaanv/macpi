@@ -219,6 +219,47 @@ export function useSessionMeta(piSessionId: string | null) {
 	});
 }
 
+/**
+ * Lazily lists one folder's children under the session cwd. The query key
+ * includes `showHidden` so toggling it doesn't share a cache with the
+ * filtered list. Disabled when no session is selected.
+ */
+export function useDirListing(
+	piSessionId: string | null,
+	relPath: string,
+	showHidden: boolean,
+) {
+	return useQuery({
+		queryKey: ["files.listDir", piSessionId, relPath, showHidden],
+		queryFn: () =>
+			piSessionId
+				? invoke("files.listDir", { piSessionId, relPath, showHidden })
+				: Promise.resolve({ entries: [] }),
+		enabled: !!piSessionId,
+		staleTime: Number.POSITIVE_INFINITY,
+	});
+}
+
+/**
+ * Loads the content of one text file under the session cwd. Disabled when
+ * either input is null. Refresh is owned by the calling component via
+ * `useInvalidateOnTurnEnd`.
+ */
+export function useFileContent(
+	piSessionId: string | null,
+	relPath: string | null,
+) {
+	return useQuery({
+		queryKey: ["files.readText", piSessionId, relPath],
+		queryFn: () =>
+			piSessionId && relPath
+				? invoke("files.readText", { piSessionId, relPath })
+				: Promise.resolve({ content: "", sizeBytes: 0 }),
+		enabled: !!piSessionId && !!relPath,
+		staleTime: Number.POSITIVE_INFINITY,
+	});
+}
+
 export function useSessionChannel(piSessionId: string | null) {
 	return useQuery({
 		queryKey: ["session.channel", piSessionId],
