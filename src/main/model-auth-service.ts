@@ -7,6 +7,8 @@ import { getSelectedModel as getSelectedModelSetting } from "../shared/app-setti
 import type {
 	AuthSource,
 	ImportPiAuthModelsStatus,
+	LocalOpenAIModelCandidate,
+	LocalOpenAIProviderInput,
 	ModelSummary,
 	OAuthEvent,
 	ProviderAuthType,
@@ -39,6 +41,7 @@ export interface ModelAuthServiceDeps {
 		set(key: string, value: unknown): void;
 	};
 	loadPi?: () => Promise<ModelAuthPiModule>;
+	fetch?: typeof fetch;
 }
 
 export class ModelAuthService {
@@ -48,6 +51,7 @@ export class ModelAuthService {
 	private auth: AuthStorage | null = null;
 	private registry: ModelRegistry | null = null;
 	private readonly loadPi: () => Promise<ModelAuthPiModule>;
+	private readonly fetchImpl: typeof fetch;
 	private readonly oauthListeners = new Set<(event: OAuthEvent) => void>();
 	private readonly logins = new Map<string, LoginState>();
 
@@ -55,6 +59,7 @@ export class ModelAuthService {
 		this.authPath = path.join(deps.macpiRoot, "auth.json");
 		this.modelsPath = path.join(deps.macpiRoot, "models.json");
 		this.loadPi = deps.loadPi ?? (async () => import("@earendil-works/pi-coding-agent"));
+		this.fetchImpl = deps.fetch ?? fetch;
 	}
 
 	async ready(): Promise<void> {
@@ -315,6 +320,78 @@ export class ModelAuthService {
 		};
 	}
 
+	async listLocalOpenAIModels(input: {
+		baseUrl: string;
+		apiKey: string;
+	}): Promise<LocalOpenAIModelCandidate[]> {
+		const baseUrl = this.normalizeBaseUrl(input.baseUrl);
+		const apiKey = input.apiKey.trim();
+		const headers: Record<string, string> = { Accept: "application/json" };
+		if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
+		const response = await this.fetchImpl(`${baseUrl}/models`, { headers });
+		if (!response.ok) {
+			throw new Error(`Failed to fetch models: HTTP ${response.status}`);
+		}
+		const body = (await response.json()) as { data?: Array<{ id?: unknown; name?: unknown }> };
+		const data = Array.isArray(body.data) ? body.data : [];
+		const models = data
+			.map((model) => ({
+				id: typeof model.id === "string" ? model.id : "",
+				name:
+					typeof model.name === "string" && model.name.length > 0
+						? model.name
+						: typeof model.id === "string"
+							? model.id
+							: "",
+			}))
+			.filter((model) => model.id.length > 0);
+		if (models.length === 0) throw new Error("No models returned from provider");
+		return models;
+	}
+
+	async saveLocalOpenAIProvider(
+		input: LocalOpenAIProviderInput,
+	): Promise<{ provider: string; selectedModel: SelectedModelRef }> {
+		if (!this.deps.appSettings) {
+			throw new Error("ModelAuthService requires appSettings to set model");
+		}
+		const provider = this.validateProviderId(input.providerId);
+		if (!provider.startsWith("local-")) {
+			throw new Error("Local provider id must start with local-");
+		}
+		const name = input.name.trim();
+		if (!name) throw new Error("Provider name cannot be empty");
+		const apiKey = input.apiKey.trim();
+		if (!apiKey) throw new Error("API key cannot be empty");
+		const baseUrl = this.normalizeBaseUrl(input.baseUrl);
+		if (!input.models.some((model) => model.id === input.selectedModelId)) {
+			throw new Error("Selected local model is not in the model list");
+		}
+
+		const config = this.readModelsConfig();
+		config.providers[provider] = {
+			name,
+			baseUrl,
+			api: "openai-completions",
+			apiKey: this.localProviderEnvName(provider),
+			authHeader: true,
+			models: input.models.map((model) => ({
+				id: model.id,
+				name: model.name || model.id,
+			})),
+		};
+		fs.mkdirSync(path.dirname(this.modelsPath), { recursive: true });
+		fs.writeFileSync(this.modelsPath, `${JSON.stringify(config, null, 2)}\n`);
+
+		const auth = await this.getAuthStorage();
+		auth.set(provider, { type: "api_key", key: apiKey });
+		await this.refresh();
+
+		const selectedModel = { provider, modelId: input.selectedModelId };
+		this.deps.appSettings.set("selectedModel", selectedModel);
+		return { provider, selectedModel };
+	}
+
 	async importFromPi(input: {
 		homeDir: string;
 		auth: boolean;
@@ -449,6 +526,46 @@ export class ModelAuthService {
 			throw new Error("Invalid provider id");
 		}
 		return provider;
+	}
+
+	private normalizeBaseUrl(value: string): string {
+		let url: URL;
+		try {
+			url = new URL(value.trim());
+		} catch {
+			throw new Error("Invalid provider URL");
+		}
+		if (url.protocol !== "http:" && url.protocol !== "https:") {
+			throw new Error("Provider URL must use http or https");
+		}
+		return url.toString().replace(/\/+$/, "");
+	}
+
+	private localProviderEnvName(provider: string): string {
+		return `MACPI_LOCAL_OPENAI_${provider.replace(/[^a-zA-Z0-9]/g, "_").toUpperCase()}_API_KEY`;
+	}
+
+	private readModelsConfig(): {
+		providers: Record<string, Record<string, unknown>>;
+	} {
+		if (!fs.existsSync(this.modelsPath)) return { providers: {} };
+		const text = fs.readFileSync(this.modelsPath, "utf8").trim();
+		if (!text) return { providers: {} };
+		let parsed: unknown;
+		try {
+			parsed = JSON.parse(text);
+		} catch (e) {
+			const msg = e instanceof Error ? e.message : String(e);
+			throw new Error(`Cannot update local provider: models.json is invalid: ${msg}`);
+		}
+		if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+			throw new Error("Cannot update local provider: models.json root must be an object");
+		}
+		const root = parsed as { providers?: unknown };
+		if (!root.providers || typeof root.providers !== "object" || Array.isArray(root.providers)) {
+			return { ...root, providers: {} } as { providers: Record<string, Record<string, unknown>> };
+		}
+		return root as { providers: Record<string, Record<string, unknown>> };
 	}
 
 	private copyImportFile(

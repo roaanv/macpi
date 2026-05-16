@@ -68,3 +68,17 @@ export interface ImportPiAuthModelsStatus {
 	destAuthPath: string;
 	destModelsPath: string;
 }
+
+export interface LocalOpenAIModelCandidate {
+	id: string;
+	name: string;
+}
+
+export interface LocalOpenAIProviderInput {
+	providerId: string;
+	name: string;
+	baseUrl: string;
+	apiKey: string;
+	models: LocalOpenAIModelCandidate[];
+	selectedModelId: string;
+}

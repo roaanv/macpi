@@ -10,6 +10,8 @@ import type {
 } from "./extensions-types";
 import type {
 	ImportPiAuthModelsStatus,
+	LocalOpenAIModelCandidate,
+	LocalOpenAIProviderInput,
 	ModelSummary,
 	ModelsJsonReadResult,
 	ProviderSummary,
@@ -172,6 +174,8 @@ export interface IpcMethods {
 	"modelsAuth.writeModelsJson": { req: { text: string }; res: { registryError?: string } };
 	"modelsAuth.getImportStatus": { req: Record<string, never>; res: ImportPiAuthModelsStatus };
 	"modelsAuth.importFromPi": { req: { auth: boolean; models: boolean; replaceExisting: boolean }; res: { copiedAuth: boolean; copiedModels: boolean } };
+	"modelsAuth.listLocalOpenAIModels": { req: { baseUrl: string; apiKey: string }; res: { models: LocalOpenAIModelCandidate[] } };
+	"modelsAuth.saveLocalOpenAIProvider": { req: LocalOpenAIProviderInput; res: { provider: string; selectedModel: SelectedModelRef } };
 	"dialog.openFolder": {
 		req: { defaultPath?: string };
 		/** path is null when the user cancelled the dialog. */

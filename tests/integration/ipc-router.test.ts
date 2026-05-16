@@ -66,6 +66,8 @@ let modelAuthServiceMock: {
 	writeModelsJson: ReturnType<typeof vi.fn>;
 	getImportStatus: ReturnType<typeof vi.fn>;
 	importFromPi: ReturnType<typeof vi.fn>;
+	listLocalOpenAIModels: ReturnType<typeof vi.fn>;
+	saveLocalOpenAIProvider: ReturnType<typeof vi.fn>;
 };
 
 beforeEach(() => {
@@ -168,6 +170,13 @@ beforeEach(() => {
 		importFromPi: vi
 			.fn()
 			.mockResolvedValue({ copiedAuth: false, copiedModels: false }),
+		listLocalOpenAIModels: vi
+			.fn()
+			.mockResolvedValue([{ id: "llama3", name: "llama3" }]),
+		saveLocalOpenAIProvider: vi.fn().mockResolvedValue({
+			provider: "local-ollama",
+			selectedModel: { provider: "local-ollama", modelId: "llama3" },
+		}),
 	};
 	router = new IpcRouter({
 		channels: new ChannelsRepo(db),
@@ -876,6 +885,37 @@ describe("IpcRouter", () => {
 		expect(r).toEqual({
 			ok: false,
 			error: { code: "import_failed", message: "nope" },
+		});
+	});
+
+	it("modelsAuth.listLocalOpenAIModels returns discovered local models", async () => {
+		const r = await router.dispatch("modelsAuth.listLocalOpenAIModels", {
+			baseUrl: "http://localhost:11434/v1",
+			apiKey: "ollama",
+		});
+
+		expect(r).toEqual({
+			ok: true,
+			data: { models: [{ id: "llama3", name: "llama3" }] },
+		});
+	});
+
+	it("modelsAuth.saveLocalOpenAIProvider returns selected model", async () => {
+		const r = await router.dispatch("modelsAuth.saveLocalOpenAIProvider", {
+			providerId: "local-ollama",
+			name: "Local Ollama",
+			baseUrl: "http://localhost:11434/v1",
+			apiKey: "ollama",
+			models: [{ id: "llama3", name: "llama3" }],
+			selectedModelId: "llama3",
+		});
+
+		expect(r).toEqual({
+			ok: true,
+			data: {
+				provider: "local-ollama",
+				selectedModel: { provider: "local-ollama", modelId: "llama3" },
+			},
 		});
 	});
 

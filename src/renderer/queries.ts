@@ -326,6 +326,33 @@ export function useImportPiAuthModels() {
 	});
 }
 
+export function useListLocalOpenAIModels() {
+	return useMutation({
+		mutationFn: (input: { baseUrl: string; apiKey: string }) =>
+			invoke("modelsAuth.listLocalOpenAIModels", input),
+	});
+}
+
+export function useSaveLocalOpenAIProvider() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (input: {
+			providerId: string;
+			name: string;
+			baseUrl: string;
+			apiKey: string;
+			models: Array<{ id: string; name: string }>;
+			selectedModelId: string;
+		}) => invoke("modelsAuth.saveLocalOpenAIProvider", input),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["modelsAuth.providers"] });
+			qc.invalidateQueries({ queryKey: ["modelsAuth.models"] });
+			qc.invalidateQueries({ queryKey: ["modelsAuth.modelsJson"] });
+			qc.invalidateQueries({ queryKey: ["modelsAuth.selectedModel"] });
+		},
+	});
+}
+
 export function useSkills() {
 	return useQuery({
 		queryKey: ["skills.list"],

@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ModelAuthService } from "../../src/main/model-auth-service";
 
 function tempRoot() {
@@ -212,6 +212,75 @@ describe("ModelAuthService models.json editor", () => {
 		await expect(service.writeModelsJson("{" )).rejects.toThrow(
 			"macpi editor currently accepts strict JSON only",
 		);
+	});
+});
+
+describe("ModelAuthService local OpenAI providers", () => {
+	it("fetches OpenAI-compatible model ids from /models", async () => {
+		const service = new ModelAuthService({
+			macpiRoot: tempRoot(),
+			fetch: vi.fn().mockResolvedValue({
+				ok: true,
+				json: async () => ({ data: [{ id: "llama3" }, { id: "qwen2" }] }),
+			}),
+		});
+
+		const models = await service.listLocalOpenAIModels({
+			baseUrl: "http://localhost:11434/v1/",
+			apiKey: "ollama",
+		});
+
+		expect(models).toEqual([
+			{ id: "llama3", name: "llama3" },
+			{ id: "qwen2", name: "qwen2" },
+		]);
+	});
+
+	it("saves a local OpenAI-compatible provider and selected model", async () => {
+		const root = tempRoot();
+		const settings = fakeSettings({});
+		const authCalls: unknown[] = [];
+		let refreshed = false;
+		const service = new ModelAuthService({
+			macpiRoot: root,
+			appSettings: settings,
+			loadPi: async () => ({
+				AuthStorage: {
+					create: () => ({
+						...fakeAuthStorage(),
+						set: (provider: string, credential: unknown) => authCalls.push([provider, credential]),
+					}),
+				},
+				ModelRegistry: {
+					create: () => ({ ...fakeModelRegistry(), refresh: () => { refreshed = true; } }),
+				},
+			}),
+		});
+
+		await service.saveLocalOpenAIProvider({
+			providerId: "local-ollama",
+			name: "Local Ollama",
+			baseUrl: "http://localhost:11434/v1/",
+			apiKey: "ollama",
+			models: [{ id: "llama3", name: "Llama 3" }],
+			selectedModelId: "llama3",
+		});
+
+		const saved = JSON.parse(fs.readFileSync(path.join(root, "models.json"), "utf8"));
+		expect(saved.providers["local-ollama"]).toMatchObject({
+			name: "Local Ollama",
+			baseUrl: "http://localhost:11434/v1",
+			api: "openai-completions",
+			apiKey: "MACPI_LOCAL_OPENAI_LOCAL_OLLAMA_API_KEY",
+			models: [{ id: "llama3", name: "Llama 3" }],
+		});
+		expect(authCalls).toEqual([
+			["local-ollama", { type: "api_key", key: "ollama" }],
+		]);
+		expect(settings.getAll()).toEqual({
+			selectedModel: { provider: "local-ollama", modelId: "llama3" },
+		});
+		expect(refreshed).toBe(true);
 	});
 });
 

@@ -1,10 +1,12 @@
 import React from "react";
-import type { ModelSummary } from "../../shared/model-auth-types";
+import type { LocalOpenAIModelCandidate, ModelSummary } from "../../shared/model-auth-types";
 import {
+	useListLocalOpenAIModels,
 	useLogoutProvider,
 	useModelAuthModels,
 	useModelAuthProviders,
 	useSaveApiKey,
+	useSaveLocalOpenAIProvider,
 	useSelectedModel,
 	useSetSelectedModel,
 } from "../queries";
@@ -40,6 +42,7 @@ export function ModelsAuthSettings() {
 	const [apiKey, setApiKey] = React.useState("");
 	const [showAdvanced, setShowAdvanced] = React.useState(false);
 	const [showImport, setShowImport] = React.useState(false);
+	const [addingLocal, setAddingLocal] = React.useState(false);
 
 	const providerViews = React.useMemo(
 		() =>
@@ -140,9 +143,13 @@ export function ModelsAuthSettings() {
 					<div className="min-h-0 flex-1 overflow-y-auto p-3">
 						<button
 							type="button"
-							disabled
-							className="mb-3 flex w-full items-center gap-3 rounded border border-dashed border-divider p-3 text-left text-sm text-muted opacity-70"
-							title="Local OpenAI-compatible providers are added in the next commit"
+							onClick={() => {
+								setAddingLocal(true);
+								setFilter("local");
+							}}
+							className={`mb-3 flex w-full items-center gap-3 rounded border border-dashed border-divider p-3 text-left text-sm ${
+								addingLocal ? "bg-blue-500/10 text-primary" : "text-muted hover:surface-row"
+							}`}
 						>
 							<span className="surface-row rounded px-3 py-2 text-xl">+</span>
 							<span>Add local OpenAI-compatible provider</span>
@@ -181,7 +188,15 @@ export function ModelsAuthSettings() {
 							{selected.error.message}
 						</div>
 					) : null}
-					{activeProvider ? (
+					{addingLocal ? (
+						<LocalOpenAIProviderForm
+							onCancel={() => setAddingLocal(false)}
+							onSaved={(provider) => {
+								setAddingLocal(false);
+								setSelectedProviderId(provider);
+							}}
+						/>
+					) : activeProvider ? (
 						<ProviderDetail
 							provider={activeProvider}
 							selectedModel={selected.data?.model ?? null}
@@ -228,6 +243,126 @@ export function ModelsAuthSettings() {
 					) : null}
 				</div>
 			</footer>
+		</div>
+	);
+}
+
+function LocalOpenAIProviderForm({
+	onCancel,
+	onSaved,
+}: {
+	onCancel: () => void;
+	onSaved: (provider: string) => void;
+}) {
+	const listModels = useListLocalOpenAIModels();
+	const saveProvider = useSaveLocalOpenAIProvider();
+	const [name, setName] = React.useState("Local OpenAI");
+	const [providerId, setProviderId] = React.useState("local-openai");
+	const [baseUrl, setBaseUrl] = React.useState("http://localhost:11434/v1");
+	const [apiKey, setApiKey] = React.useState("ollama");
+	const [models, setModels] = React.useState<LocalOpenAIModelCandidate[]>([]);
+	const [selectedModelId, setSelectedModelId] = React.useState("");
+
+	function discoverModels() {
+		listModels.mutate(
+			{ baseUrl, apiKey },
+			{
+				onSuccess: (data) => {
+					setModels(data.models);
+					setSelectedModelId(data.models[0]?.id ?? "");
+				},
+			},
+		);
+	}
+
+	function save() {
+		saveProvider.mutate(
+			{ providerId, name, baseUrl, apiKey, models, selectedModelId },
+			{
+				onSuccess: (data) => onSaved(data.provider),
+			},
+		);
+	}
+
+	return (
+		<div className="mx-auto flex max-w-4xl flex-col gap-6">
+			<section>
+				<h3 className="text-xl font-semibold">Add local OpenAI-compatible provider</h3>
+				<p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
+					Connect Ollama, LM Studio, vLLM, or a local proxy that exposes the OpenAI-compatible <span className="font-mono">/models</span> endpoint.
+				</p>
+			</section>
+
+			<section className="rounded-xl border border-divider p-4">
+				<div className="grid gap-3 sm:grid-cols-2">
+					<label className="flex flex-col gap-1 text-sm">
+						<span className="text-muted">Display name</span>
+						<input className="surface-row rounded px-3 py-2 outline-none" value={name} onChange={(e) => setName(e.target.value)} />
+					</label>
+					<label className="flex flex-col gap-1 text-sm">
+						<span className="text-muted">Provider id</span>
+						<input className="surface-row rounded px-3 py-2 font-mono outline-none" value={providerId} onChange={(e) => setProviderId(e.target.value)} />
+					</label>
+					<label className="flex flex-col gap-1 text-sm sm:col-span-2">
+						<span className="text-muted">Base URL</span>
+						<input className="surface-row rounded px-3 py-2 font-mono outline-none" value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="http://localhost:11434/v1" />
+					</label>
+					<label className="flex flex-col gap-1 text-sm sm:col-span-2">
+						<span className="text-muted">API key</span>
+						<input type="password" className="surface-row rounded px-3 py-2 outline-none" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="ollama" />
+					</label>
+				</div>
+				<div className="mt-4 flex flex-wrap gap-2">
+					<button type="button" className="rounded bg-blue-500/20 px-3 py-2 text-sm hover:opacity-80 disabled:opacity-50" disabled={listModels.isPending} onClick={discoverModels}>
+						{listModels.isPending ? "Fetching models…" : "Fetch models"}
+					</button>
+					<button type="button" className="rounded px-3 py-2 text-sm hover:surface-row" onClick={onCancel}>
+						Cancel
+					</button>
+				</div>
+				{listModels.error ? <div className="mt-3 text-sm text-red-400">{listModels.error.message}</div> : null}
+			</section>
+
+			<section>
+				<div className="mb-3 text-xs uppercase tracking-widest text-muted">
+					Available models · {models.length}
+				</div>
+				{models.length === 0 ? (
+					<div className="rounded-xl border border-divider p-4 text-sm text-muted">
+						Fetch models from the provider, then choose the model MacPi should use.
+					</div>
+				) : (
+					<div className="overflow-hidden rounded-xl border border-divider">
+						{models.map((model) => (
+							<button
+								type="button"
+								key={model.id}
+								onClick={() => setSelectedModelId(model.id)}
+								className="flex w-full items-center gap-4 border-b border-divider p-4 text-left last:border-b-0 hover:surface-row"
+							>
+								<span className={`flex h-7 w-7 items-center justify-center rounded ${selectedModelId === model.id ? "bg-blue-400 text-black" : "surface-row text-muted"}`}>
+									{selectedModelId === model.id ? "✓" : ""}
+								</span>
+								<span>
+									<span className="font-medium">{model.name}</span>
+									<span className="block font-mono text-xs text-muted">{model.id}</span>
+								</span>
+							</button>
+						))}
+					</div>
+				)}
+				<div className="mt-4 flex justify-end">
+					<button
+						type="button"
+						className="rounded bg-blue-500 px-4 py-2 text-sm text-white hover:opacity-90 disabled:opacity-50"
+						disabled={!selectedModelId || saveProvider.isPending}
+						onClick={save}
+					>
+						{saveProvider.isPending ? "Saving…" : "Save provider and set default"}
+					</button>
+				</div>
+				{saveProvider.error ? <div className="mt-3 text-sm text-red-400">{saveProvider.error.message}</div> : null}
+			</section>
 		</div>
 	);
 }

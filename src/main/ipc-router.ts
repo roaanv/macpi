@@ -347,6 +347,24 @@ export class IpcRouter {
 				return err("import_failed", msg);
 			}
 		});
+		this.register("modelsAuth.listLocalOpenAIModels", async (args) => {
+			try {
+				return ok({
+					models: await this.deps.modelAuthService.listLocalOpenAIModels(args),
+				});
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				return err("local_provider_failed", msg);
+			}
+		});
+		this.register("modelsAuth.saveLocalOpenAIProvider", async (args) => {
+			try {
+				return ok(await this.deps.modelAuthService.saveLocalOpenAIProvider(args));
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				return err("local_provider_failed", msg);
+			}
+		});
 		this.register("skills.list", async () => {
 			const skills = await this.deps.skillsService.list();
 			return ok({ skills });
