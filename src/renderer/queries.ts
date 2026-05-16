@@ -404,6 +404,17 @@ export function useInstallSkill() {
 	});
 }
 
+export function useRemoveSkill() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (input: { source: string }) => invoke("skills.remove", input),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["skills.list"] });
+			window.dispatchEvent(new CustomEvent("macpi:skills-changed"));
+		},
+	});
+}
+
 export function usePrompts() {
 	return useQuery({
 		queryKey: ["prompts.list"],
@@ -533,6 +544,18 @@ export function useInstallExtension() {
 	return useMutation({
 		mutationFn: (input: { source: string }) =>
 			invoke("extensions.install", input),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["extensions.list"] });
+			window.dispatchEvent(new CustomEvent("macpi:extensions-changed"));
+		},
+	});
+}
+
+export function useRemoveExtension() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (input: { source: string }) =>
+			invoke("extensions.remove", input),
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ["extensions.list"] });
 			window.dispatchEvent(new CustomEvent("macpi:extensions-changed"));

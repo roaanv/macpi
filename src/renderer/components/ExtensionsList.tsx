@@ -1,10 +1,18 @@
 // Left-pane extensions list. Header + toolbar at top with Install + Import
-// buttons. Each row: enabled checkbox + name (click selects). Load errors
-// shown inline. Pi sources (npm:/git:/local paths) are reduced to a
-// friendly label and the full source moves to the row tooltip.
+// buttons. Each row: enabled checkbox + name (click selects) + hover-revealed
+// ⋮ menu with Uninstall. Load errors shown inline. Pi sources
+// (npm:/git:/local paths) are reduced to a friendly label and the full source
+// moves to the row tooltip.
 
+import React from "react";
 import { friendlyNameForSource } from "../../shared/friendly-name";
-import { useExtensions, useSetExtensionEnabled } from "../queries";
+import {
+	useExtensions,
+	useRemoveExtension,
+	useSetExtensionEnabled,
+} from "../queries";
+import { ConfirmDialog } from "./ConfirmDialog";
+import { RowMenu } from "./RowMenu";
 
 interface ExtensionsListProps {
 	selectedId: string | null;
@@ -21,6 +29,26 @@ export function ExtensionsList({
 }: ExtensionsListProps) {
 	const ext = useExtensions();
 	const setEnabled = useSetExtensionEnabled();
+	const remove = useRemoveExtension();
+	const [confirmRemove, setConfirmRemove] = React.useState<{
+		id: string;
+		name: string;
+		source: string;
+	} | null>(null);
+	const [removeError, setRemoveError] = React.useState<string | null>(null);
+
+	const handleUninstall = async () => {
+		if (!confirmRemove) return;
+		setRemoveError(null);
+		try {
+			await remove.mutateAsync({ source: confirmRemove.source });
+			if (selectedId === confirmRemove.id) onSelect(null);
+			setConfirmRemove(null);
+		} catch (e) {
+			setRemoveError(e instanceof Error ? e.message : String(e));
+		}
+	};
+
 	return (
 		<aside className="flex h-full w-full min-w-0 flex-col surface-rail border-r border-divider">
 			<div className="border-b border-divider px-3 pb-2 pt-3">
@@ -70,7 +98,7 @@ export function ExtensionsList({
 					return (
 						<div
 							key={e.id}
-							className={`flex items-center gap-2 rounded px-2 py-1 text-sm ${selectedId === e.id ? "surface-row text-primary" : "text-muted hover:surface-row"}`}
+							className={`group flex items-center gap-2 rounded px-2 py-1 text-sm ${selectedId === e.id ? "surface-row text-primary" : "text-muted hover:surface-row"}`}
 						>
 							<input
 								type="checkbox"
@@ -96,10 +124,47 @@ export function ExtensionsList({
 									</span>
 								)}
 							</button>
+							<RowMenu
+								items={[
+									{
+										label: "Uninstall",
+										destructive: true,
+										onClick: () =>
+											setConfirmRemove({
+												id: e.id,
+												name: e.name,
+												source: e.source,
+											}),
+									},
+								]}
+							/>
 						</div>
 					);
 				})}
 			</div>
+			<ConfirmDialog
+				open={!!confirmRemove}
+				title="Uninstall extension?"
+				body={
+					confirmRemove && (
+						<>
+							Remove <code>{confirmRemove.name}</code> from{" "}
+							<code>{confirmRemove.source}</code>. The files are deleted from
+							disk; you can reinstall any time.
+							{removeError && (
+								<div className="mt-2 text-red-400">⚠ {removeError}</div>
+							)}
+						</>
+					)
+				}
+				confirmLabel={remove.isPending ? "Uninstalling…" : "Uninstall"}
+				destructive
+				onConfirm={handleUninstall}
+				onCancel={() => {
+					setConfirmRemove(null);
+					setRemoveError(null);
+				}}
+			/>
 		</aside>
 	);
 }

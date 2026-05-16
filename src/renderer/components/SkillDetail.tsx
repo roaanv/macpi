@@ -1,19 +1,24 @@
 // Right-pane skill detail. Manifest header + CodeEditor (markdown mode)
-// + Save button. Tracks a local `draft` so the editor stays
-// snappy and we can show an "unsaved" indicator.
+// + Save button + Uninstall (with confirm dialog). Tracks a local `draft`
+// so the editor stays snappy and we can show an "unsaved" indicator.
 
 import React from "react";
-import { useSaveSkill, useSkillDetail } from "../queries";
+import { useRemoveSkill, useSaveSkill, useSkillDetail } from "../queries";
 import { CodeEditor } from "./CodeEditor";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 interface SkillDetailProps {
 	id: string | null;
+	onUninstalled?: () => void;
 }
 
-export function SkillDetail({ id }: SkillDetailProps) {
+export function SkillDetail({ id, onUninstalled }: SkillDetailProps) {
 	const detail = useSkillDetail(id);
 	const save = useSaveSkill();
+	const remove = useRemoveSkill();
 	const [draft, setDraft] = React.useState("");
+	const [confirmRemove, setConfirmRemove] = React.useState(false);
+	const [removeError, setRemoveError] = React.useState<string | null>(null);
 
 	React.useEffect(() => {
 		if (detail.data) setDraft(detail.data.body);
@@ -42,20 +47,39 @@ export function SkillDetail({ id }: SkillDetailProps) {
 	}
 
 	const dirty = draft !== detail.data.body;
+	const source = detail.data.manifest.source;
+	const skillName = detail.data.manifest.name;
+
+	const handleUninstall = async () => {
+		setRemoveError(null);
+		try {
+			await remove.mutateAsync({ source });
+			setConfirmRemove(false);
+			onUninstalled?.();
+		} catch (e) {
+			setRemoveError(e instanceof Error ? e.message : String(e));
+		}
+	};
 
 	return (
 		<section className="flex flex-1 flex-col surface-panel">
 			<header className="border-b border-divider p-3">
-				<div className="text-sm font-semibold text-primary">
-					{detail.data.manifest.name}
-				</div>
+				<div className="text-sm font-semibold text-primary">{skillName}</div>
 				<div className="text-xs text-muted">
-					{detail.data.manifest.source} · {detail.data.manifest.relativePath}
+					{source} · {detail.data.manifest.relativePath}
 				</div>
 			</header>
 			<CodeEditor value={draft} onChange={setDraft} language="markdown" />
 			<footer className="flex items-center justify-end gap-2 border-t border-divider p-2">
 				{dirty && <span className="text-xs text-amber-300">• unsaved</span>}
+				<button
+					type="button"
+					onClick={() => setConfirmRemove(true)}
+					disabled={remove.isPending}
+					className="mr-auto rounded px-3 py-1 text-xs text-red-400 hover:bg-red-500/10 disabled:opacity-40"
+				>
+					Uninstall…
+				</button>
 				<button
 					type="button"
 					disabled={!dirty || save.isPending}
@@ -65,6 +89,26 @@ export function SkillDetail({ id }: SkillDetailProps) {
 					{save.isPending ? "Saving…" : "Save"}
 				</button>
 			</footer>
+			<ConfirmDialog
+				open={confirmRemove}
+				title="Uninstall skill?"
+				body={
+					<>
+						Remove <code>{skillName}</code> from <code>{source}</code>. The
+						files are deleted from disk; you can reinstall any time.
+						{removeError && (
+							<div className="mt-2 text-red-400">⚠ {removeError}</div>
+						)}
+					</>
+				}
+				confirmLabel={remove.isPending ? "Uninstalling…" : "Uninstall"}
+				destructive
+				onConfirm={handleUninstall}
+				onCancel={() => {
+					setConfirmRemove(false);
+					setRemoveError(null);
+				}}
+			/>
 		</section>
 	);
 }

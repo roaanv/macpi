@@ -1,10 +1,14 @@
 // Left-pane skills list. Header + toolbar at top with Install + Import
-// buttons. Each row: enabled checkbox + name (click selects). The raw
-// pi source is collapsed to a friendly label (and shown in full on hover)
-// because the install path is rarely what the user wants to read.
+// buttons. Each row: enabled checkbox + name (click selects) + hover-revealed
+// ⋮ menu with Uninstall. The raw pi source is collapsed to a friendly label
+// (and shown in full on hover) because the install path is rarely what the
+// user wants to read.
 
+import React from "react";
 import { friendlyNameForSource } from "../../shared/friendly-name";
-import { useSetSkillEnabled, useSkills } from "../queries";
+import { useRemoveSkill, useSetSkillEnabled, useSkills } from "../queries";
+import { ConfirmDialog } from "./ConfirmDialog";
+import { RowMenu } from "./RowMenu";
 
 interface SkillsListProps {
 	selectedId: string | null;
@@ -21,6 +25,25 @@ export function SkillsList({
 }: SkillsListProps) {
 	const skills = useSkills();
 	const setEnabled = useSetSkillEnabled();
+	const remove = useRemoveSkill();
+	const [confirmRemove, setConfirmRemove] = React.useState<{
+		id: string;
+		name: string;
+		source: string;
+	} | null>(null);
+	const [removeError, setRemoveError] = React.useState<string | null>(null);
+
+	const handleUninstall = async () => {
+		if (!confirmRemove) return;
+		setRemoveError(null);
+		try {
+			await remove.mutateAsync({ source: confirmRemove.source });
+			if (selectedId === confirmRemove.id) onSelect(null);
+			setConfirmRemove(null);
+		} catch (e) {
+			setRemoveError(e instanceof Error ? e.message : String(e));
+		}
+	};
 
 	return (
 		<aside className="flex h-full w-full min-w-0 flex-col surface-rail border-r border-divider">
@@ -65,7 +88,7 @@ export function SkillsList({
 					return (
 						<div
 							key={s.id}
-							className={`flex items-center gap-2 rounded px-2 py-1 text-sm ${selectedId === s.id ? "surface-row text-primary" : "text-muted hover:surface-row"}`}
+							className={`group flex items-center gap-2 rounded px-2 py-1 text-sm ${selectedId === s.id ? "surface-row text-primary" : "text-muted hover:surface-row"}`}
 						>
 							<input
 								type="checkbox"
@@ -91,10 +114,47 @@ export function SkillsList({
 									</span>
 								)}
 							</button>
+							<RowMenu
+								items={[
+									{
+										label: "Uninstall",
+										destructive: true,
+										onClick: () =>
+											setConfirmRemove({
+												id: s.id,
+												name: s.name,
+												source: s.source,
+											}),
+									},
+								]}
+							/>
 						</div>
 					);
 				})}
 			</div>
+			<ConfirmDialog
+				open={!!confirmRemove}
+				title="Uninstall skill?"
+				body={
+					confirmRemove && (
+						<>
+							Remove <code>{confirmRemove.name}</code> from{" "}
+							<code>{confirmRemove.source}</code>. The files are deleted from
+							disk; you can reinstall any time.
+							{removeError && (
+								<div className="mt-2 text-red-400">⚠ {removeError}</div>
+							)}
+						</>
+					)
+				}
+				confirmLabel={remove.isPending ? "Uninstalling…" : "Uninstall"}
+				destructive
+				onConfirm={handleUninstall}
+				onCancel={() => {
+					setConfirmRemove(null);
+					setRemoveError(null);
+				}}
+			/>
 		</aside>
 	);
 }

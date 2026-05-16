@@ -42,8 +42,18 @@ export function CapabilitySettings({ kind }: { kind: Kind }) {
 				{kind === "prompts" && <PromptsList {...listProps} />}
 			</div>
 			<div className="flex min-w-0 flex-1 flex-col">
-				{kind === "skills" && <SkillDetail id={selectedId} />}
-				{kind === "extensions" && <ExtensionDetail id={selectedId} />}
+				{kind === "skills" && (
+					<SkillDetail
+						id={selectedId}
+						onUninstalled={() => setSelectedId(null)}
+					/>
+				)}
+				{kind === "extensions" && (
+					<ExtensionDetail
+						id={selectedId}
+						onUninstalled={() => setSelectedId(null)}
+					/>
+				)}
 				{kind === "prompts" && <PromptDetail id={selectedId} />}
 			</div>
 			<InstallSkillDialog
