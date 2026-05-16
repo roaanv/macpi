@@ -2,6 +2,7 @@
 
 import { DefaultsSettings } from "./DefaultsSettings";
 import { FontSettings } from "./FontSettings";
+import { ModelsAuthSettings } from "./ModelsAuthSettings";
 import { SettingsDialog } from "./SettingsDialog";
 import { ThemeSettings } from "./ThemeSettings";
 
@@ -26,6 +27,11 @@ export function GlobalSettingsDialog({
 					id: "defaults",
 					label: "Defaults",
 					render: () => <DefaultsSettings />,
+				},
+				{
+					id: "models-auth",
+					label: "Models & Auth",
+					render: () => <ModelsAuthSettings />,
 				},
 			]}
 		/>
