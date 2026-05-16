@@ -131,6 +131,15 @@ export class PiSessionManager {
 		});
 	}
 
+	private async buildLoadedResourceLoader(
+		ctx: PiContext,
+		cwd: string,
+	): Promise<ResourceLoader | undefined> {
+		const loader = this.buildResourceLoader(ctx, cwd);
+		if (loader) await loader.reload();
+		return loader;
+	}
+
 	/**
 	 * Returns a promptsOverride callback that filters out prompts whose id is
 	 * marked disabled in the global `resourceEnabled` settings map. Mirrors
@@ -452,7 +461,7 @@ export class PiSessionManager {
 			cwd: opts.cwd,
 			authStorage: ov?.authStorage ?? ctx.auth,
 			modelRegistry: ov?.modelRegistry ?? ctx.registry,
-			resourceLoader: this.buildResourceLoader(ctx, opts.cwd),
+			resourceLoader: await this.buildLoadedResourceLoader(ctx, opts.cwd),
 			settingsManager: ov?.settingsManager,
 			model: ov?.model ?? (await this.deps?.modelAuth?.resolveSelectedModel()),
 		});
@@ -484,11 +493,12 @@ export class PiSessionManager {
 
 		const ov = this.__testOverrides;
 		const sessionManager = ctx.mod.SessionManager.open(filePath);
+		const cwd = sessionManager.getCwd();
 		const result = await ctx.mod.createAgentSession({
-			cwd: sessionManager.getCwd(),
+			cwd,
 			authStorage: ov?.authStorage ?? ctx.auth,
 			modelRegistry: ov?.modelRegistry ?? ctx.registry,
-			resourceLoader: this.buildResourceLoader(ctx, sessionManager.getCwd()),
+			resourceLoader: await this.buildLoadedResourceLoader(ctx, cwd),
 			settingsManager: ov?.settingsManager,
 			model: ov?.model ?? (await this.deps?.modelAuth?.resolveSelectedModel()),
 			sessionManager,
@@ -518,11 +528,12 @@ export class PiSessionManager {
 		const ctx = await this.ensureContext();
 		const sessionManager = ctx.mod.SessionManager.open(filePath);
 		const ov = this.__testOverrides;
+		const cwd = sessionManager.getCwd();
 		const result = await ctx.mod.createAgentSession({
-			cwd: sessionManager.getCwd(),
+			cwd,
 			authStorage: ov?.authStorage ?? ctx.auth,
 			modelRegistry: ov?.modelRegistry ?? ctx.registry,
-			resourceLoader: this.buildResourceLoader(ctx, sessionManager.getCwd()),
+			resourceLoader: await this.buildLoadedResourceLoader(ctx, cwd),
 			settingsManager: ov?.settingsManager,
 			model: ov?.model ?? (await this.deps?.modelAuth?.resolveSelectedModel()),
 			sessionManager,

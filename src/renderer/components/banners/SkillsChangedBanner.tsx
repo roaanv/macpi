@@ -1,6 +1,6 @@
-// Banner above the composer when skills changed during this session.
+// Banner above the composer when tools/resources changed during this session.
 // Offers "Reload session" which disposes + reattaches the in-process
-// pi session so the new skills take effect.
+// pi session so new skills, extensions, and prompts take effect.
 
 interface SkillsChangedBannerProps {
 	changed: boolean;
@@ -20,7 +20,7 @@ export function SkillsChangedBanner({
 			className="flex items-center gap-2 rounded border-l-2 border-amber-500 bg-amber-900/30 px-3 py-2 text-xs text-amber-200"
 		>
 			<span className="flex-1">
-				Skills changed — reload the session to apply.
+				Tools/resources changed — reload the session to apply.
 			</span>
 			<button
 				type="button"
