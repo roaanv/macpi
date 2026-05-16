@@ -193,6 +193,10 @@ export interface IpcMethods {
 		req: Record<string, never>;
 		res: Record<string, never>;
 	};
+	"system.openExternalUrl": {
+		req: { url: string };
+		res: Record<string, never>;
+	};
 	"skills.list": {
 		req: Record<string, never>;
 		res: { skills: SkillSummary[] };

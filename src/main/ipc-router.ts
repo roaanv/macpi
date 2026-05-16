@@ -73,6 +73,18 @@ export class IpcRouter {
 			await shell.openPath(app.getPath("logs"));
 			return ok({});
 		});
+		this.register("system.openExternalUrl", async (args) => {
+			try {
+				const url = new URL(args.url);
+				if (url.protocol !== "http:" && url.protocol !== "https:") {
+					return err("invalid_url", "Only http(s) URLs can be opened");
+				}
+				await shell.openExternal(args.url);
+				return ok({});
+			} catch {
+				return err("invalid_url", "Invalid URL");
+			}
+		});
 		this.register("channels.list", async () =>
 			ok({ channels: this.deps.channels.list() }),
 		);

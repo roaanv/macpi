@@ -5,9 +5,14 @@ import { useLogoutProvider, useSaveApiKey } from "../queries";
 interface ProviderAuthListProps {
 	providers: ProviderSummary[];
 	loading?: boolean;
+	onStartOAuth?: (provider: string) => void;
 }
 
-export function ProviderAuthList({ providers, loading }: ProviderAuthListProps) {
+export function ProviderAuthList({
+	providers,
+	loading,
+	onStartOAuth,
+}: ProviderAuthListProps) {
 	const saveApiKey = useSaveApiKey();
 	const logout = useLogoutProvider();
 	const [editingProvider, setEditingProvider] = React.useState<string | null>(null);
@@ -48,8 +53,8 @@ export function ProviderAuthList({ providers, loading }: ProviderAuthListProps) 
 							</button>
 						) : null}
 						{provider.supportsOAuth ? (
-							<button type="button" disabled className="rounded bg-blue-500/10 px-2 py-1 opacity-50">
-								Sign in (OAuth phase next)
+							<button type="button" className="rounded bg-blue-500/20 px-2 py-1 hover:opacity-80" onClick={() => onStartOAuth?.(provider.id)}>
+								Sign in
 							</button>
 						) : null}
 						{provider.authStatus.configured ? (

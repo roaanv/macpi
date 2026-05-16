@@ -1,6 +1,8 @@
 import { useModelAuthModels, useModelAuthProviders, useSelectedModel, useSetSelectedModel } from "../queries";
+import React from "react";
 import { ImportPiAuthModels } from "./ImportPiAuthModels";
 import { ModelPicker } from "./ModelPicker";
+import { OAuthLoginDialog } from "./OAuthLoginDialog";
 import { ProviderAuthList } from "./ProviderAuthList";
 
 export function ModelsAuthSettings() {
@@ -8,6 +10,7 @@ export function ModelsAuthSettings() {
 	const models = useModelAuthModels();
 	const selected = useSelectedModel();
 	const setSelected = useSetSelectedModel();
+	const [oauthProvider, setOAuthProvider] = React.useState<string | null>(null);
 
 	const selectedLabel = selected.data?.model
 		? `${selected.data.model.provider}/${selected.data.model.modelId}`
@@ -15,6 +18,10 @@ export function ModelsAuthSettings() {
 
 	return (
 		<div className="flex flex-col gap-4">
+			<OAuthLoginDialog
+				provider={oauthProvider}
+				onClose={() => setOAuthProvider(null)}
+			/>
 			<div>
 				<h2 className="text-base font-semibold">Models & Auth</h2>
 				<div className="text-xs text-muted">
@@ -51,6 +58,7 @@ export function ModelsAuthSettings() {
 					<ProviderAuthList
 						providers={providers.data?.providers ?? []}
 						loading={providers.isLoading}
+						onStartOAuth={setOAuthProvider}
 					/>
 				)}
 			</section>
