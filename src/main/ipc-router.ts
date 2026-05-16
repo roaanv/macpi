@@ -9,6 +9,10 @@ import {
 	getResourceRoot,
 	getDefaultCwd as readDefaultCwdFromSettings,
 } from "../shared/app-settings-keys";
+import {
+	buildContextBreakdown,
+	sumAssistantUsage,
+} from "../shared/context-breakdown";
 import { resolveCwd } from "../shared/cwd-resolver";
 import { friendlyNameForSource } from "../shared/friendly-name";
 import {
@@ -242,6 +246,70 @@ export class IpcRouter {
 		this.register("session.findChannel", async (args) => {
 			return ok({
 				channelId: this.deps.channelSessions.findChannelOf(args.piSessionId),
+			});
+		});
+		this.register("session.getContextBreakdown", async (args) => {
+			const session = this.deps.piSessionManager.getAgentSession(
+				args.piSessionId,
+			);
+			if (!session) {
+				return err("not_found", `session ${args.piSessionId} not attached`);
+			}
+			const state = session.state;
+			const messages = (state?.messages ?? []) as readonly unknown[];
+			const systemPrompt = state?.systemPrompt ?? "";
+			const measured = session.getContextUsage?.();
+			const measuredTokens =
+				typeof measured?.tokens === "number" ? measured.tokens : null;
+			const contextWindow =
+				measured?.contextWindow ?? session.model?.contextWindow ?? 0;
+			const breakdown = buildContextBreakdown({
+				messages,
+				systemPrompt,
+				measuredTokens,
+				contextWindow,
+			});
+			const usage = sumAssistantUsage(messages);
+			const meta = this.deps.channelSessions.getMeta(args.piSessionId);
+			return ok({
+				segments: breakdown.segments,
+				usedTokens: breakdown.usedTokens,
+				contextWindow: breakdown.contextWindow,
+				freeTokens: breakdown.freeTokens,
+				usageIsEstimated: breakdown.usageIsEstimated,
+				cumulativeUsage: usage,
+				cwd: meta?.cwd ?? null,
+				sessionLabel: meta?.label ?? null,
+			});
+		});
+		this.register("session.getFooterStats", async (args) => {
+			const session = this.deps.piSessionManager.getAgentSession(
+				args.piSessionId,
+			);
+			if (!session) {
+				return err("not_found", `session ${args.piSessionId} not attached`);
+			}
+			const model = session.model;
+			const usage = session.getContextUsage?.();
+			return ok({
+				model: model
+					? {
+							id: model.id,
+							name: model.name ?? model.id,
+							contextWindow:
+								typeof model.contextWindow === "number"
+									? model.contextWindow
+									: null,
+						}
+					: null,
+				thinkingLevel: session.thinkingLevel ?? "off",
+				contextUsage: usage
+					? {
+							tokens: usage.tokens,
+							contextWindow: usage.contextWindow,
+							percent: usage.percent,
+						}
+					: null,
 			});
 		});
 		this.register("dialog.openFolder", async (args) => {

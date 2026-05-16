@@ -153,6 +153,54 @@ export interface IpcMethods {
 		req: { piSessionId: string };
 		res: { channelId: string | null };
 	};
+	"session.getContextBreakdown": {
+		req: { piSessionId: string };
+		res: {
+			segments: {
+				system: number;
+				prompt: number;
+				assistant: number;
+				thinking: number;
+				tools: number;
+			};
+			usedTokens: number;
+			contextWindow: number;
+			freeTokens: number;
+			usageIsEstimated: boolean;
+			cumulativeUsage: {
+				input: number;
+				output: number;
+				cacheRead: number;
+				cacheWrite: number;
+				cost: number;
+			};
+			cwd: string | null;
+			sessionLabel: string | null;
+		};
+	};
+	"session.getFooterStats": {
+		req: { piSessionId: string };
+		res: {
+			model: {
+				id: string;
+				name: string;
+				contextWindow: number | null;
+			} | null;
+			thinkingLevel:
+				| "off"
+				| "minimal"
+				| "low"
+				| "medium"
+				| "high"
+				| "xhigh"
+				| string;
+			contextUsage: {
+				tokens: number | null;
+				contextWindow: number;
+				percent: number | null;
+			} | null;
+		};
+	};
 	"settings.getAll": {
 		req: Record<string, never>;
 		res: { settings: Record<string, unknown> };

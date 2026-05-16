@@ -23,6 +23,8 @@ import { QueuePills } from "./banners/QueuePills";
 import { RetryBanner } from "./banners/RetryBanner";
 import { SkillsChangedBanner } from "./banners/SkillsChangedBanner";
 import { ChatBreadcrumb } from "./ChatBreadcrumb";
+import { ChatContextBar } from "./ChatContextBar";
+import { ChatFooter } from "./ChatFooter";
 import { Composer, type SendIntent } from "./Composer";
 import { Timeline } from "./Timeline";
 
@@ -190,6 +192,8 @@ export function ChatPane({
 				onSend={send}
 				messageHistory={messageHistory}
 			/>
+			<ChatFooter piSessionId={piSessionId} />
+			<ChatContextBar piSessionId={piSessionId} />
 		</div>
 	);
 }

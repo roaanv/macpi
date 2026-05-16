@@ -144,6 +144,41 @@ export function useSetFirstMessageLabel() {
 	});
 }
 
+/**
+ * Footer stats — current model, thinking level, and context usage. Cached
+ * against the session id; renderers invalidate via the query key whenever a
+ * turn ends so the context percentage jumps after each model response.
+ */
+export function useSessionFooterStats(piSessionId: string | null) {
+	return useQuery({
+		queryKey: ["session.footerStats", piSessionId],
+		queryFn: () =>
+			piSessionId
+				? invoke("session.getFooterStats", { piSessionId })
+				: Promise.resolve(null),
+		enabled: !!piSessionId,
+		staleTime: Number.POSITIVE_INFINITY,
+		refetchOnWindowFocus: false,
+	});
+}
+
+/**
+ * Per-segment context breakdown + cumulative usage. Sibling of
+ * useSessionFooterStats; invalidate together on turn_end / compaction_end.
+ */
+export function useSessionContextBreakdown(piSessionId: string | null) {
+	return useQuery({
+		queryKey: ["session.contextBreakdown", piSessionId],
+		queryFn: () =>
+			piSessionId
+				? invoke("session.getContextBreakdown", { piSessionId })
+				: Promise.resolve(null),
+		enabled: !!piSessionId,
+		staleTime: Number.POSITIVE_INFINITY,
+		refetchOnWindowFocus: false,
+	});
+}
+
 export function useSessionMeta(piSessionId: string | null) {
 	return useQuery({
 		queryKey: ["session.meta", piSessionId],
