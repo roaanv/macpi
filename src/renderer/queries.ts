@@ -203,6 +203,40 @@ export function useSetSetting() {
 	});
 }
 
+export function useModelAuthProviders() {
+	return useQuery({
+		queryKey: ["modelsAuth.providers"],
+		queryFn: () => invoke("modelsAuth.listProviders", {}),
+	});
+}
+
+export function useModelAuthModels() {
+	return useQuery({
+		queryKey: ["modelsAuth.models"],
+		queryFn: () => invoke("modelsAuth.listModels", {}),
+	});
+}
+
+export function useSelectedModel() {
+	return useQuery({
+		queryKey: ["modelsAuth.selectedModel"],
+		queryFn: () => invoke("modelsAuth.getSelectedModel", {}),
+	});
+}
+
+export function useSetSelectedModel() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (input: {
+			model: { provider: string; modelId: string } | null;
+		}) => invoke("modelsAuth.setSelectedModel", input),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["modelsAuth.selectedModel"] });
+			qc.invalidateQueries({ queryKey: ["settings"] });
+		},
+	});
+}
+
 export function useSkills() {
 	return useQuery({
 		queryKey: ["skills.list"],
