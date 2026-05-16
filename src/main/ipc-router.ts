@@ -127,8 +127,17 @@ export class IpcRouter {
 				homeDir: this.deps.getDefaultCwd(),
 			});
 
-			const { piSessionId, sessionFilePath } =
-				await this.deps.piSessionManager.createSession({ cwd });
+			let created: { piSessionId: string; sessionFilePath: string | null };
+			try {
+				created = await this.deps.piSessionManager.createSession({ cwd });
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				if (msg.toLowerCase().includes("selected model") && msg.toLowerCase().includes("not found")) {
+					return err("model", `${msg}. Open Models & Auth to choose a replacement.`);
+				}
+				throw e;
+			}
+			const { piSessionId, sessionFilePath } = created;
 			this.deps.channelSessions.attach({
 				channelId: args.channelId,
 				piSessionId,

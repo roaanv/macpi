@@ -229,6 +229,27 @@ describe("IpcRouter", () => {
 		if (!r.ok) expect(r.error.code).toBe("not_found");
 	});
 
+	it("session.create maps missing selected model errors to model code", async () => {
+		const created = await router.dispatch("channels.create", { name: "x" });
+		if (!created.ok) throw new Error("setup: channel create failed");
+		piSessionManagerMock.createSession.mockRejectedValueOnce(
+			new Error("Selected model anthropic/missing not found"),
+		);
+
+		const r = await router.dispatch("session.create", {
+			channelId: created.data.id,
+		});
+
+		expect(r).toEqual({
+			ok: false,
+			error: {
+				code: "model",
+				message:
+					"Selected model anthropic/missing not found. Open Models & Auth to choose a replacement.",
+			},
+		});
+	});
+
 	it("session.create attaches the returned pi session id to the channel", async () => {
 		const created = await router.dispatch("channels.create", { name: "x" });
 		if (!created.ok) throw new Error("setup: channel create failed");
