@@ -57,6 +57,8 @@ let modelAuthServiceMock: {
 	listModels: ReturnType<typeof vi.fn>;
 	getSelectedModel: ReturnType<typeof vi.fn>;
 	setSelectedModel: ReturnType<typeof vi.fn>;
+	saveApiKey: ReturnType<typeof vi.fn>;
+	logoutProvider: ReturnType<typeof vi.fn>;
 	getImportStatus: ReturnType<typeof vi.fn>;
 	importFromPi: ReturnType<typeof vi.fn>;
 };
@@ -141,6 +143,8 @@ beforeEach(() => {
 		listModels: vi.fn().mockResolvedValue({ models: [] }),
 		getSelectedModel: vi.fn().mockResolvedValue({ model: null, valid: true }),
 		setSelectedModel: vi.fn().mockResolvedValue(undefined),
+		saveApiKey: vi.fn().mockResolvedValue(undefined),
+		logoutProvider: vi.fn().mockResolvedValue(undefined),
 		getImportStatus: vi.fn().mockReturnValue({
 			sourceAuthExists: false,
 			sourceModelsExists: false,
@@ -744,6 +748,32 @@ describe("IpcRouter", () => {
 		expect(r).toEqual({
 			ok: false,
 			error: { code: "model_not_found", message: "Selected model missing" },
+		});
+	});
+
+	it("modelsAuth.saveApiKey returns no secret value", async () => {
+		const r = await router.dispatch("modelsAuth.saveApiKey", {
+			provider: "anthropic",
+			apiKey: "sk-secret",
+		});
+
+		expect(r).toEqual({ ok: true, data: {} });
+		expect(modelAuthServiceMock.saveApiKey).toHaveBeenCalledWith(
+			"anthropic",
+			"sk-secret",
+		);
+	});
+
+	it("modelsAuth.logoutProvider maps auth failures", async () => {
+		modelAuthServiceMock.logoutProvider.mockRejectedValue(new Error("bad provider"));
+
+		const r = await router.dispatch("modelsAuth.logoutProvider", {
+			provider: "bad/provider",
+		});
+
+		expect(r).toEqual({
+			ok: false,
+			error: { code: "auth_failed", message: "bad provider" },
 		});
 	});
 

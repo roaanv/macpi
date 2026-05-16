@@ -35,6 +35,66 @@ describe("ModelAuthService paths", () => {
 	});
 });
 
+describe("ModelAuthService API key auth", () => {
+	it("saves API keys without returning the key", async () => {
+		const calls: unknown[] = [];
+		const service = new ModelAuthService({
+			macpiRoot: tempRoot(),
+			loadPi: async () => ({
+				AuthStorage: {
+					create: () => ({
+						...fakeAuthStorage(),
+						set: (provider: string, credential: unknown) =>
+							calls.push([provider, credential]),
+					}),
+				},
+				ModelRegistry: { create: () => fakeModelRegistry() },
+			}),
+		});
+
+		await expect(service.saveApiKey("anthropic", " sk-test ")).resolves.toBeUndefined();
+
+		expect(calls).toEqual([
+			["anthropic", { type: "api_key", key: "sk-test" }],
+		]);
+	});
+
+	it("rejects empty keys and invalid provider ids", async () => {
+		const service = new ModelAuthService({ macpiRoot: tempRoot() });
+
+		await expect(service.saveApiKey("anthropic", "   ")).rejects.toThrow(
+			"API key cannot be empty",
+		);
+		await expect(service.saveApiKey("../anthropic", "sk")).rejects.toThrow(
+			"Invalid provider id",
+		);
+	});
+
+	it("logs out providers and refreshes the registry", async () => {
+		const loggedOut: string[] = [];
+		let refreshed = false;
+		const service = new ModelAuthService({
+			macpiRoot: tempRoot(),
+			loadPi: async () => ({
+				AuthStorage: {
+					create: () => ({
+						...fakeAuthStorage(),
+						logout: (provider: string) => loggedOut.push(provider),
+					}),
+				},
+				ModelRegistry: {
+					create: () => ({ ...fakeModelRegistry(), refresh: () => { refreshed = true; } }),
+				},
+			}),
+		});
+
+		await service.logoutProvider("anthropic");
+
+		expect(loggedOut).toEqual(["anthropic"]);
+		expect(refreshed).toBe(true);
+	});
+});
+
 describe("ModelAuthService selected model", () => {
 	it("returns null when selected model is unset", async () => {
 		const settings = fakeSettings({});

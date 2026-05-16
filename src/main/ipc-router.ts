@@ -256,6 +256,24 @@ export class IpcRouter {
 				return err("model_not_found", msg);
 			}
 		});
+		this.register("modelsAuth.saveApiKey", async (args) => {
+			try {
+				await this.deps.modelAuthService.saveApiKey(args.provider, args.apiKey);
+				return ok({});
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				return err("auth_failed", msg);
+			}
+		});
+		this.register("modelsAuth.logoutProvider", async (args) => {
+			try {
+				await this.deps.modelAuthService.logoutProvider(args.provider);
+				return ok({});
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				return err("auth_failed", msg);
+			}
+		});
 		this.register("modelsAuth.getImportStatus", async () =>
 			ok(this.deps.modelAuthService.getImportStatus(os.homedir())),
 		);

@@ -82,6 +82,22 @@ export class ModelAuthService {
 		registry.refresh();
 	}
 
+	async saveApiKey(provider: string, apiKey: string): Promise<void> {
+		const normalizedProvider = this.validateProviderId(provider);
+		const trimmedKey = apiKey.trim();
+		if (!trimmedKey) throw new Error("API key cannot be empty");
+		const auth = await this.getAuthStorage();
+		auth.set(normalizedProvider, { type: "api_key", key: trimmedKey });
+		await this.refresh();
+	}
+
+	async logoutProvider(provider: string): Promise<void> {
+		const normalizedProvider = this.validateProviderId(provider);
+		const auth = await this.getAuthStorage();
+		auth.logout(normalizedProvider);
+		await this.refresh();
+	}
+
 	async getSelectedModel(): Promise<{
 		model: SelectedModelRef | null;
 		valid: boolean;
@@ -245,6 +261,13 @@ export class ModelAuthService {
 			contextWindow: model.contextWindow ?? 0,
 			maxTokens: model.maxTokens ?? 0,
 		}));
+	}
+
+	private validateProviderId(provider: string): string {
+		if (!/^[a-zA-Z0-9._-]+$/.test(provider)) {
+			throw new Error("Invalid provider id");
+		}
+		return provider;
 	}
 
 	private copyImportFile(
