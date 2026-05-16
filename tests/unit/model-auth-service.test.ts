@@ -109,6 +109,71 @@ describe("ModelAuthService selected model", () => {
 	});
 });
 
+describe("ModelAuthService import", () => {
+	it("reports installed pi and macpi auth/model file status", () => {
+		const home = tempRoot();
+		const root = tempRoot();
+		fs.mkdirSync(path.join(home, ".pi", "agent"), { recursive: true });
+		fs.writeFileSync(path.join(home, ".pi", "agent", "auth.json"), "{}");
+		const service = new ModelAuthService({ macpiRoot: root });
+
+		const status = service.getImportStatus(home);
+
+		expect(status.sourceAuthExists).toBe(true);
+		expect(status.sourceModelsExists).toBe(false);
+		expect(status.destAuthPath).toBe(path.join(root, "auth.json"));
+		expect(status.destModelsPath).toBe(path.join(root, "models.json"));
+	});
+
+	it("copies selected pi auth and models files", async () => {
+		const home = tempRoot();
+		const root = tempRoot();
+		fs.mkdirSync(path.join(home, ".pi", "agent"), { recursive: true });
+		fs.writeFileSync(path.join(home, ".pi", "agent", "auth.json"), "{\"a\":1}");
+		fs.writeFileSync(path.join(home, ".pi", "agent", "models.json"), "{\"m\":1}");
+		let refreshed = false;
+		const service = new ModelAuthService({
+			macpiRoot: root,
+			loadPi: async () => ({
+				AuthStorage: { create: () => fakeAuthStorage() },
+				ModelRegistry: {
+					create: () => ({ ...fakeModelRegistry(), refresh: () => { refreshed = true; } }),
+				},
+			}),
+		});
+
+		const result = await service.importFromPi({
+			homeDir: home,
+			auth: true,
+			models: true,
+			replaceExisting: false,
+		});
+
+		expect(result).toEqual({ copiedAuth: true, copiedModels: true });
+		expect(fs.readFileSync(path.join(root, "auth.json"), "utf8")).toBe("{\"a\":1}");
+		expect(fs.readFileSync(path.join(root, "models.json"), "utf8")).toBe("{\"m\":1}");
+		expect(refreshed).toBe(true);
+	});
+
+	it("refuses to overwrite destination files unless replaceExisting is true", async () => {
+		const home = tempRoot();
+		const root = tempRoot();
+		fs.mkdirSync(path.join(home, ".pi", "agent"), { recursive: true });
+		fs.writeFileSync(path.join(home, ".pi", "agent", "auth.json"), "{\"new\":1}");
+		fs.writeFileSync(path.join(root, "auth.json"), "{\"old\":1}");
+		const service = new ModelAuthService({ macpiRoot: root });
+
+		await expect(
+			service.importFromPi({
+				homeDir: home,
+				auth: true,
+				models: false,
+				replaceExisting: false,
+			}),
+		).rejects.toThrow("Destination exists:");
+	});
+});
+
 describe("ModelAuthService summaries", () => {
 	it("combines model, OAuth, and stored credential providers", async () => {
 		const root = tempRoot();

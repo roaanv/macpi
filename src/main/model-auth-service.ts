@@ -5,6 +5,7 @@ import type { AuthStorage, ModelRegistry } from "@earendil-works/pi-coding-agent
 import { getSelectedModel as getSelectedModelSetting } from "../shared/app-settings-keys";
 import type {
 	AuthSource,
+	ImportPiAuthModelsStatus,
 	ModelSummary,
 	ProviderAuthType,
 	ProviderSummary,
@@ -121,6 +122,59 @@ export class ModelAuthService {
 		return resolved;
 	}
 
+	getImportStatus(homeDir: string): ImportPiAuthModelsStatus {
+		const sourceAuthPath = path.join(homeDir, ".pi", "agent", "auth.json");
+		const sourceModelsPath = path.join(homeDir, ".pi", "agent", "models.json");
+		return {
+			sourceAuthExists: fs.existsSync(sourceAuthPath),
+			sourceModelsExists: fs.existsSync(sourceModelsPath),
+			destAuthExists: fs.existsSync(this.authPath),
+			destModelsExists: fs.existsSync(this.modelsPath),
+			sourceAuthPath,
+			sourceModelsPath,
+			destAuthPath: this.authPath,
+			destModelsPath: this.modelsPath,
+		};
+	}
+
+	async importFromPi(input: {
+		homeDir: string;
+		auth: boolean;
+		models: boolean;
+		replaceExisting: boolean;
+	}): Promise<{ copiedAuth: boolean; copiedModels: boolean }> {
+		const status = this.getImportStatus(input.homeDir);
+		let copiedAuth = false;
+		let copiedModels = false;
+		fs.mkdirSync(path.dirname(this.authPath), { recursive: true });
+
+		if (input.auth && status.sourceAuthExists) {
+			this.copyImportFile(
+				status.sourceAuthPath,
+				status.destAuthPath,
+				input.replaceExisting,
+			);
+			try {
+				fs.chmodSync(status.destAuthPath, 0o600);
+			} catch {
+				// Best effort only; Windows and some filesystems may not support chmod.
+			}
+			copiedAuth = true;
+		}
+
+		if (input.models && status.sourceModelsExists) {
+			this.copyImportFile(
+				status.sourceModelsPath,
+				status.destModelsPath,
+				input.replaceExisting,
+			);
+			copiedModels = true;
+		}
+
+		if (copiedAuth || copiedModels) await this.refresh();
+		return { copiedAuth, copiedModels };
+	}
+
 	async listProviders(): Promise<ProviderSummary[]> {
 		const auth = await this.getAuthStorage();
 		const registry = await this.getModelRegistry();
@@ -191,6 +245,17 @@ export class ModelAuthService {
 			contextWindow: model.contextWindow ?? 0,
 			maxTokens: model.maxTokens ?? 0,
 		}));
+	}
+
+	private copyImportFile(
+		sourcePath: string,
+		destPath: string,
+		replaceExisting: boolean,
+	): void {
+		if (fs.existsSync(destPath) && !replaceExisting) {
+			throw new Error(`Destination exists: ${destPath}`);
+		}
+		fs.copyFileSync(sourcePath, destPath);
 	}
 
 	private selectedModelMissingMessage(model: SelectedModelRef): string {
