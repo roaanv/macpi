@@ -60,7 +60,10 @@ export function MarkdownText({ text }: MarkdownTextProps) {
 							target="_blank"
 							rel="noopener noreferrer"
 							className="underline decoration-dotted underline-offset-2"
-							style={{ color: "var(--accent)" }}
+							// --md-link-color lets surrounding contexts (e.g. the
+							// user-message bubble whose background IS the accent)
+							// override the default link colour to something visible.
+							style={{ color: "var(--md-link-color, var(--accent))" }}
 						>
 							{children}
 						</a>

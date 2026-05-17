@@ -196,6 +196,31 @@ html {
 	text-decoration-style: solid;
 }
 
+/*
+ * User-message bubble overrides. The bubble background is var(--accent),
+ * so MarkdownText's default link colour (also var(--accent)) would be
+ * invisible. We set --md-link-color, which MarkdownText reads via its
+ * inline style, so links flip to the contrast foreground. Inline code
+ * gets a translucent dark overlay (theme-independent) that still reads
+ * inside both light- and dark-accent bubbles.
+ */
+.macpi-user-bubble {
+	--md-link-color: var(--accent-fg);
+}
+.macpi-user-bubble .macpi-markdown a {
+	text-decoration-style: solid;
+	text-decoration-thickness: 1px;
+	text-underline-offset: 2px;
+}
+.macpi-user-bubble .macpi-markdown :not(pre) > code {
+	background: rgba(0, 0, 0, 0.18);
+}
+.macpi-user-bubble .macpi-markdown blockquote {
+	border-left-color: currentColor;
+	opacity: 0.85;
+	color: inherit;
+}
+
 @layer components {
 	.surface-app {
 		background: var(--app-bg);
