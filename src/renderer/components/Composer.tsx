@@ -307,7 +307,7 @@ export function Composer({
 			/>
 			<form
 				onSubmit={onFormSubmit}
-				className="flex gap-2 rounded surface-app p-2"
+				className="flex gap-2 rounded border border-divider surface-panel p-2"
 			>
 				<textarea
 					rows={1}
