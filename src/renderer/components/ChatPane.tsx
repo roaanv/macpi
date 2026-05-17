@@ -8,12 +8,17 @@ import {
 	useChannels,
 	useClearQueue,
 	usePromptSession,
+	usePrompts,
 	useReloadSession,
 	useRemoveFromQueue,
 	useSessionChannel,
 	useSessionMeta,
 	useSetFirstMessageLabel,
+	useSkills,
 } from "../queries";
+import { builtinCommands } from "../slash/registry";
+import { skillCommands } from "../slash/skills";
+import { templateCommands } from "../slash/templates";
 import { useTimeline } from "../state/timeline-state";
 import { computeSessionLabel, formatFirstMessageLabel } from "../utils/label";
 import { BreadcrumbBar } from "./BreadcrumbBar";
@@ -27,6 +32,7 @@ import { ChatContextBar } from "./ChatContextBar";
 import { ChatFooter } from "./ChatFooter";
 import { Composer, type SendIntent } from "./Composer";
 import { FileBrowserPane } from "./FileBrowserPane";
+import { HelpDialog } from "./HelpDialog";
 import { Timeline } from "./Timeline";
 
 export function ChatPane({
@@ -60,6 +66,28 @@ export function ChatPane({
 	const sessionMeta = useSessionMeta(piSessionId);
 	const channels = useChannels();
 	const sessionChannel = useSessionChannel(piSessionId);
+	const [helpOpen, setHelpOpen] = React.useState(false);
+	const lastAssistantText = React.useCallback(() => {
+		const ts = snapshot.timeline;
+		for (let i = ts.length - 1; i >= 0; i--) {
+			const entry = ts[i];
+			if (entry.kind === "assistant-text") return entry.text;
+		}
+		return null;
+	}, [snapshot.timeline]);
+
+	// All slash commands list, for HelpDialog. Built fresh on each render —
+	// cheap (~10 builtins + a dozen prompts + a few skills).
+	const prompts = usePrompts();
+	const skills = useSkills();
+	const allSlashCommands = React.useMemo(
+		() => [
+			...builtinCommands(),
+			...templateCommands(prompts.data?.prompts ?? []),
+			...skillCommands(skills.data?.skills ?? []),
+		],
+		[prompts.data, skills.data],
+	);
 	const channelName =
 		channels.data?.channels.find((c) => c.id === sessionChannel.data?.channelId)
 			?.name ?? null;
@@ -224,6 +252,11 @@ export function ChatPane({
 					streaming={snapshot.streaming}
 					onSend={send}
 					messageHistory={messageHistory}
+					piSessionId={piSessionId}
+					channelId={sessionChannel.data?.channelId ?? null}
+					lastAssistantText={lastAssistantText}
+					openHelpDialog={() => setHelpOpen(true)}
+					onSessionCreated={onSelectSession}
 				/>
 				<ChatFooter piSessionId={piSessionId} />
 				<ChatContextBar piSessionId={piSessionId} />
@@ -235,6 +268,11 @@ export function ChatPane({
 					onClose={() => setFilesOpen(false)}
 				/>
 			)}
+			<HelpDialog
+				open={helpOpen}
+				onClose={() => setHelpOpen(false)}
+				commands={allSlashCommands}
+			/>
 		</div>
 	);
 }

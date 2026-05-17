@@ -215,6 +215,17 @@ export class IpcRouter {
 				return err("reload_failed", msg);
 			}
 		});
+		this.register("session.compact", async (args) => {
+			try {
+				await this.deps.piSessionManager.compact(args.piSessionId, args.prompt);
+				return ok({});
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				if (msg.includes("unknown session")) return err("not_found", msg);
+				this.deps.mainLogger.warn(`session.compact failed: ${msg}`);
+				return err("compact_failed", msg);
+			}
+		});
 		this.register("session.listForChannel", async (args) => {
 			return ok({
 				sessions: this.deps.channelSessions.listTreeByChannel(args.channelId),

@@ -636,6 +636,23 @@ export class PiSessionManager {
 	}
 
 	/**
+	 * Manually trigger pi's context compaction. Delegates to AgentSession.compact,
+	 * which aborts any in-progress turn and summarises older history into a
+	 * single compaction entry. The optional prompt is passed through as the
+	 * `customInstructions` argument so the summariser can be steered. We
+	 * intentionally discard the returned CompactionResult — listeners see the
+	 * compaction lifecycle via the translated `compaction_start` /
+	 * `compaction_end` PiEvents.
+	 */
+	async compact(piSessionId: string, prompt?: string): Promise<void> {
+		const agentSession = this.getAgentSession(piSessionId);
+		if (!agentSession) {
+			throw new Error(`unknown session ${piSessionId}`);
+		}
+		await agentSession.compact(prompt);
+	}
+
+	/**
 	 * Abort the active turn (if any), dispose the in-process session, and
 	 * reattach via attachSession. The fresh attach constructs a new
 	 * ResourceLoader so on-disk skill changes take effect.

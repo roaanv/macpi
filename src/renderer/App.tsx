@@ -13,6 +13,7 @@ import { type Mode, ModeRail } from "./components/ModeRail";
 import { NotesMode } from "./components/NotesMode";
 import { ResizablePane } from "./components/ResizablePane";
 import { SettingsApplier } from "./components/SettingsApplier";
+import { ToastHost } from "./components/ToastHost";
 
 export function App() {
 	const [mode, setMode] = React.useState<Mode>("chat");
@@ -74,6 +75,7 @@ export function App() {
 				onClose={() => setCreateSessionInChannel(null)}
 				onCreated={setSessionId}
 			/>
+			<ToastHost />
 		</>
 	);
 }

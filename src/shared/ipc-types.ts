@@ -159,6 +159,10 @@ export interface IpcMethods {
 		req: { piSessionId: string };
 		res: Record<string, never>;
 	};
+	"session.compact": {
+		req: { piSessionId: string; prompt?: string };
+		res: Record<string, never>;
+	};
 	"session.listForChannel": {
 		req: { channelId: string };
 		res: {
