@@ -13,16 +13,12 @@
 @tailwind utilities;
 
 /*
- * Theme system has two dimensions:
- *   html[data-theme-family]
- *     — color personality. Six families: slate, linen, pebble, sage
- *       (light + dark each) plus dark-only graphite + nocturne.
- *   html.dark
- *     — light/dark surface inversion (no-op on dark-only families).
- * Each declares CSS variables consumed by .surface-* and .text-* component
- * classes below. SettingsApplier sets data-theme-family and toggles .dark.
- * All surface chroma ≤ 0.025 oklch; accents share lightness + chroma and
- * only shift hue — the personality moves around the wheel, not in volume.
+ * Theme system has one dimension today: html.dark toggles light/dark
+ * surfaces within the single Slate family. SettingsApplier still writes
+ * html[data-theme-family="slate"] for forward-compatibility if additional
+ * families return later, but no per-family CSS block is needed — the
+ * defaults below (light) and html.dark (dark) cover the entire palette.
+ * Surface chroma ≤ 0.012 oklch.
  */
 
 :root {
@@ -73,138 +69,6 @@ html.dark {
 	--accent: oklch(72% 0.13 250);
 	--accent-fg: oklch(20% 0.008 260);
 	--accent-soft: oklch(30% 0.05 250);
-}
-
-/* LINEN — warm paper. Low-saturation terracotta accent. */
-html[data-theme-family="linen"] {
-	--app-bg: oklch(98% 0.008 75);
-	--app-fg: oklch(24% 0.018 40);
-	--panel-bg: oklch(96% 0.012 75);
-	--row-bg: oklch(91% 0.018 70);
-	--row-active-bg: oklch(86% 0.024 65);
-	--rail-bg: oklch(94.5% 0.014 75);
-	--text-primary: oklch(24% 0.018 40);
-	--text-muted: oklch(50% 0.02 50);
-	--text-faint: oklch(65% 0.018 55);
-	--divider: oklch(91% 0.015 70);
-	--accent: oklch(54% 0.12 35);
-	--accent-fg: oklch(98% 0.008 75);
-	--accent-soft: oklch(93% 0.04 40);
-}
-html.dark[data-theme-family="linen"] {
-	--app-bg: oklch(20% 0.012 40);
-	--app-fg: oklch(94% 0.014 60);
-	--panel-bg: oklch(24% 0.014 40);
-	--row-bg: oklch(28% 0.018 40);
-	--row-active-bg: oklch(34% 0.025 40);
-	--rail-bg: oklch(18% 0.012 40);
-	--text-primary: oklch(94% 0.014 60);
-	--text-muted: oklch(72% 0.018 50);
-	--text-faint: oklch(58% 0.014 50);
-	--divider: oklch(28% 0.015 40);
-	--accent: oklch(72% 0.12 50);
-	--accent-fg: oklch(20% 0.012 40);
-	--accent-soft: oklch(32% 0.05 40);
-}
-
-/* PEBBLE — cool stone grey-blue. Quiet, dev-tool. */
-html[data-theme-family="pebble"] {
-	--app-bg: oklch(98% 0.005 220);
-	--app-fg: oklch(24% 0.015 230);
-	--panel-bg: oklch(96% 0.008 220);
-	--row-bg: oklch(91% 0.012 220);
-	--row-active-bg: oklch(86% 0.02 220);
-	--rail-bg: oklch(94% 0.01 220);
-	--text-primary: oklch(24% 0.015 230);
-	--text-muted: oklch(50% 0.015 225);
-	--text-faint: oklch(66% 0.012 225);
-	--divider: oklch(91% 0.008 220);
-	--accent: oklch(56% 0.1 210);
-	--accent-fg: #ffffff;
-	--accent-soft: oklch(93% 0.03 215);
-}
-html.dark[data-theme-family="pebble"] {
-	--app-bg: oklch(20% 0.01 220);
-	--app-fg: oklch(94% 0.008 220);
-	--panel-bg: oklch(24% 0.012 220);
-	--row-bg: oklch(28% 0.014 220);
-	--row-active-bg: oklch(34% 0.022 220);
-	--rail-bg: oklch(18% 0.01 220);
-	--text-primary: oklch(94% 0.008 220);
-	--text-muted: oklch(72% 0.012 220);
-	--text-faint: oklch(58% 0.01 220);
-	--divider: oklch(28% 0.012 220);
-	--accent: oklch(74% 0.11 210);
-	--accent-fg: oklch(20% 0.01 220);
-	--accent-soft: oklch(32% 0.05 215);
-}
-
-/* SAGE — calm low-chroma green. */
-html[data-theme-family="sage"] {
-	--app-bg: oklch(98% 0.006 150);
-	--app-fg: oklch(24% 0.018 155);
-	--panel-bg: oklch(96% 0.01 150);
-	--row-bg: oklch(91% 0.016 150);
-	--row-active-bg: oklch(86% 0.024 150);
-	--rail-bg: oklch(94% 0.012 150);
-	--text-primary: oklch(24% 0.018 155);
-	--text-muted: oklch(50% 0.018 150);
-	--text-faint: oklch(66% 0.014 150);
-	--divider: oklch(91% 0.012 150);
-	--accent: oklch(52% 0.08 155);
-	--accent-fg: oklch(98% 0.006 150);
-	--accent-soft: oklch(93% 0.03 150);
-}
-html.dark[data-theme-family="sage"] {
-	--app-bg: oklch(20% 0.012 155);
-	--app-fg: oklch(94% 0.012 155);
-	--panel-bg: oklch(24% 0.014 155);
-	--row-bg: oklch(28% 0.018 155);
-	--row-active-bg: oklch(34% 0.026 155);
-	--rail-bg: oklch(18% 0.012 155);
-	--text-primary: oklch(94% 0.012 155);
-	--text-muted: oklch(72% 0.016 155);
-	--text-faint: oklch(58% 0.012 155);
-	--divider: oklch(28% 0.014 155);
-	--accent: oklch(70% 0.1 155);
-	--accent-fg: oklch(20% 0.012 155);
-	--accent-soft: oklch(32% 0.05 155);
-}
-
-/* GRAPHITE — dark-only neutral charcoal. The "serious coding" mode. */
-html[data-theme-family="graphite"],
-html.dark[data-theme-family="graphite"] {
-	--app-bg: oklch(18% 0.004 270);
-	--app-fg: oklch(92% 0.003 270);
-	--panel-bg: oklch(22% 0.005 270);
-	--row-bg: oklch(26% 0.006 270);
-	--row-active-bg: oklch(32% 0.012 270);
-	--rail-bg: oklch(16% 0.004 270);
-	--text-primary: oklch(92% 0.003 270);
-	--text-muted: oklch(70% 0.005 270);
-	--text-faint: oklch(54% 0.005 270);
-	--divider: oklch(26% 0.005 270);
-	--accent: oklch(78% 0.1 220);
-	--accent-fg: oklch(18% 0.004 270);
-	--accent-soft: oklch(28% 0.04 220);
-}
-
-/* NOCTURNE — dark-only near-black with a single warm amber accent. */
-html[data-theme-family="nocturne"],
-html.dark[data-theme-family="nocturne"] {
-	--app-bg: oklch(14% 0.005 280);
-	--app-fg: oklch(92% 0.006 280);
-	--panel-bg: oklch(18% 0.006 280);
-	--row-bg: oklch(22% 0.008 280);
-	--row-active-bg: oklch(28% 0.016 280);
-	--rail-bg: oklch(12% 0.005 280);
-	--text-primary: oklch(92% 0.006 280);
-	--text-muted: oklch(68% 0.008 280);
-	--text-faint: oklch(52% 0.006 280);
-	--divider: oklch(22% 0.006 280);
-	--accent: oklch(74% 0.1 60);
-	--accent-fg: oklch(14% 0.005 280);
-	--accent-soft: oklch(26% 0.04 60);
 }
 
 html,

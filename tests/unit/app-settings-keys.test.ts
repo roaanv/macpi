@@ -10,7 +10,6 @@ import {
 	getSelectedModel,
 	getTheme,
 	getThemeFamily,
-	isDarkOnlyFamily,
 } from "../../src/shared/app-settings-keys";
 
 describe("app-settings-keys", () => {
@@ -113,33 +112,31 @@ describe("themeFamily setting", () => {
 		expect(getThemeFamily({})).toBe("slate");
 	});
 
-	it("accepts all six current family ids", () => {
+	it("accepts 'slate'", () => {
 		expect(getThemeFamily({ themeFamily: "slate" })).toBe("slate");
-		expect(getThemeFamily({ themeFamily: "linen" })).toBe("linen");
-		expect(getThemeFamily({ themeFamily: "pebble" })).toBe("pebble");
-		expect(getThemeFamily({ themeFamily: "sage" })).toBe("sage");
-		expect(getThemeFamily({ themeFamily: "graphite" })).toBe("graphite");
-		expect(getThemeFamily({ themeFamily: "nocturne" })).toBe("nocturne");
 	});
 
-	it("migrates retired families to their nearest replacement", () => {
-		expect(getThemeFamily({ themeFamily: "sunrise" })).toBe("linen");
-		expect(getThemeFamily({ themeFamily: "meadow" })).toBe("sage");
-		expect(getThemeFamily({ themeFamily: "catppuccin" })).toBe("nocturne");
+	it("collapses every retired family to 'slate'", () => {
+		// Retired aliases (was distinct family) AND legacy aliases (pre-redesign
+		// names) all reduce to slate via the default fallback — no explicit
+		// migration table is needed.
+		for (const v of [
+			"linen",
+			"pebble",
+			"sage",
+			"graphite",
+			"nocturne",
+			"sunrise",
+			"meadow",
+			"catppuccin",
+		]) {
+			expect(getThemeFamily({ themeFamily: v })).toBe("slate");
+		}
 	});
 
 	it("falls back to default for unknown values", () => {
 		expect(getThemeFamily({ themeFamily: "unicorn" })).toBe("slate");
 		expect(getThemeFamily({ themeFamily: 7 })).toBe("slate");
-	});
-
-	it("marks graphite and nocturne as dark-only", () => {
-		expect(isDarkOnlyFamily("graphite")).toBe(true);
-		expect(isDarkOnlyFamily("nocturne")).toBe(true);
-		expect(isDarkOnlyFamily("slate")).toBe(false);
-		expect(isDarkOnlyFamily("linen")).toBe(false);
-		expect(isDarkOnlyFamily("pebble")).toBe(false);
-		expect(isDarkOnlyFamily("sage")).toBe(false);
 	});
 });
 
