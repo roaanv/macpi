@@ -244,6 +244,21 @@ describe("proxy settings", () => {
 		});
 	});
 
+	it("trims proxy env values and omits whitespace-only settings", () => {
+		expect(
+			buildProxyEnv({
+				httpProxy: " http://proxy.example.com:8080 ",
+				httpsProxy: " \t ",
+				noProxy: " localhost,127.0.0.1\n",
+			}),
+		).toEqual({
+			HTTP_PROXY: "http://proxy.example.com:8080",
+			http_proxy: "http://proxy.example.com:8080",
+			NO_PROXY: "localhost,127.0.0.1",
+			no_proxy: "localhost,127.0.0.1",
+		});
+	});
+
 	it("silently omits invalid persisted proxy URLs while preserving valid ones", () => {
 		expect(
 			buildProxyEnv({
