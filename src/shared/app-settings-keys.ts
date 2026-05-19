@@ -105,6 +105,9 @@ export interface ProxyValidationResult {
 	message?: string;
 }
 
+const FULL_PROXY_URL_MESSAGE =
+	"Enter a full URL starting with http:// or https://";
+
 export function getHttpProxy(settings: Record<string, unknown>): string {
 	const v = settings.httpProxy;
 	return typeof v === "string" ? v : APP_SETTINGS_DEFAULTS.httpProxy;
@@ -130,14 +133,14 @@ export function validateProxyUrl(value: string): ProxyValidationResult {
 	} catch {
 		return {
 			ok: false,
-			message: "Enter a full URL starting with http:// or https://",
+			message: FULL_PROXY_URL_MESSAGE,
 		};
 	}
 
 	if (url.protocol !== "http:" && url.protocol !== "https:") {
 		return {
 			ok: false,
-			message: "Enter a full URL starting with http:// or https://",
+			message: FULL_PROXY_URL_MESSAGE,
 		};
 	}
 

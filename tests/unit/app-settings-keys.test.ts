@@ -170,9 +170,9 @@ describe("proxy settings", () => {
 		expect(getHttpProxy({ httpProxy: "http://proxy.example.com:8080" })).toBe(
 			"http://proxy.example.com:8080",
 		);
-		expect(getHttpsProxy({ httpsProxy: "https://secure.example.com:8443" })).toBe(
-			"https://secure.example.com:8443",
-		);
+		expect(
+			getHttpsProxy({ httpsProxy: "https://secure.example.com:8443" }),
+		).toBe("https://secure.example.com:8443");
 		expect(getNoProxy({ noProxy: "localhost,127.0.0.1" })).toBe(
 			"localhost,127.0.0.1",
 		);
@@ -206,10 +206,12 @@ describe("proxy settings", () => {
 	});
 
 	it("rejects proxy URLs with auth", () => {
-		expect(validateProxyUrl("http://user:pass@proxy.example.com:8080")).toEqual({
-			ok: false,
-			message: "Proxy URLs with usernames/passwords are not supported",
-		});
+		expect(validateProxyUrl("http://user:pass@proxy.example.com:8080")).toEqual(
+			{
+				ok: false,
+				message: "Proxy URLs with usernames/passwords are not supported",
+			},
+		);
 	});
 
 	it("builds upper and lower case env overrides for non-empty proxy settings", () => {
@@ -239,6 +241,31 @@ describe("proxy settings", () => {
 		).toEqual({
 			HTTPS_PROXY: "https://proxy.example.com:8443",
 			https_proxy: "https://proxy.example.com:8443",
+		});
+	});
+
+	it("silently omits invalid persisted proxy URLs while preserving valid ones", () => {
+		expect(
+			buildProxyEnv({
+				httpProxy: "proxy.example.com:8080",
+				httpsProxy: "https://secure-proxy.example.com:8443",
+				noProxy: "localhost,127.0.0.1",
+			}),
+		).toEqual({
+			HTTPS_PROXY: "https://secure-proxy.example.com:8443",
+			https_proxy: "https://secure-proxy.example.com:8443",
+			NO_PROXY: "localhost,127.0.0.1",
+			no_proxy: "localhost,127.0.0.1",
+		});
+
+		expect(
+			buildProxyEnv({
+				httpProxy: "http://proxy.example.com:8080",
+				httpsProxy: "socks5://secure-proxy.example.com:1080",
+			}),
+		).toEqual({
+			HTTP_PROXY: "http://proxy.example.com:8080",
+			http_proxy: "http://proxy.example.com:8080",
 		});
 	});
 });
