@@ -35,7 +35,7 @@ import {
 } from "../shared/resource-id";
 import type { TimelineEntry } from "../shared/timeline-types";
 import { agentMessagesToTimeline } from "./pi-history";
-import { withProxyEnv } from "./proxy-env";
+import { withProxyEnv, withProxyEnvImmediate } from "./proxy-env";
 import type { AppSettingsRepo } from "./repos/app-settings";
 import { ensureResourceRoot } from "./resource-root";
 
@@ -642,7 +642,9 @@ export class PiSessionManager {
 				streamingBehavior,
 			};
 			if (streamingBehavior) {
-				await active.session.prompt(text, promptOptions);
+				await withProxyEnvImmediate(active.proxySettings, () =>
+					active.session.prompt(text, promptOptions),
+				);
 			} else {
 				await withProxyEnv(active.proxySettings, () =>
 					active.session.prompt(text, promptOptions),
@@ -691,16 +693,20 @@ export class PiSessionManager {
 				? cleared.followUp.filter((_, i) => i !== index)
 				: cleared.followUp;
 		for (const text of steering) {
-			await active.session.prompt(text, {
-				source: "interactive",
-				streamingBehavior: "steer",
-			});
+			await withProxyEnvImmediate(active.proxySettings, () =>
+				active.session.prompt(text, {
+					source: "interactive",
+					streamingBehavior: "steer",
+				}),
+			);
 		}
 		for (const text of followUp) {
-			await active.session.prompt(text, {
-				source: "interactive",
-				streamingBehavior: "followUp",
-			});
+			await withProxyEnvImmediate(active.proxySettings, () =>
+				active.session.prompt(text, {
+					source: "interactive",
+					streamingBehavior: "followUp",
+				}),
+			);
 		}
 	}
 

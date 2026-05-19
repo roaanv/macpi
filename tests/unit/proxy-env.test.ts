@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { withProxyEnv } from "../../src/main/proxy-env";
+import { withProxyEnv, withProxyEnvImmediate } from "../../src/main/proxy-env";
 
 const KEYS = [
 	"HTTP_PROXY",
@@ -153,5 +153,65 @@ describe("withProxyEnv", () => {
 
 		expect(result).toBe(42);
 		expect(process.env.NO_PROXY).toBeUndefined();
+	});
+});
+
+describe("withProxyEnvImmediate", () => {
+	it("sets configured proxy variables during callback and restores afterward", async () => {
+		delete process.env.HTTP_PROXY;
+		process.env.HTTPS_PROXY = "ambient-https";
+
+		let seen: Record<string, string | undefined> = {};
+		const result = await withProxyEnvImmediate(
+			{
+				httpProxy: "http://immediate.example.com:8080",
+				httpsProxy: "https://immediate-secure.example.com:8443",
+				noProxy: "localhost",
+			},
+			async () => {
+				seen = {
+					HTTP_PROXY: process.env.HTTP_PROXY,
+					http_proxy: process.env.http_proxy,
+					HTTPS_PROXY: process.env.HTTPS_PROXY,
+					https_proxy: process.env.https_proxy,
+					NO_PROXY: process.env.NO_PROXY,
+					no_proxy: process.env.no_proxy,
+				};
+				return "ok";
+			},
+		);
+
+		expect(result).toBe("ok");
+		expect(seen).toEqual({
+			HTTP_PROXY: "http://immediate.example.com:8080",
+			http_proxy: "http://immediate.example.com:8080",
+			HTTPS_PROXY: "https://immediate-secure.example.com:8443",
+			https_proxy: "https://immediate-secure.example.com:8443",
+			NO_PROXY: "localhost",
+			no_proxy: "localhost",
+		});
+		expect(process.env.HTTP_PROXY).toBeUndefined();
+		expect(process.env.HTTPS_PROXY).toBe("ambient-https");
+	});
+
+	it("masks ambient proxy variables when settings are empty and restores afterward", async () => {
+		for (const key of KEYS) process.env[key] = `ambient-${key}`;
+
+		let seen: Record<string, string | undefined> = {};
+		await withProxyEnvImmediate({}, async () => {
+			seen = Object.fromEntries(
+				KEYS.map((key) => [key, process.env[key]]),
+			) as Record<string, string | undefined>;
+		});
+
+		expect(seen).toEqual({
+			HTTP_PROXY: undefined,
+			http_proxy: undefined,
+			HTTPS_PROXY: undefined,
+			https_proxy: undefined,
+			NO_PROXY: undefined,
+			no_proxy: undefined,
+		});
+		for (const key of KEYS) expect(process.env[key]).toBe(`ambient-${key}`);
 	});
 });

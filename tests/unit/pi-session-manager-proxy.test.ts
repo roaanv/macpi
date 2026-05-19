@@ -42,10 +42,11 @@ function installActiveSession(
 	manager: PiSessionManager,
 	session: Record<string, unknown>,
 	proxySettings: Record<string, unknown>,
+	piSessionId = "s1",
 ): void {
 	// biome-ignore lint/suspicious/noExplicitAny: test reaches into internals
-	(manager as any).active.set("s1", {
-		piSessionId: "s1",
+	(manager as any).active.set(piSessionId, {
+		piSessionId,
 		session,
 		unsubscribe: () => undefined,
 		proxySettings,
@@ -122,9 +123,11 @@ describe("PiSessionManager active session proxy env", () => {
 		const firstEntered = deferred();
 		const releaseFirst = deferred();
 		const calls: string[] = [];
+		const seen: Array<string | undefined> = [];
 		const session = {
 			prompt: vi.fn(async (text: string) => {
 				calls.push(text);
+				seen.push(process.env.HTTP_PROXY);
 				if (text === "first") {
 					firstEntered.resolve();
 					await releaseFirst.promise;
@@ -151,6 +154,88 @@ describe("PiSessionManager active session proxy env", () => {
 		await queuedPrompt;
 		expect(delivery).toBe("delivered");
 		expect(calls).toEqual(["first", "queued"]);
+		expect(seen).toEqual([
+			"http://captured.example.com:8080",
+			"http://captured.example.com:8080",
+		]);
+		expect(process.env.HTTP_PROXY).toBeUndefined();
+	});
+
+	it("uses the follow-up session proxy instead of another in-flight session proxy", async () => {
+		delete process.env.HTTP_PROXY;
+		const firstEntered = deferred();
+		const releaseFirst = deferred();
+		let seenByA: string | undefined;
+		let seenByB: string | undefined;
+		const sessionA = {
+			prompt: vi.fn(async () => {
+				seenByA = process.env.HTTP_PROXY;
+				firstEntered.resolve();
+				await releaseFirst.promise;
+			}),
+		};
+		const sessionB = {
+			prompt: vi.fn(async () => {
+				seenByB = process.env.HTTP_PROXY;
+			}),
+		};
+		const manager = new PiSessionManager();
+		installActiveSession(
+			manager,
+			sessionA,
+			{ httpProxy: "http://proxy-a.example.com:8080" },
+			"a",
+		);
+		installActiveSession(
+			manager,
+			sessionB,
+			{ httpProxy: "http://proxy-b.example.com:8080" },
+			"b",
+		);
+
+		const initialPrompt = manager.prompt("a", "first");
+		await firstEntered.promise;
+		await manager.prompt("b", "queued", "followUp");
+
+		expect(seenByB).toBe("http://proxy-b.example.com:8080");
+		releaseFirst.resolve();
+		await initialPrompt;
+		expect(seenByA).toBe("http://proxy-a.example.com:8080");
+		expect(process.env.HTTP_PROXY).toBeUndefined();
+	});
+
+	it("masks an in-flight proxied prompt for a no-proxy follow-up prompt", async () => {
+		delete process.env.HTTP_PROXY;
+		const firstEntered = deferred();
+		const releaseFirst = deferred();
+		let seenByNoProxy: string | undefined = "unset";
+		const proxiedSession = {
+			prompt: vi.fn(async () => {
+				firstEntered.resolve();
+				await releaseFirst.promise;
+			}),
+		};
+		const noProxySession = {
+			prompt: vi.fn(async () => {
+				seenByNoProxy = process.env.HTTP_PROXY;
+			}),
+		};
+		const manager = new PiSessionManager();
+		installActiveSession(
+			manager,
+			proxiedSession,
+			{ httpProxy: "http://proxy-a.example.com:8080" },
+			"a",
+		);
+		installActiveSession(manager, noProxySession, {}, "b");
+
+		const initialPrompt = manager.prompt("a", "first");
+		await firstEntered.promise;
+		await manager.prompt("b", "queued", "followUp");
+
+		expect(seenByNoProxy).toBeUndefined();
+		releaseFirst.resolve();
+		await initialPrompt;
 		expect(process.env.HTTP_PROXY).toBeUndefined();
 	});
 
@@ -174,7 +259,7 @@ describe("PiSessionManager active session proxy env", () => {
 		expect(process.env.HTTPS_PROXY).toBeUndefined();
 	});
 
-	it("replays removeFromQueue survivors without acquiring the proxy env lock", async () => {
+	it("replays removeFromQueue survivors with immediate scoped proxy env", async () => {
 		delete process.env.HTTP_PROXY;
 		const seen: Array<string | undefined> = [];
 		const session = {
@@ -201,7 +286,10 @@ describe("PiSessionManager active session proxy env", () => {
 			source: "interactive",
 			streamingBehavior: "followUp",
 		});
-		expect(seen).toEqual([undefined, undefined]);
+		expect(seen).toEqual([
+			"http://captured.example.com:8080",
+			"http://captured.example.com:8080",
+		]);
 		expect(process.env.HTTP_PROXY).toBeUndefined();
 	});
 
