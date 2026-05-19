@@ -637,12 +637,17 @@ export class PiSessionManager {
 		const active = this.active.get(piSessionId);
 		if (!active) throw new Error(`unknown session ${piSessionId}`);
 		try {
-			await withProxyEnv(active.proxySettings, () =>
-				active.session.prompt(text, {
-					source: "interactive",
-					streamingBehavior,
-				}),
-			);
+			const promptOptions = {
+				source: "interactive" as const,
+				streamingBehavior,
+			};
+			if (streamingBehavior) {
+				await active.session.prompt(text, promptOptions);
+			} else {
+				await withProxyEnv(active.proxySettings, () =>
+					active.session.prompt(text, promptOptions),
+				);
+			}
 		} catch (e) {
 			const message = e instanceof Error ? e.message : String(e);
 			const code = classifyError(message);
@@ -685,20 +690,18 @@ export class PiSessionManager {
 			queue === "followUp"
 				? cleared.followUp.filter((_, i) => i !== index)
 				: cleared.followUp;
-		await withProxyEnv(active.proxySettings, async () => {
-			for (const text of steering) {
-				await active.session.prompt(text, {
-					source: "interactive",
-					streamingBehavior: "steer",
-				});
-			}
-			for (const text of followUp) {
-				await active.session.prompt(text, {
-					source: "interactive",
-					streamingBehavior: "followUp",
-				});
-			}
-		});
+		for (const text of steering) {
+			await active.session.prompt(text, {
+				source: "interactive",
+				streamingBehavior: "steer",
+			});
+		}
+		for (const text of followUp) {
+			await active.session.prompt(text, {
+				source: "interactive",
+				streamingBehavior: "followUp",
+			});
+		}
 	}
 
 	async abort(piSessionId: string): Promise<void> {

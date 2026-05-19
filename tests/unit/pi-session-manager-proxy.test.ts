@@ -52,6 +52,20 @@ function installActiveSession(
 	});
 }
 
+function deferred<T = void>(): {
+	promise: Promise<T>;
+	resolve: (value: T | PromiseLike<T>) => void;
+	reject: (reason?: unknown) => void;
+} {
+	let resolve!: (value: T | PromiseLike<T>) => void;
+	let reject!: (reason?: unknown) => void;
+	const promise = new Promise<T>((res, rej) => {
+		resolve = res;
+		reject = rej;
+	});
+	return { promise, resolve, reject };
+}
+
 describe("PiSessionManager active session proxy env", () => {
 	it("runs prompt with the active session's captured proxy env", async () => {
 		delete process.env.HTTP_PROXY;
@@ -103,6 +117,43 @@ describe("PiSessionManager active session proxy env", () => {
 		expect(process.env.HTTP_PROXY).toBeUndefined();
 	});
 
+	it("does not block follow-up prompt delivery behind an in-flight initial prompt", async () => {
+		delete process.env.HTTP_PROXY;
+		const firstEntered = deferred();
+		const releaseFirst = deferred();
+		const calls: string[] = [];
+		const session = {
+			prompt: vi.fn(async (text: string) => {
+				calls.push(text);
+				if (text === "first") {
+					firstEntered.resolve();
+					await releaseFirst.promise;
+				}
+			}),
+		};
+		const manager = new PiSessionManager();
+		installActiveSession(manager, session, {
+			httpProxy: "http://captured.example.com:8080",
+		});
+
+		const firstPrompt = manager.prompt("s1", "first");
+		await firstEntered.promise;
+		const queuedPrompt = manager.prompt("s1", "queued", "followUp");
+		const delivery = await Promise.race([
+			queuedPrompt.then(() => "delivered" as const),
+			new Promise<"blocked">((resolve) =>
+				setTimeout(() => resolve("blocked"), 10),
+			),
+		]);
+
+		releaseFirst.resolve();
+		await firstPrompt;
+		await queuedPrompt;
+		expect(delivery).toBe("delivered");
+		expect(calls).toEqual(["first", "queued"]);
+		expect(process.env.HTTP_PROXY).toBeUndefined();
+	});
+
 	it("runs compact with the active session's captured proxy env", async () => {
 		delete process.env.HTTPS_PROXY;
 		let seen: string | undefined;
@@ -123,7 +174,7 @@ describe("PiSessionManager active session proxy env", () => {
 		expect(process.env.HTTPS_PROXY).toBeUndefined();
 	});
 
-	it("runs removeFromQueue requeue prompts with the active session's captured proxy env", async () => {
+	it("replays removeFromQueue survivors without acquiring the proxy env lock", async () => {
 		delete process.env.HTTP_PROXY;
 		const seen: Array<string | undefined> = [];
 		const session = {
@@ -150,10 +201,7 @@ describe("PiSessionManager active session proxy env", () => {
 			source: "interactive",
 			streamingBehavior: "followUp",
 		});
-		expect(seen).toEqual([
-			"http://captured.example.com:8080",
-			"http://captured.example.com:8080",
-		]);
+		expect(seen).toEqual([undefined, undefined]);
 		expect(process.env.HTTP_PROXY).toBeUndefined();
 	});
 
