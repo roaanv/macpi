@@ -1,15 +1,20 @@
 import { describe, expect, it } from "vitest";
 import {
 	APP_SETTINGS_DEFAULTS,
+	buildProxyEnv,
 	getDefaultCwd,
 	getFontFamily,
 	getFontFamilyMono,
 	getFontSize,
+	getHttpProxy,
+	getHttpsProxy,
+	getNoProxy,
 	getResourceEnabled,
 	getResourceRoot,
 	getSelectedModel,
 	getTheme,
 	getThemeFamily,
+	validateProxyUrl,
 } from "../../src/shared/app-settings-keys";
 
 describe("app-settings-keys", () => {
@@ -151,5 +156,89 @@ describe("resourceEnabled setting", () => {
 	it("guards against non-object values", () => {
 		expect(getResourceEnabled({ resourceEnabled: "nope" })).toEqual({});
 		expect(getResourceEnabled({ resourceEnabled: null })).toEqual({});
+	});
+});
+
+describe("proxy settings", () => {
+	it("defaults proxy settings to empty strings", () => {
+		expect(APP_SETTINGS_DEFAULTS.httpProxy).toBe("");
+		expect(APP_SETTINGS_DEFAULTS.httpsProxy).toBe("");
+		expect(APP_SETTINGS_DEFAULTS.noProxy).toBe("");
+	});
+
+	it("reads stored proxy setting strings", () => {
+		expect(getHttpProxy({ httpProxy: "http://proxy.example.com:8080" })).toBe(
+			"http://proxy.example.com:8080",
+		);
+		expect(getHttpsProxy({ httpsProxy: "https://secure.example.com:8443" })).toBe(
+			"https://secure.example.com:8443",
+		);
+		expect(getNoProxy({ noProxy: "localhost,127.0.0.1" })).toBe(
+			"localhost,127.0.0.1",
+		);
+	});
+
+	it("falls back to empty strings for malformed stored proxy values", () => {
+		expect(getHttpProxy({ httpProxy: 5 })).toBe("");
+		expect(getHttpsProxy({ httpsProxy: null })).toBe("");
+		expect(getNoProxy({ noProxy: ["localhost"] })).toBe("");
+	});
+
+	it("accepts empty and full http(s) proxy URLs", () => {
+		expect(validateProxyUrl("")).toEqual({ ok: true });
+		expect(validateProxyUrl(" http://proxy.example.com:8080 ")).toEqual({
+			ok: true,
+		});
+		expect(validateProxyUrl("https://proxy.example.com:8443")).toEqual({
+			ok: true,
+		});
+	});
+
+	it("rejects proxy URLs without http(s) protocol", () => {
+		expect(validateProxyUrl("proxy.example.com:8080")).toEqual({
+			ok: false,
+			message: "Enter a full URL starting with http:// or https://",
+		});
+		expect(validateProxyUrl("socks5://proxy.example.com:1080")).toEqual({
+			ok: false,
+			message: "Enter a full URL starting with http:// or https://",
+		});
+	});
+
+	it("rejects proxy URLs with auth", () => {
+		expect(validateProxyUrl("http://user:pass@proxy.example.com:8080")).toEqual({
+			ok: false,
+			message: "Proxy URLs with usernames/passwords are not supported",
+		});
+	});
+
+	it("builds upper and lower case env overrides for non-empty proxy settings", () => {
+		expect(
+			buildProxyEnv({
+				httpProxy: "http://proxy.example.com:8080",
+				httpsProxy: "http://secure-proxy.example.com:8080",
+				noProxy: "localhost,127.0.0.1",
+			}),
+		).toEqual({
+			HTTP_PROXY: "http://proxy.example.com:8080",
+			http_proxy: "http://proxy.example.com:8080",
+			HTTPS_PROXY: "http://secure-proxy.example.com:8080",
+			https_proxy: "http://secure-proxy.example.com:8080",
+			NO_PROXY: "localhost,127.0.0.1",
+			no_proxy: "localhost,127.0.0.1",
+		});
+	});
+
+	it("omits empty proxy env settings", () => {
+		expect(
+			buildProxyEnv({
+				httpProxy: "",
+				httpsProxy: "https://proxy.example.com:8443",
+				noProxy: "",
+			}),
+		).toEqual({
+			HTTPS_PROXY: "https://proxy.example.com:8443",
+			https_proxy: "https://proxy.example.com:8443",
+		});
 	});
 });

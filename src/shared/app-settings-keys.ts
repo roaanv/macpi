@@ -30,6 +30,9 @@ export const APP_SETTINGS_DEFAULTS = {
 	"fontSize.composer": 14,
 	"fontSize.codeBlock": 13,
 	defaultCwd: "",
+	httpProxy: "",
+	httpsProxy: "",
+	noProxy: "",
 } as const;
 
 export type AppSettingsKey = keyof typeof APP_SETTINGS_DEFAULTS;
@@ -95,6 +98,81 @@ export function getFontSize(
 export function getDefaultCwd(settings: Record<string, unknown>): string {
 	const v = settings.defaultCwd;
 	return typeof v === "string" ? v : APP_SETTINGS_DEFAULTS.defaultCwd;
+}
+
+export interface ProxyValidationResult {
+	ok: boolean;
+	message?: string;
+}
+
+export function getHttpProxy(settings: Record<string, unknown>): string {
+	const v = settings.httpProxy;
+	return typeof v === "string" ? v : APP_SETTINGS_DEFAULTS.httpProxy;
+}
+
+export function getHttpsProxy(settings: Record<string, unknown>): string {
+	const v = settings.httpsProxy;
+	return typeof v === "string" ? v : APP_SETTINGS_DEFAULTS.httpsProxy;
+}
+
+export function getNoProxy(settings: Record<string, unknown>): string {
+	const v = settings.noProxy;
+	return typeof v === "string" ? v : APP_SETTINGS_DEFAULTS.noProxy;
+}
+
+export function validateProxyUrl(value: string): ProxyValidationResult {
+	const trimmed = value.trim();
+	if (trimmed.length === 0) return { ok: true };
+
+	let url: URL;
+	try {
+		url = new URL(trimmed);
+	} catch {
+		return {
+			ok: false,
+			message: "Enter a full URL starting with http:// or https://",
+		};
+	}
+
+	if (url.protocol !== "http:" && url.protocol !== "https:") {
+		return {
+			ok: false,
+			message: "Enter a full URL starting with http:// or https://",
+		};
+	}
+
+	if (url.username.length > 0 || url.password.length > 0) {
+		return {
+			ok: false,
+			message: "Proxy URLs with usernames/passwords are not supported",
+		};
+	}
+
+	return { ok: true };
+}
+
+export function buildProxyEnv(
+	settings: Record<string, unknown>,
+): Record<string, string> {
+	const env: Record<string, string> = {};
+	const httpProxy = getHttpProxy(settings).trim();
+	const httpsProxy = getHttpsProxy(settings).trim();
+	const noProxy = getNoProxy(settings).trim();
+
+	if (validateProxyUrl(httpProxy).ok && httpProxy.length > 0) {
+		env.HTTP_PROXY = httpProxy;
+		env.http_proxy = httpProxy;
+	}
+	if (validateProxyUrl(httpsProxy).ok && httpsProxy.length > 0) {
+		env.HTTPS_PROXY = httpsProxy;
+		env.https_proxy = httpsProxy;
+	}
+	if (noProxy.length > 0) {
+		env.NO_PROXY = noProxy;
+		env.no_proxy = noProxy;
+	}
+
+	return env;
 }
 
 /**
