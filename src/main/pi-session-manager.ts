@@ -62,6 +62,7 @@ interface ActiveSession {
 	piSessionId: string;
 	session: AgentSession;
 	unsubscribe: () => void;
+	proxySettings: Record<string, unknown>;
 }
 
 /**
@@ -139,10 +140,11 @@ export class PiSessionManager {
 	private async buildLoadedResourceLoader(
 		ctx: PiContext,
 		cwd: string,
+		proxySettings: Record<string, unknown>,
 	): Promise<ResourceLoader | undefined> {
 		const loader = this.buildResourceLoader(ctx, cwd);
 		if (loader) {
-			await withProxyEnv(this.proxySettings(), () => loader.reload());
+			await withProxyEnv(proxySettings, () => loader.reload());
 		}
 		return loader;
 	}
@@ -476,11 +478,17 @@ export class PiSessionManager {
 	async createSession(opts: {
 		cwd: string;
 	}): Promise<{ piSessionId: string; sessionFilePath: string | null }> {
+		const proxySettings = this.proxySettings();
 		const ctx = await this.ensureContext();
 		const ov = this.__testOverrides;
-		const resourceLoader = await this.buildLoadedResourceLoader(ctx, opts.cwd);
-		const model = ov?.model ?? (await this.deps?.modelAuth?.resolveSelectedModel());
-		const result = await withProxyEnv(this.proxySettings(), async () =>
+		const resourceLoader = await this.buildLoadedResourceLoader(
+			ctx,
+			opts.cwd,
+			proxySettings,
+		);
+		const model =
+			ov?.model ?? (await this.deps?.modelAuth?.resolveSelectedModel());
+		const result = await withProxyEnv(proxySettings, async () =>
 			ctx.mod.createAgentSession({
 				cwd: opts.cwd,
 				authStorage: ov?.authStorage ?? ctx.auth,
@@ -496,12 +504,18 @@ export class PiSessionManager {
 		const unsubscribe = session.subscribe((event) =>
 			this.translate(piSessionId, event),
 		);
-		this.active.set(piSessionId, { piSessionId, session, unsubscribe });
+		this.active.set(piSessionId, {
+			piSessionId,
+			session,
+			unsubscribe,
+			proxySettings,
+		});
 		return { piSessionId, sessionFilePath };
 	}
 
 	async attachSession(opts: { piSessionId: string }): Promise<void> {
 		if (this.active.has(opts.piSessionId)) return;
+		const proxySettings = this.proxySettings();
 		const ctx = await this.ensureContext();
 
 		let filePath = this.pathStore?.getSessionFilePath(opts.piSessionId) ?? null;
@@ -519,9 +533,14 @@ export class PiSessionManager {
 		const ov = this.__testOverrides;
 		const sessionManager = ctx.mod.SessionManager.open(filePath);
 		const cwd = sessionManager.getCwd();
-		const resourceLoader = await this.buildLoadedResourceLoader(ctx, cwd);
-		const model = ov?.model ?? (await this.deps?.modelAuth?.resolveSelectedModel());
-		const result = await withProxyEnv(this.proxySettings(), async () =>
+		const resourceLoader = await this.buildLoadedResourceLoader(
+			ctx,
+			cwd,
+			proxySettings,
+		);
+		const model =
+			ov?.model ?? (await this.deps?.modelAuth?.resolveSelectedModel());
+		const result = await withProxyEnv(proxySettings, async () =>
 			ctx.mod.createAgentSession({
 				cwd,
 				authStorage: ov?.authStorage ?? ctx.auth,
@@ -537,7 +556,12 @@ export class PiSessionManager {
 		const unsubscribe = session.subscribe((event) =>
 			this.translate(piSessionId, event),
 		);
-		this.active.set(piSessionId, { piSessionId, session, unsubscribe });
+		this.active.set(piSessionId, {
+			piSessionId,
+			session,
+			unsubscribe,
+			proxySettings,
+		});
 	}
 
 	getAgentSession(piSessionId: string): AgentSession | undefined {
@@ -554,13 +578,19 @@ export class PiSessionManager {
 	async attachSessionByFile(
 		filePath: string,
 	): Promise<{ piSessionId: string }> {
+		const proxySettings = this.proxySettings();
 		const ctx = await this.ensureContext();
 		const sessionManager = ctx.mod.SessionManager.open(filePath);
 		const ov = this.__testOverrides;
 		const cwd = sessionManager.getCwd();
-		const resourceLoader = await this.buildLoadedResourceLoader(ctx, cwd);
-		const model = ov?.model ?? (await this.deps?.modelAuth?.resolveSelectedModel());
-		const result = await withProxyEnv(this.proxySettings(), async () =>
+		const resourceLoader = await this.buildLoadedResourceLoader(
+			ctx,
+			cwd,
+			proxySettings,
+		);
+		const model =
+			ov?.model ?? (await this.deps?.modelAuth?.resolveSelectedModel());
+		const result = await withProxyEnv(proxySettings, async () =>
 			ctx.mod.createAgentSession({
 				cwd,
 				authStorage: ov?.authStorage ?? ctx.auth,
@@ -577,7 +607,12 @@ export class PiSessionManager {
 		const unsubscribe = session.subscribe((event) =>
 			this.translate(piSessionId, event),
 		);
-		this.active.set(piSessionId, { piSessionId, session, unsubscribe });
+		this.active.set(piSessionId, {
+			piSessionId,
+			session,
+			unsubscribe,
+			proxySettings,
+		});
 		return { piSessionId };
 	}
 
@@ -602,10 +637,12 @@ export class PiSessionManager {
 		const active = this.active.get(piSessionId);
 		if (!active) throw new Error(`unknown session ${piSessionId}`);
 		try {
-			await active.session.prompt(text, {
-				source: "interactive",
-				streamingBehavior,
-			});
+			await withProxyEnv(active.proxySettings, () =>
+				active.session.prompt(text, {
+					source: "interactive",
+					streamingBehavior,
+				}),
+			);
 		} catch (e) {
 			const message = e instanceof Error ? e.message : String(e);
 			const code = classifyError(message);
@@ -678,11 +715,13 @@ export class PiSessionManager {
 	 * `compaction_end` PiEvents.
 	 */
 	async compact(piSessionId: string, prompt?: string): Promise<void> {
-		const agentSession = this.getAgentSession(piSessionId);
-		if (!agentSession) {
+		const active = this.active.get(piSessionId);
+		if (!active) {
 			throw new Error(`unknown session ${piSessionId}`);
 		}
-		await agentSession.compact(prompt);
+		await withProxyEnv(active.proxySettings, () =>
+			active.session.compact(prompt),
+		);
 	}
 
 	/**
