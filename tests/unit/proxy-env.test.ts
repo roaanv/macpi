@@ -94,4 +94,64 @@ describe("withProxyEnv", () => {
 
 		expect(process.env.HTTPS_PROXY).toBe("ambient-https");
 	});
+
+	it("serializes overlapping async callbacks so proxy env cannot interleave", async () => {
+		delete process.env.HTTP_PROXY;
+
+		let releaseFirst: () => void = () => {};
+		const firstRelease = new Promise<void>((resolve) => {
+			releaseFirst = resolve;
+		});
+		let firstStarted = false;
+		let markFirstStarted: () => void = () => {};
+		const firstStartedPromise = new Promise<void>((resolve) => {
+			markFirstStarted = resolve;
+		});
+		let secondStarted = false;
+
+		const first = withProxyEnv(
+			{ httpProxy: "http://first.example.com:8080" },
+			async () => {
+				firstStarted = true;
+				markFirstStarted();
+				expect(process.env.HTTP_PROXY).toBe("http://first.example.com:8080");
+				await firstRelease;
+				expect(process.env.HTTP_PROXY).toBe("http://first.example.com:8080");
+				return "first";
+			},
+		);
+
+		await firstStartedPromise;
+		expect(firstStarted).toBe(true);
+
+		const second = withProxyEnv(
+			{ httpProxy: "http://second.example.com:8080" },
+			async () => {
+				secondStarted = true;
+				expect(process.env.HTTP_PROXY).toBe("http://second.example.com:8080");
+				return "second";
+			},
+		);
+
+		expect(secondStarted).toBe(false);
+		expect(process.env.HTTP_PROXY).toBe("http://first.example.com:8080");
+
+		releaseFirst();
+
+		await expect(first).resolves.toBe("first");
+		await expect(second).resolves.toBe("second");
+		expect(process.env.HTTP_PROXY).toBeUndefined();
+	});
+
+	it("supports sync callbacks and restores env afterward", async () => {
+		delete process.env.NO_PROXY;
+
+		const result = await withProxyEnv({ noProxy: "localhost" }, () => {
+			expect(process.env.NO_PROXY).toBe("localhost");
+			return 42;
+		});
+
+		expect(result).toBe(42);
+		expect(process.env.NO_PROXY).toBeUndefined();
+	});
 });
