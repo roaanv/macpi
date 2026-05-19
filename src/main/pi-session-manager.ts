@@ -685,18 +685,20 @@ export class PiSessionManager {
 			queue === "followUp"
 				? cleared.followUp.filter((_, i) => i !== index)
 				: cleared.followUp;
-		for (const text of steering) {
-			await active.session.prompt(text, {
-				source: "interactive",
-				streamingBehavior: "steer",
-			});
-		}
-		for (const text of followUp) {
-			await active.session.prompt(text, {
-				source: "interactive",
-				streamingBehavior: "followUp",
-			});
-		}
+		await withProxyEnv(active.proxySettings, async () => {
+			for (const text of steering) {
+				await active.session.prompt(text, {
+					source: "interactive",
+					streamingBehavior: "steer",
+				});
+			}
+			for (const text of followUp) {
+				await active.session.prompt(text, {
+					source: "interactive",
+					streamingBehavior: "followUp",
+				});
+			}
+		});
 	}
 
 	async abort(piSessionId: string): Promise<void> {
