@@ -35,6 +35,7 @@ import {
 } from "../shared/resource-id";
 import type { TimelineEntry } from "../shared/timeline-types";
 import { agentMessagesToTimeline } from "./pi-history";
+import { withProxyEnv } from "./proxy-env";
 import type { AppSettingsRepo } from "./repos/app-settings";
 import { ensureResourceRoot } from "./resource-root";
 
@@ -109,6 +110,10 @@ export class PiSessionManager {
 		this.pathStore = store;
 	}
 
+	private proxySettings(): Record<string, unknown> {
+		return this.deps?.appSettings.getAll() ?? {};
+	}
+
 	private buildResourceLoader(
 		ctx: PiContext,
 		cwd: string,
@@ -136,7 +141,9 @@ export class PiSessionManager {
 		cwd: string,
 	): Promise<ResourceLoader | undefined> {
 		const loader = this.buildResourceLoader(ctx, cwd);
-		if (loader) await loader.reload();
+		if (loader) {
+			await withProxyEnv(this.proxySettings(), () => loader.reload());
+		}
 		return loader;
 	}
 
@@ -259,7 +266,7 @@ export class PiSessionManager {
 		});
 		// reload() runs package resolve + auto-discovery of agentDir/skills/.
 		// Without it, getSkills() returns the empty initial state.
-		await loader.reload();
+		await withProxyEnv(this.proxySettings(), () => loader.reload());
 		const result = loader.getSkills();
 		return result.skills as Array<{
 			name: string;
@@ -296,7 +303,7 @@ export class PiSessionManager {
 			cwd: this.deps.homeDir,
 			agentDir,
 		});
-		await loader.reload();
+		await withProxyEnv(this.proxySettings(), () => loader.reload());
 		const result = loader.getPrompts();
 		return result.prompts as Array<{
 			name: string;
@@ -334,7 +341,7 @@ export class PiSessionManager {
 			cwd: this.deps.homeDir,
 			agentDir,
 		});
-		await loader.reload();
+		await withProxyEnv(this.proxySettings(), () => loader.reload());
 		const result = loader.getExtensions();
 		return {
 			extensions: result.extensions as Array<{
@@ -383,14 +390,16 @@ export class PiSessionManager {
 		// Only surface user-scope packages — project-scope packages are bound
 		// to a specific cwd's .pi/ directory and aren't meaningful as an
 		// "import this into macpi" target.
-		return pm
-			.listConfiguredPackages()
-			.filter((p) => p.scope === "user")
-			.map((p) => ({
-				source: p.source,
-				scope: p.scope,
-				installedPath: p.installedPath,
-			}));
+		return withProxyEnv(this.proxySettings(), () =>
+			pm
+				.listConfiguredPackages()
+				.filter((p) => p.scope === "user")
+				.map((p) => ({
+					source: p.source,
+					scope: p.scope,
+					installedPath: p.installedPath,
+				})),
+		);
 	}
 
 	/**
@@ -445,11 +454,23 @@ export class PiSessionManager {
 			this.deps.homeDir,
 			agentDir,
 		);
-		return new ctx.mod.DefaultPackageManager({
+		const pm = new ctx.mod.DefaultPackageManager({
 			cwd: this.deps.homeDir,
 			agentDir,
 			settingsManager,
 		});
+		return {
+			listConfiguredPackages: () => pm.listConfiguredPackages(),
+			installAndPersist: (source, options) =>
+				withProxyEnv(this.proxySettings(), () =>
+					pm.installAndPersist(source, options),
+				),
+			removeAndPersist: (source, options) =>
+				withProxyEnv(this.proxySettings(), () =>
+					pm.removeAndPersist(source, options),
+				),
+			setProgressCallback: (cb) => pm.setProgressCallback(cb),
+		};
 	}
 
 	async createSession(opts: {
@@ -457,14 +478,18 @@ export class PiSessionManager {
 	}): Promise<{ piSessionId: string; sessionFilePath: string | null }> {
 		const ctx = await this.ensureContext();
 		const ov = this.__testOverrides;
-		const result = await ctx.mod.createAgentSession({
-			cwd: opts.cwd,
-			authStorage: ov?.authStorage ?? ctx.auth,
-			modelRegistry: ov?.modelRegistry ?? ctx.registry,
-			resourceLoader: await this.buildLoadedResourceLoader(ctx, opts.cwd),
-			settingsManager: ov?.settingsManager,
-			model: ov?.model ?? (await this.deps?.modelAuth?.resolveSelectedModel()),
-		});
+		const resourceLoader = await this.buildLoadedResourceLoader(ctx, opts.cwd);
+		const model = ov?.model ?? (await this.deps?.modelAuth?.resolveSelectedModel());
+		const result = await withProxyEnv(this.proxySettings(), async () =>
+			ctx.mod.createAgentSession({
+				cwd: opts.cwd,
+				authStorage: ov?.authStorage ?? ctx.auth,
+				modelRegistry: ov?.modelRegistry ?? ctx.registry,
+				resourceLoader,
+				settingsManager: ov?.settingsManager,
+				model,
+			}),
+		);
 		const session = result.session;
 		const piSessionId = session.sessionId;
 		const sessionFilePath = session.sessionFile ?? null;
@@ -494,15 +519,19 @@ export class PiSessionManager {
 		const ov = this.__testOverrides;
 		const sessionManager = ctx.mod.SessionManager.open(filePath);
 		const cwd = sessionManager.getCwd();
-		const result = await ctx.mod.createAgentSession({
-			cwd,
-			authStorage: ov?.authStorage ?? ctx.auth,
-			modelRegistry: ov?.modelRegistry ?? ctx.registry,
-			resourceLoader: await this.buildLoadedResourceLoader(ctx, cwd),
-			settingsManager: ov?.settingsManager,
-			model: ov?.model ?? (await this.deps?.modelAuth?.resolveSelectedModel()),
-			sessionManager,
-		});
+		const resourceLoader = await this.buildLoadedResourceLoader(ctx, cwd);
+		const model = ov?.model ?? (await this.deps?.modelAuth?.resolveSelectedModel());
+		const result = await withProxyEnv(this.proxySettings(), async () =>
+			ctx.mod.createAgentSession({
+				cwd,
+				authStorage: ov?.authStorage ?? ctx.auth,
+				modelRegistry: ov?.modelRegistry ?? ctx.registry,
+				resourceLoader,
+				settingsManager: ov?.settingsManager,
+				model,
+				sessionManager,
+			}),
+		);
 		const session = result.session;
 		const piSessionId = session.sessionId;
 		const unsubscribe = session.subscribe((event) =>
@@ -529,15 +558,19 @@ export class PiSessionManager {
 		const sessionManager = ctx.mod.SessionManager.open(filePath);
 		const ov = this.__testOverrides;
 		const cwd = sessionManager.getCwd();
-		const result = await ctx.mod.createAgentSession({
-			cwd,
-			authStorage: ov?.authStorage ?? ctx.auth,
-			modelRegistry: ov?.modelRegistry ?? ctx.registry,
-			resourceLoader: await this.buildLoadedResourceLoader(ctx, cwd),
-			settingsManager: ov?.settingsManager,
-			model: ov?.model ?? (await this.deps?.modelAuth?.resolveSelectedModel()),
-			sessionManager,
-		});
+		const resourceLoader = await this.buildLoadedResourceLoader(ctx, cwd);
+		const model = ov?.model ?? (await this.deps?.modelAuth?.resolveSelectedModel());
+		const result = await withProxyEnv(this.proxySettings(), async () =>
+			ctx.mod.createAgentSession({
+				cwd,
+				authStorage: ov?.authStorage ?? ctx.auth,
+				modelRegistry: ov?.modelRegistry ?? ctx.registry,
+				resourceLoader,
+				settingsManager: ov?.settingsManager,
+				model,
+				sessionManager,
+			}),
+		);
 		const session = result.session;
 		const piSessionId = session.sessionId;
 		this.pathStore?.setSessionFilePath(piSessionId, filePath);
