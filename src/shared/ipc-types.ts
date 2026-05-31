@@ -386,26 +386,6 @@ export interface IpcMethods {
 		req: { source: string };
 		res: Record<string, never>;
 	};
-	"resources.listPiResources": {
-		req: { kind: "skill" | "extension" | "prompt" };
-		res: {
-			resources: ReadonlyArray<{
-				/** Identifier — filename (skill) or source string (extension). */
-				name: string;
-				/** Human-friendly name for display. */
-				displayName: string;
-				alreadyImported: boolean;
-			}>;
-		};
-	};
-	"resources.importPiResources": {
-		req: {
-			kind: "skill" | "extension" | "prompt";
-			/** For skills: filenames. For extensions: source strings. */
-			names: readonly string[];
-		};
-		res: { copied: number; skipped: number };
-	};
 	"extensions.list": {
 		req: Record<string, never>;
 		res: { extensions: ExtensionSummary[]; loadErrors: ExtensionLoadError[] };

@@ -141,7 +141,9 @@ beforeEach(() => {
 	};
 	const notesServiceStub = {
 		list: vi.fn().mockResolvedValue({ notes: [], preamble: "", mtime: 0 }),
-		read: vi.fn().mockResolvedValue({ id: "n1", title: "", body: "", blob: "" }),
+		read: vi
+			.fn()
+			.mockResolvedValue({ id: "n1", title: "", body: "", blob: "" }),
 		save: vi.fn().mockResolvedValue({ ok: true, mtime: 0 }),
 		create: vi.fn().mockResolvedValue({ id: "n1" }),
 		delete: vi.fn().mockResolvedValue({ ok: true, mtime: 0 }),
@@ -160,7 +162,9 @@ beforeEach(() => {
 		cancelOAuthLogin: vi.fn(),
 		saveApiKey: vi.fn().mockResolvedValue(undefined),
 		logoutProvider: vi.fn().mockResolvedValue(undefined),
-		readModelsJson: vi.fn().mockResolvedValue({ path: "/dst/models.json", text: "{}" }),
+		readModelsJson: vi
+			.fn()
+			.mockResolvedValue({ path: "/dst/models.json", text: "{}" }),
 		writeModelsJson: vi.fn().mockResolvedValue({ registryError: undefined }),
 		getImportStatus: vi.fn().mockReturnValue({
 			sourceAuthExists: false,
@@ -826,7 +830,9 @@ describe("IpcRouter", () => {
 		});
 
 		expect(r).toEqual({ ok: true, data: {} });
-		expect(modelAuthServiceMock.cancelOAuthLogin).toHaveBeenCalledWith("login-1");
+		expect(modelAuthServiceMock.cancelOAuthLogin).toHaveBeenCalledWith(
+			"login-1",
+		);
 	});
 
 	it("modelsAuth.saveApiKey returns no secret value", async () => {
@@ -843,7 +849,9 @@ describe("IpcRouter", () => {
 	});
 
 	it("modelsAuth.logoutProvider maps auth failures", async () => {
-		modelAuthServiceMock.logoutProvider.mockRejectedValue(new Error("bad provider"));
+		modelAuthServiceMock.logoutProvider.mockRejectedValue(
+			new Error("bad provider"),
+		);
 
 		const r = await router.dispatch("modelsAuth.logoutProvider", {
 			provider: "bad/provider",
@@ -858,13 +866,20 @@ describe("IpcRouter", () => {
 	it("modelsAuth.readModelsJson returns raw text", async () => {
 		const r = await router.dispatch("modelsAuth.readModelsJson", {});
 
-		expect(r).toEqual({ ok: true, data: { path: "/dst/models.json", text: "{}" } });
+		expect(r).toEqual({
+			ok: true,
+			data: { path: "/dst/models.json", text: "{}" },
+		});
 	});
 
 	it("modelsAuth.writeModelsJson maps parse failures", async () => {
-		modelAuthServiceMock.writeModelsJson.mockRejectedValue(new Error("bad json"));
+		modelAuthServiceMock.writeModelsJson.mockRejectedValue(
+			new Error("bad json"),
+		);
 
-		const r = await router.dispatch("modelsAuth.writeModelsJson", { text: "{" });
+		const r = await router.dispatch("modelsAuth.writeModelsJson", {
+			text: "{",
+		});
 
 		expect(r).toEqual({
 			ok: false,

@@ -1,7 +1,7 @@
 // Left-pane prompts list. Mirrors SkillsList but each row exposes the
 // description and (optional) argument hint on a secondary line — the two
-// fields unique to prompts. Top toolbar offers Install + Import. Per-row
-// hover-revealed ⋮ menu surfaces Uninstall. Pi sources are collapsed via
+// fields unique to prompts. Top toolbar offers package install. Per-row
+// hover-revealed ⋮ menu surfaces Uninstall.
 // friendlyNameForSource for readability.
 
 import React from "react";
@@ -17,14 +17,12 @@ interface PromptsListProps {
 	selectedId: string | null;
 	onSelect: (id: string | null) => void;
 	onInstall: () => void;
-	onImport: () => void;
 }
 
 export function PromptsList({
 	selectedId,
 	onSelect,
 	onInstall,
-	onImport,
 }: PromptsListProps) {
 	const prompts = usePrompts();
 	const setEnabled = useSetPromptEnabled();
@@ -45,13 +43,6 @@ export function PromptsList({
 					>
 						+ Install…
 					</button>
-					<button
-						type="button"
-						onClick={onImport}
-						className="surface-row rounded px-2 py-1 text-xs hover:opacity-80"
-					>
-						Import from ~/.pi
-					</button>
 				</div>
 			</div>
 			<div className="flex-1 overflow-y-auto p-1">
@@ -65,7 +56,7 @@ export function PromptsList({
 				)}
 				{prompts.data && prompts.data.prompts.length === 0 && (
 					<div className="p-2 text-xs text-muted">
-						No prompts yet. Install or import from ~/.pi.
+						No prompts yet. Install a Pi package to add prompts.
 					</div>
 				)}
 				{prompts.data?.prompts.map((p) => {

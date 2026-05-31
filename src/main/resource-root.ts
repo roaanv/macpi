@@ -1,6 +1,7 @@
-// Resolves the resource root path from settings (with ~/.macpi default) and
-// ensures the directory exists. Called once per session-create so users who
-// change the setting see effects on the next session.
+// Resolves MacPi's app-owned resource root path from settings (with ~/.macpi
+// default) and ensures the directory exists. Pi runtime resources deliberately
+// use ~/.pi/agent instead; this root is only for MacPi app data such as notes,
+// auth, and model settings.
 
 import fs from "node:fs";
 import { getResourceRoot } from "../shared/app-settings-keys";

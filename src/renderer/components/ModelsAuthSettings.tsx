@@ -1,5 +1,8 @@
 import React from "react";
-import type { LocalOpenAIModelCandidate, ModelSummary } from "../../shared/model-auth-types";
+import type {
+	LocalOpenAIModelCandidate,
+	ModelSummary,
+} from "../../shared/model-auth-types";
 import {
 	useListLocalOpenAIModels,
 	useLogoutProvider,
@@ -35,10 +38,14 @@ export function ModelsAuthSettings() {
 	const saveApiKey = useSaveApiKey();
 	const logout = useLogoutProvider();
 	const [oauthProvider, setOAuthProvider] = React.useState<string | null>(null);
-	const [selectedProviderId, setSelectedProviderId] = React.useState<string | null>(null);
+	const [selectedProviderId, setSelectedProviderId] = React.useState<
+		string | null
+	>(null);
 	const [query, setQuery] = React.useState("");
 	const [filter, setFilter] = React.useState<ProviderFilter>("all");
-	const [editingProvider, setEditingProvider] = React.useState<string | null>(null);
+	const [editingProvider, setEditingProvider] = React.useState<string | null>(
+		null,
+	);
 	const [apiKey, setApiKey] = React.useState("");
 	const [showAdvanced, setShowAdvanced] = React.useState(false);
 	const [showImport, setShowImport] = React.useState(false);
@@ -81,10 +88,18 @@ export function ModelsAuthSettings() {
 				provider={oauthProvider}
 				onClose={() => setOAuthProvider(null)}
 			/>
-			<SettingsOverlay open={showAdvanced} title="Advanced models.json" onClose={() => setShowAdvanced(false)}>
+			<SettingsOverlay
+				open={showAdvanced}
+				title="Advanced models.json"
+				onClose={() => setShowAdvanced(false)}
+			>
 				<ModelsJsonEditor />
 			</SettingsOverlay>
-			<SettingsOverlay open={showImport} title="Import from pi" onClose={() => setShowImport(false)}>
+			<SettingsOverlay
+				open={showImport}
+				title="Import from pi"
+				onClose={() => setShowImport(false)}
+			>
 				<ImportPiAuthModels />
 			</SettingsOverlay>
 
@@ -148,7 +163,9 @@ export function ModelsAuthSettings() {
 								setFilter("local");
 							}}
 							className={`mb-3 flex w-full items-center gap-3 rounded border border-dashed border-divider p-3 text-left text-sm ${
-								addingLocal ? "bg-blue-500/10 text-primary" : "text-muted hover:surface-row"
+								addingLocal
+									? "bg-blue-500/10 text-primary"
+									: "text-muted hover:surface-row"
 							}`}
 						>
 							<span className="surface-row rounded px-3 py-2 text-xl">+</span>
@@ -230,14 +247,17 @@ export function ModelsAuthSettings() {
 							authError={saveApiKey.error?.message ?? logout.error?.message}
 						/>
 					) : (
-						<div className="text-sm text-muted">No providers discovered yet.</div>
+						<div className="text-sm text-muted">
+							No providers discovered yet.
+						</div>
 					)}
 				</main>
 			</div>
 
 			<footer className="flex items-center justify-between border-t border-divider px-6 py-4 text-sm">
 				<div className="text-muted">
-					Active: <span className="font-mono text-primary">{selectedLabel}</span>
+					Active:{" "}
+					<span className="font-mono text-primary">{selectedLabel}</span>
 					{selected.data && !selected.data.valid ? (
 						<span className="ml-2 text-red-400">{selected.data.error}</span>
 					) : null}
@@ -287,9 +307,12 @@ function LocalOpenAIProviderForm({
 	return (
 		<div className="mx-auto flex max-w-4xl flex-col gap-6">
 			<section>
-				<h3 className="text-xl font-semibold">Add local OpenAI-compatible provider</h3>
+				<h3 className="text-xl font-semibold">
+					Add local OpenAI-compatible provider
+				</h3>
 				<p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-					Connect Ollama, LM Studio, vLLM, or a local proxy that exposes the OpenAI-compatible <span className="font-mono">/models</span> endpoint.
+					Connect Ollama, LM Studio, vLLM, or a local proxy that exposes the
+					OpenAI-compatible <span className="font-mono">/models</span> endpoint.
 				</p>
 			</section>
 
@@ -297,30 +320,62 @@ function LocalOpenAIProviderForm({
 				<div className="grid gap-3 sm:grid-cols-2">
 					<label className="flex flex-col gap-1 text-sm">
 						<span className="text-muted">Display name</span>
-						<input className="surface-row rounded px-3 py-2 outline-none" value={name} onChange={(e) => setName(e.target.value)} />
+						<input
+							className="surface-row rounded px-3 py-2 outline-none"
+							value={name}
+							onChange={(e) => setName(e.target.value)}
+						/>
 					</label>
 					<label className="flex flex-col gap-1 text-sm">
 						<span className="text-muted">Provider id</span>
-						<input className="surface-row rounded px-3 py-2 font-mono outline-none" value={providerId} onChange={(e) => setProviderId(e.target.value)} />
+						<input
+							className="surface-row rounded px-3 py-2 font-mono outline-none"
+							value={providerId}
+							onChange={(e) => setProviderId(e.target.value)}
+						/>
 					</label>
 					<label className="flex flex-col gap-1 text-sm sm:col-span-2">
 						<span className="text-muted">Base URL</span>
-						<input className="surface-row rounded px-3 py-2 font-mono outline-none" value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="http://localhost:11434/v1" />
+						<input
+							className="surface-row rounded px-3 py-2 font-mono outline-none"
+							value={baseUrl}
+							onChange={(e) => setBaseUrl(e.target.value)}
+							placeholder="http://localhost:11434/v1"
+						/>
 					</label>
 					<label className="flex flex-col gap-1 text-sm sm:col-span-2">
 						<span className="text-muted">API key</span>
-						<input type="password" className="surface-row rounded px-3 py-2 outline-none" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="ollama" />
+						<input
+							type="password"
+							className="surface-row rounded px-3 py-2 outline-none"
+							value={apiKey}
+							onChange={(e) => setApiKey(e.target.value)}
+							placeholder="ollama"
+						/>
 					</label>
 				</div>
 				<div className="mt-4 flex flex-wrap gap-2">
-					<button type="button" className="rounded bg-blue-500/20 px-3 py-2 text-sm hover:opacity-80 disabled:opacity-50" disabled={listModels.isPending} onClick={discoverModels}>
+					<button
+						type="button"
+						className="rounded bg-blue-500/20 px-3 py-2 text-sm hover:opacity-80 disabled:opacity-50"
+						disabled={listModels.isPending}
+						onClick={discoverModels}
+					>
 						{listModels.isPending ? "Fetching models…" : "Fetch models"}
 					</button>
-					<button type="button" className="rounded px-3 py-2 text-sm hover:surface-row" onClick={onCancel}>
+					<button
+						type="button"
+						className="rounded px-3 py-2 text-sm hover:surface-row"
+						onClick={onCancel}
+					>
 						Cancel
 					</button>
 				</div>
-				{listModels.error ? <div className="mt-3 text-sm text-red-400">{listModels.error.message}</div> : null}
+				{listModels.error ? (
+					<div className="mt-3 text-sm text-red-400">
+						{listModels.error.message}
+					</div>
+				) : null}
 			</section>
 
 			<section>
@@ -329,7 +384,8 @@ function LocalOpenAIProviderForm({
 				</div>
 				{models.length === 0 ? (
 					<div className="rounded-xl border border-divider p-4 text-sm text-muted">
-						Fetch models from the provider, then choose the model MacPi should use.
+						Fetch models from the provider, then choose the model MacPi should
+						use.
 					</div>
 				) : (
 					<div className="overflow-hidden rounded-xl border border-divider">
@@ -340,12 +396,16 @@ function LocalOpenAIProviderForm({
 								onClick={() => setSelectedModelId(model.id)}
 								className="flex w-full items-center gap-4 border-b border-divider p-4 text-left last:border-b-0 hover:surface-row"
 							>
-								<span className={`flex h-7 w-7 items-center justify-center rounded ${selectedModelId === model.id ? "bg-blue-400 text-black" : "surface-row text-muted"}`}>
+								<span
+									className={`flex h-7 w-7 items-center justify-center rounded ${selectedModelId === model.id ? "bg-blue-400 text-black" : "surface-row text-muted"}`}
+								>
 									{selectedModelId === model.id ? "✓" : ""}
 								</span>
 								<span>
 									<span className="font-medium">{model.name}</span>
-									<span className="block font-mono text-xs text-muted">{model.id}</span>
+									<span className="block font-mono text-xs text-muted">
+										{model.id}
+									</span>
 								</span>
 							</button>
 						))}
@@ -358,10 +418,16 @@ function LocalOpenAIProviderForm({
 						disabled={!selectedModelId || saveProvider.isPending}
 						onClick={save}
 					>
-						{saveProvider.isPending ? "Saving…" : "Save provider and set default"}
+						{saveProvider.isPending
+							? "Saving…"
+							: "Save provider and set default"}
 					</button>
 				</div>
-				{saveProvider.error ? <div className="mt-3 text-sm text-red-400">{saveProvider.error.message}</div> : null}
+				{saveProvider.error ? (
+					<div className="mt-3 text-sm text-red-400">
+						{saveProvider.error.message}
+					</div>
+				) : null}
 			</section>
 		</div>
 	);
@@ -509,15 +575,25 @@ function ProviderDetail({
 								placeholder="API key"
 								className="surface-row flex-1 rounded px-3 py-2 text-sm outline-none"
 							/>
-							<button type="button" className="rounded bg-blue-500/20 px-3 py-2 text-sm" onClick={onSaveApiKey}>
+							<button
+								type="button"
+								className="rounded bg-blue-500/20 px-3 py-2 text-sm"
+								onClick={onSaveApiKey}
+							>
 								Save
 							</button>
-							<button type="button" className="rounded px-3 py-2 text-sm hover:surface-row" onClick={onCancelApiKey}>
+							<button
+								type="button"
+								className="rounded px-3 py-2 text-sm hover:surface-row"
+								onClick={onCancelApiKey}
+							>
 								Cancel
 							</button>
 						</div>
 					) : null}
-					{authError ? <div className="mt-3 text-sm text-red-400">{authError}</div> : null}
+					{authError ? (
+						<div className="mt-3 text-sm text-red-400">{authError}</div>
+					) : null}
 				</div>
 			</section>
 
@@ -550,7 +626,11 @@ function ModelList({
 	onSelectModel: (model: { provider: string; modelId: string }) => void;
 }) {
 	if (models.length === 0) {
-		return <div className="rounded-xl border border-divider p-4 text-sm text-muted">No models discovered for this provider.</div>;
+		return (
+			<div className="rounded-xl border border-divider p-4 text-sm text-muted">
+				No models discovered for this provider.
+			</div>
+		);
 	}
 	return (
 		<div className="overflow-hidden rounded-xl border border-divider">
@@ -563,21 +643,35 @@ function ModelList({
 						type="button"
 						key={`${model.provider}/${model.id}`}
 						disabled={!model.authConfigured}
-						onClick={() => onSelectModel({ provider: model.provider, modelId: model.id })}
+						onClick={() =>
+							onSelectModel({ provider: model.provider, modelId: model.id })
+						}
 						className="flex w-full items-center gap-4 border-b border-divider p-4 text-left last:border-b-0 hover:surface-row disabled:opacity-60"
 					>
-						<span className={`flex h-7 w-7 items-center justify-center rounded ${isSelected ? "bg-blue-400 text-black" : "surface-row text-muted"}`}>
+						<span
+							className={`flex h-7 w-7 items-center justify-center rounded ${isSelected ? "bg-blue-400 text-black" : "surface-row text-muted"}`}
+						>
 							{isSelected ? "✓" : ""}
 						</span>
 						<span className="min-w-0 flex-1">
 							<span className="flex flex-wrap items-center gap-2 font-medium">
 								{model.name}
-								{model.reasoning ? <span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-xs text-blue-300">reasoning</span> : null}
+								{model.reasoning ? (
+									<span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-xs text-blue-300">
+										reasoning
+									</span>
+								) : null}
 							</span>
-							<span className="block truncate font-mono text-xs text-muted">{model.id}</span>
+							<span className="block truncate font-mono text-xs text-muted">
+								{model.id}
+							</span>
 						</span>
-						<span className="font-mono text-sm text-muted">{formatContext(model.contextWindow)}</span>
-						<span className="text-sm text-muted">{model.authConfigured ? "Set default" : "Configure auth first"}</span>
+						<span className="font-mono text-sm text-muted">
+							{formatContext(model.contextWindow)}
+						</span>
+						<span className="text-sm text-muted">
+							{model.authConfigured ? "Set default" : "Configure auth first"}
+						</span>
 					</button>
 				);
 			})}
@@ -598,11 +692,26 @@ function SettingsOverlay({
 }) {
 	if (!open) return null;
 	return (
-		<div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60" role="presentation" onClick={onClose}>
-			<div className="surface-panel max-h-[75vh] w-[720px] overflow-y-auto rounded-xl p-4 shadow-xl" role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
+		<div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60">
+			<button
+				type="button"
+				className="absolute inset-0 cursor-default"
+				aria-label={`Close ${title}`}
+				onClick={onClose}
+			/>
+			<div
+				className="surface-panel relative max-h-[75vh] w-[720px] overflow-y-auto rounded-xl p-4 shadow-xl"
+				role="dialog"
+				aria-modal="true"
+				aria-label={title}
+			>
 				<div className="mb-4 flex items-center justify-between gap-4">
 					<h3 className="text-lg font-semibold">{title}</h3>
-					<button type="button" className="rounded px-2 py-1 text-sm hover:surface-row" onClick={onClose}>
+					<button
+						type="button"
+						className="rounded px-2 py-1 text-sm hover:surface-row"
+						onClick={onClose}
+					>
 						Close
 					</button>
 				</div>

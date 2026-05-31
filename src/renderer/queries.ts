@@ -684,42 +684,6 @@ export function useInstallExtension() {
 
 export const useRemoveExtension = () => useRemoveResource("extensions");
 
-export function usePiResources(
-	kind: "skill" | "extension" | "prompt",
-	enabled: boolean,
-) {
-	return useQuery({
-		queryKey: ["resources.listPiResources", kind],
-		queryFn: () => invoke("resources.listPiResources", { kind }),
-		enabled,
-		// Always refetch when reopening — the user may have installed pi
-		// extensions externally between dialog openings.
-		staleTime: 0,
-	});
-}
-
-export function useImportPiResources() {
-	const qc = useQueryClient();
-	return useMutation({
-		mutationFn: (input: {
-			kind: "skill" | "extension" | "prompt";
-			names: readonly string[];
-		}) => invoke("resources.importPiResources", input),
-		onSuccess: (_data, vars) => {
-			if (vars.kind === "skill") {
-				qc.invalidateQueries({ queryKey: ["skills.list"] });
-				window.dispatchEvent(new CustomEvent("macpi:skills-changed"));
-			} else {
-				qc.invalidateQueries({ queryKey: ["extensions.list"] });
-				window.dispatchEvent(new CustomEvent("macpi:extensions-changed"));
-			}
-			qc.invalidateQueries({
-				queryKey: ["resources.listPiResources", vars.kind],
-			});
-		},
-	});
-}
-
 export function useReloadSession() {
 	return useMutation({
 		mutationFn: (input: { piSessionId: string }) =>

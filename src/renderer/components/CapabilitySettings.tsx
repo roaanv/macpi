@@ -4,7 +4,6 @@
 // without the ResizablePane chrome we used when they were standalone modes.
 
 import React from "react";
-import { ImportFromPiDialog } from "./dialogs/ImportFromPiDialog";
 import { InstallSkillDialog } from "./dialogs/InstallSkillDialog";
 import { ExtensionDetail } from "./ExtensionDetail";
 import { ExtensionsList } from "./ExtensionsList";
@@ -24,7 +23,6 @@ const RESOURCE_KIND: Record<Kind, "skill" | "extension" | "prompt"> = {
 export function CapabilitySettings({ kind }: { kind: Kind }) {
 	const [selectedId, setSelectedId] = React.useState<string | null>(null);
 	const [installOpen, setInstallOpen] = React.useState(false);
-	const [importOpen, setImportOpen] = React.useState(false);
 	const resourceKind = RESOURCE_KIND[kind];
 
 	// Clear selection when the user switches categories: a stale id from a
@@ -39,7 +37,6 @@ export function CapabilitySettings({ kind }: { kind: Kind }) {
 		selectedId,
 		onSelect: setSelectedId,
 		onInstall: () => setInstallOpen(true),
-		onImport: () => setImportOpen(true),
 	};
 
 	return (
@@ -72,11 +69,6 @@ export function CapabilitySettings({ kind }: { kind: Kind }) {
 			<InstallSkillDialog
 				open={installOpen}
 				onClose={() => setInstallOpen(false)}
-				resourceKind={resourceKind}
-			/>
-			<ImportFromPiDialog
-				open={importOpen}
-				onClose={() => setImportOpen(false)}
 				resourceKind={resourceKind}
 			/>
 		</div>

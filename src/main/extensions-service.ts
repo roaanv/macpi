@@ -4,10 +4,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import {
-	getResourceEnabled,
-	getResourceRoot,
-} from "../shared/app-settings-keys";
+import { getResourceEnabled } from "../shared/app-settings-keys";
 import type {
 	ExtensionDiagnostic,
 	ExtensionLoadError,
@@ -17,6 +14,7 @@ import type {
 import { friendlyNameForSource } from "../shared/friendly-name";
 import type { PiEvent } from "../shared/pi-events";
 import { extensionResourceId } from "../shared/resource-id";
+import { getGlobalPiAgentRoot } from "./pi-agent-root";
 import type { AppSettingsRepo } from "./repos/app-settings";
 
 interface PiExtension {
@@ -62,10 +60,7 @@ export class ExtensionsService {
 	constructor(private readonly deps: ExtensionsServiceDeps) {}
 
 	private extensionsRoot(): string {
-		return path.join(
-			getResourceRoot(this.deps.appSettings.getAll(), this.deps.homeDir),
-			"extensions",
-		);
+		return path.join(getGlobalPiAgentRoot(this.deps.homeDir), "extensions");
 	}
 
 	private idFor(ext: PiExtension): {

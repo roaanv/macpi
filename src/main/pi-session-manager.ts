@@ -5,8 +5,7 @@
 //
 // Loading note: pi-coding-agent's package.json exports only the "import"
 // (ESM) condition — there is no "require" entry. Our Forge main bundle is
-// CJS, so we cannot use a static `import` of value bindings. Instead we
-// pull the module in via dynamic `import()`, cached behind ensureContext().
+// CJS, so value bindings are loaded via dynamic `import()` in ensureContext().
 // The module is externalized in vite.main.config.ts so it resolves to
 // node_modules at runtime and pi can find its own templates/themes/wasm.
 
@@ -34,10 +33,10 @@ import {
 	skillResourceId,
 } from "../shared/resource-id";
 import type { TimelineEntry } from "../shared/timeline-types";
+import { ensureGlobalPiAgentRoot } from "./pi-agent-root";
 import { agentMessagesToTimeline } from "./pi-history";
 import { withProxyEnv, withProxyEnvImmediate } from "./proxy-env";
 import type { AppSettingsRepo } from "./repos/app-settings";
-import { ensureResourceRoot } from "./resource-root";
 
 type PiCodingModule = typeof import("@earendil-works/pi-coding-agent");
 
@@ -124,10 +123,7 @@ export class PiSessionManager {
 		if (ov?.resourceLoader) return ov.resourceLoader;
 		// Production path: only construct our own loader when deps are wired.
 		if (!this.deps) return undefined;
-		const agentDir = ensureResourceRoot(
-			this.deps.appSettings.getAll(),
-			this.deps.homeDir,
-		);
+		const agentDir = ensureGlobalPiAgentRoot(this.deps.homeDir);
 		return new ctx.mod.DefaultResourceLoader({
 			cwd,
 			agentDir,
@@ -243,8 +239,8 @@ export class PiSessionManager {
 	}
 
 	/**
-	 * Constructs a one-shot DefaultResourceLoader using the configured
-	 * resourceRoot and returns the discovered skills. Used by SkillsService
+	 * Constructs a one-shot DefaultResourceLoader using the global Pi agent root
+	 * and returns the discovered skills. Used by SkillsService
 	 * for list/read calls outside an active session.
 	 */
 	async loadSkills(): Promise<
@@ -254,10 +250,7 @@ export class PiSessionManager {
 			throw new Error("PiSessionManager requires deps for loadSkills");
 		}
 		const ctx = await this.ensureContext();
-		const agentDir = ensureResourceRoot(
-			this.deps.appSettings.getAll(),
-			this.deps.homeDir,
-		);
+		const agentDir = ensureGlobalPiAgentRoot(this.deps.homeDir);
 		// loadSkills is used by the UI list — it should show ALL discovered
 		// skills (even disabled ones) so the checkbox reflects current state.
 		// No skillsOverride here; the filter only applies to the per-session
@@ -297,10 +290,7 @@ export class PiSessionManager {
 			throw new Error("PiSessionManager requires deps for loadPrompts");
 		}
 		const ctx = await this.ensureContext();
-		const agentDir = ensureResourceRoot(
-			this.deps.appSettings.getAll(),
-			this.deps.homeDir,
-		);
+		const agentDir = ensureGlobalPiAgentRoot(this.deps.homeDir);
 		const loader = new ctx.mod.DefaultResourceLoader({
 			cwd: this.deps.homeDir,
 			agentDir,
@@ -318,8 +308,8 @@ export class PiSessionManager {
 	}
 
 	/**
-	 * Constructs a one-shot DefaultResourceLoader using the configured
-	 * resourceRoot and returns the discovered extensions and any load errors.
+	 * Constructs a one-shot DefaultResourceLoader using the global Pi agent root
+	 * and returns the discovered extensions and any load errors.
 	 * Used by ExtensionsService for list/read calls outside an active session.
 	 */
 	async loadExtensions(): Promise<{
@@ -334,10 +324,7 @@ export class PiSessionManager {
 			throw new Error("PiSessionManager requires deps for loadExtensions");
 		}
 		const ctx = await this.ensureContext();
-		const agentDir = ensureResourceRoot(
-			this.deps.appSettings.getAll(),
-			this.deps.homeDir,
-		);
+		const agentDir = ensureGlobalPiAgentRoot(this.deps.homeDir);
 		// No extensionsOverride here — UI shows ALL extensions (incl. disabled).
 		const loader = new ctx.mod.DefaultResourceLoader({
 			cwd: this.deps.homeDir,
@@ -361,60 +348,8 @@ export class PiSessionManager {
 		this.emit(event);
 	}
 
-	/**
-	 * List packages configured in another pi installation (e.g. ~/.pi/agent).
-	 * Used by the "Import from pi" picker so the user can see every package
-	 * pi has registered — npm, git, and local-path entries — not just the
-	 * dir-based extensions that happen to live under ~/.pi/agent/extensions.
-	 */
-	async listConfiguredPiPackages(piAgentRoot: string): Promise<
-		Array<{
-			source: string;
-			scope: "user" | "project";
-			installedPath?: string;
-		}>
-	> {
-		if (!this.deps) {
-			throw new Error(
-				"PiSessionManager requires deps for listConfiguredPiPackages",
-			);
-		}
-		const ctx = await this.ensureContext();
-		const settingsManager = ctx.mod.SettingsManager.create(
-			this.deps.homeDir,
-			piAgentRoot,
-		);
-		const pm = new ctx.mod.DefaultPackageManager({
-			cwd: this.deps.homeDir,
-			agentDir: piAgentRoot,
-			settingsManager,
-		});
-		// Only surface user-scope packages — project-scope packages are bound
-		// to a specific cwd's .pi/ directory and aren't meaningful as an
-		// "import this into macpi" target.
-		return withProxyEnv(this.proxySettings(), () =>
-			pm
-				.listConfiguredPackages()
-				.filter((p) => p.scope === "user")
-				.map((p) => ({
-					source: p.source,
-					scope: p.scope,
-					installedPath: p.installedPath,
-				})),
-		);
-	}
-
-	/**
-	 * Source strings already registered in macpi's own settings.packages.
-	 * Used by the picker to mark items as already imported.
-	 */
-	async listMacpiConfiguredSources(): Promise<string[]> {
-		const pm = await this.loadPackageManager();
-		return pm.listConfiguredPackages().map((p) => p.source);
-	}
-
-	/** Constructs a one-shot DefaultPackageManager using the configured
-	 *  resourceRoot. Caller is responsible for setProgressCallback lifecycle. */
+	/** Constructs a one-shot DefaultPackageManager using the global pi agent
+	 *  root. Caller is responsible for setProgressCallback lifecycle. */
 	async loadPackageManager(): Promise<{
 		listConfiguredPackages: () => Array<{
 			source: string;
@@ -430,6 +365,7 @@ export class PiSessionManager {
 			source: string,
 			options?: { local?: boolean },
 		) => Promise<boolean>;
+		update: (source?: string) => Promise<void>;
 		setProgressCallback: (
 			cb:
 				| ((e: {
@@ -445,13 +381,10 @@ export class PiSessionManager {
 			throw new Error("PiSessionManager requires deps for loadPackageManager");
 		}
 		const ctx = await this.ensureContext();
-		const agentDir = ensureResourceRoot(
-			this.deps.appSettings.getAll(),
-			this.deps.homeDir,
-		);
+		const agentDir = ensureGlobalPiAgentRoot(this.deps.homeDir);
 		// Pi exports SettingsManager (with a static `create` factory) rather than a
-		// DefaultSettingsManager class. Construct it pointed at the same agentDir
-		// so package state lands in resourceRoot.
+		// DefaultSettingsManager class. Construct it pointed at global Pi so
+		// package state is shared with the CLI.
 		const settingsManager = ctx.mod.SettingsManager.create(
 			this.deps.homeDir,
 			agentDir,
@@ -471,6 +404,8 @@ export class PiSessionManager {
 				withProxyEnv(this.proxySettings(), () =>
 					pm.removeAndPersist(source, options),
 				),
+			update: (source) =>
+				withProxyEnv(this.proxySettings(), () => pm.update(source)),
 			setProgressCallback: (cb) => pm.setProgressCallback(cb),
 		};
 	}

@@ -48,9 +48,13 @@ export function ModelsJsonEditor() {
 							{save.isPending ? "Saving…" : "Save models.json"}
 						</button>
 						{save.data?.registryError ? (
-							<span className="text-xs text-yellow-300">{save.data.registryError}</span>
+							<span className="text-xs text-yellow-300">
+								{save.data.registryError}
+							</span>
 						) : null}
-						{save.error ? <span className="text-xs text-red-400">{save.error.message}</span> : null}
+						{save.error ? (
+							<span className="text-xs text-red-400">{save.error.message}</span>
+						) : null}
 					</div>
 				</div>
 			) : null}

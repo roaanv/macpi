@@ -4,13 +4,11 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import {
-	getResourceEnabled,
-	getResourceRoot,
-} from "../shared/app-settings-keys";
+import { getResourceEnabled } from "../shared/app-settings-keys";
 import type { PiEvent } from "../shared/pi-events";
 import { skillResourceId } from "../shared/resource-id";
 import type { SkillManifest, SkillSummary } from "../shared/skills-types";
+import { getGlobalPiAgentRoot } from "./pi-agent-root";
 import type { AppSettingsRepo } from "./repos/app-settings";
 
 interface PiSkill {
@@ -50,7 +48,7 @@ export class SkillsService {
 	constructor(private readonly deps: SkillsServiceDeps) {}
 
 	private resourceRoot(): string {
-		return getResourceRoot(this.deps.appSettings.getAll(), this.deps.homeDir);
+		return getGlobalPiAgentRoot(this.deps.homeDir);
 	}
 
 	private idFor(skill: PiSkill): {

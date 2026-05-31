@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
-import type { ModelSummary, ProviderSummary } from "../../src/shared/model-auth-types";
-import { buildProviderViews, filterProviderViews } from "../../src/renderer/utils/model-provider-view";
+import {
+	buildProviderViews,
+	filterProviderViews,
+} from "../../src/renderer/utils/model-provider-view";
+import type {
+	ModelSummary,
+	ProviderSummary,
+} from "../../src/shared/model-auth-types";
 
 const providers: ProviderSummary[] = [
 	{
@@ -54,9 +60,9 @@ describe("model provider view helpers", () => {
 
 	it("filters by configured status", () => {
 		const views = buildProviderViews(providers, models);
-		expect(filterProviderViews(views, "configured", "").map((p) => p.id)).toEqual([
-			"anthropic",
-		]);
+		expect(
+			filterProviderViews(views, "configured", "").map((p) => p.id),
+		).toEqual(["anthropic"]);
 	});
 
 	it("filters by search text", () => {

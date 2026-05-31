@@ -1,5 +1,5 @@
-// Left-pane extensions list. Header + toolbar at top with Install + Import
-// buttons. Each row: enabled checkbox + name (click selects) + hover-revealed
+// Left-pane extensions list. Header + install button at top. Each row:
+// enabled checkbox + name (click selects) + hover-revealed
 // ⋮ menu with Uninstall. Load errors shown inline. Pi sources
 // (npm:/git:/local paths) are reduced to a friendly label and the full source
 // moves to the row tooltip.
@@ -17,14 +17,12 @@ interface ExtensionsListProps {
 	selectedId: string | null;
 	onSelect: (id: string | null) => void;
 	onInstall: () => void;
-	onImport: () => void;
 }
 
 export function ExtensionsList({
 	selectedId,
 	onSelect,
 	onInstall,
-	onImport,
 }: ExtensionsListProps) {
 	const ext = useExtensions();
 	const setEnabled = useSetExtensionEnabled();
@@ -45,13 +43,6 @@ export function ExtensionsList({
 					>
 						+ Install…
 					</button>
-					<button
-						type="button"
-						onClick={onImport}
-						className="surface-row rounded px-2 py-1 text-xs hover:opacity-80"
-					>
-						Import from ~/.pi
-					</button>
 				</div>
 			</div>
 			<div className="flex-1 overflow-y-auto p-1">
@@ -71,7 +62,7 @@ export function ExtensionsList({
 					ext.data.extensions.length === 0 &&
 					ext.data.loadErrors.length === 0 && (
 						<div className="p-2 text-xs text-muted">
-							No extensions yet. Install or import from ~/.pi.
+							No extensions yet. Install a Pi package to add extensions.
 						</div>
 					)}
 				{ext.data?.extensions.map((e) => {

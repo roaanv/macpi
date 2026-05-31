@@ -1,5 +1,8 @@
 import React from "react";
-import type { ModelSummary, SelectedModelRef } from "../../shared/model-auth-types";
+import type {
+	ModelSummary,
+	SelectedModelRef,
+} from "../../shared/model-auth-types";
 
 interface ModelPickerProps {
 	models: ModelSummary[];
@@ -18,10 +21,15 @@ export function ModelPicker({ models, selected, onSelect }: ModelPickerProps) {
 					.includes(normalized),
 			)
 		: models;
-	const groups = filtered.reduce<Record<string, ModelSummary[]>>((acc, model) => {
-		(acc[model.provider] ??= []).push(model);
-		return acc;
-	}, {});
+	const groups = filtered.reduce<Record<string, ModelSummary[]>>(
+		(acc, model) => {
+			const providerModels = acc[model.provider] ?? [];
+			providerModels.push(model);
+			acc[model.provider] = providerModels;
+			return acc;
+		},
+		{},
+	);
 
 	return (
 		<div className="flex flex-col gap-2">
@@ -43,7 +51,8 @@ export function ModelPicker({ models, selected, onSelect }: ModelPickerProps) {
 						<div className="flex flex-col gap-1">
 							{providerModels.map((model) => {
 								const isSelected =
-									selected?.provider === model.provider && selected.modelId === model.id;
+									selected?.provider === model.provider &&
+									selected.modelId === model.id;
 								return (
 									<button
 										type="button"
@@ -59,7 +68,9 @@ export function ModelPicker({ models, selected, onSelect }: ModelPickerProps) {
 										<div className="flex items-center justify-between gap-2">
 											<span>{model.name}</span>
 											<span className="text-xs text-muted">
-												{model.authConfigured ? "Select" : "Configure auth first"}
+												{model.authConfigured
+													? "Select"
+													: "Configure auth first"}
 											</span>
 										</div>
 										<div className="text-xs text-muted">

@@ -15,7 +15,6 @@ import { IpcRouter } from "./ipc-router";
 import { createLogger, type Logger } from "./logger";
 import { ModelAuthService } from "./model-auth-service";
 import { NotesService } from "./notes-service";
-import { configureNpmGlobalPrefix } from "./npm-global-prefix";
 import { PiSessionManager } from "./pi-session-manager";
 import { PromptsService } from "./prompts-service";
 import { AppSettingsRepo } from "./repos/app-settings";
@@ -128,13 +127,7 @@ app.whenReady().then(async () => {
 	const channelSessions = new ChannelSessionsRepo(db);
 	const appSettings = new AppSettingsRepo(db);
 
-	// Redirect pi's `npm install -g` and `npm root -g` to macpi's
-	// resource directory. Must happen before any pi npm subprocess runs.
-	// Changing resourceRoot at runtime requires an app restart for this
-	// to follow.
 	const macpiRoot = ensureResourceRoot(appSettings.getAll(), os.homedir());
-	const npmGlobalPrefix = configureNpmGlobalPrefix(macpiRoot);
-	mainLogger.info(`npm_config_prefix set to ${npmGlobalPrefix}`);
 
 	const notesService = new NotesService({
 		filePath: path.join(macpiRoot, "NOTES.md"),

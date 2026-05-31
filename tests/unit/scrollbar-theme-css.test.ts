@@ -11,7 +11,9 @@ describe("theme-aware scrollbar CSS", () => {
 	});
 
 	it("styles Firefox and Chromium scrollbars using theme tokens", () => {
-		expect(css).toContain("scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track)");
+		expect(css).toContain(
+			"scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track)",
+		);
 		expect(css).toContain("::-webkit-scrollbar-thumb");
 		expect(css).toContain("background: var(--scrollbar-thumb)");
 		expect(css).toContain("background: var(--scrollbar-thumb-hover)");

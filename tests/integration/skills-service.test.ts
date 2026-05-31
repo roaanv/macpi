@@ -29,7 +29,7 @@ describe("SkillsService", () => {
 
 	beforeEach(() => {
 		dir = mkdtempSync(path.join(os.tmpdir(), "macpi-skills-"));
-		mkdirSync(path.join(dir, ".macpi/skills"), { recursive: true });
+		mkdirSync(path.join(dir, ".pi/agent/skills"), { recursive: true });
 	});
 
 	afterEach(() => rmSync(dir, { recursive: true, force: true }));
@@ -40,7 +40,6 @@ describe("SkillsService", () => {
 		if (opts.enabled) {
 			appSettings.set("resourceEnabled", opts.enabled);
 		}
-		appSettings.set("resourceRoot", path.join(dir, ".macpi"));
 		return new SkillsService({
 			appSettings,
 			homeDir: dir,
@@ -48,12 +47,12 @@ describe("SkillsService", () => {
 				{
 					name: "a",
 					sourceInfo: { source: "local" },
-					filePath: path.join(dir, ".macpi/skills/a.md"),
+					filePath: path.join(dir, ".pi/agent/skills/a.md"),
 				},
 				{
 					name: "b",
 					sourceInfo: { source: "local" },
-					filePath: path.join(dir, ".macpi/skills/b.md"),
+					filePath: path.join(dir, ".pi/agent/skills/b.md"),
 				},
 			],
 			loadPackageManager: async () => {
@@ -84,7 +83,7 @@ describe("SkillsService", () => {
 	});
 
 	it("read returns the file body", async () => {
-		writeFileSync(path.join(dir, ".macpi/skills/a.md"), "# hello");
+		writeFileSync(path.join(dir, ".pi/agent/skills/a.md"), "# hello");
 		const svc = makeService({});
 		const skills = await svc.list();
 		const detail = await svc.read(skills[0].id);
@@ -98,11 +97,11 @@ describe("SkillsService", () => {
 	});
 
 	it("save writes the body to the skill's filePath", async () => {
-		writeFileSync(path.join(dir, ".macpi/skills/a.md"), "old");
+		writeFileSync(path.join(dir, ".pi/agent/skills/a.md"), "old");
 		const svc = makeService({});
 		const skills = await svc.list();
 		await svc.save(skills[0].id, "new body");
-		expect(readFileSync(path.join(dir, ".macpi/skills/a.md"), "utf8")).toBe(
+		expect(readFileSync(path.join(dir, ".pi/agent/skills/a.md"), "utf8")).toBe(
 			"new body",
 		);
 	});
@@ -111,7 +110,6 @@ describe("SkillsService", () => {
 		// Construct a service whose loadSkills returns a fileless skill
 		const db = makeDb();
 		const appSettings = new AppSettingsRepo(db);
-		appSettings.set("resourceRoot", path.join(dir, ".macpi"));
 		const svc = new SkillsService({
 			appSettings,
 			homeDir: dir,

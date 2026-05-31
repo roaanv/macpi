@@ -2,7 +2,10 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import type { Api, Model } from "@earendil-works/pi-ai";
-import type { AuthStorage, ModelRegistry } from "@earendil-works/pi-coding-agent";
+import type {
+	AuthStorage,
+	ModelRegistry,
+} from "@earendil-works/pi-coding-agent";
 import { getSelectedModel as getSelectedModelSetting } from "../shared/app-settings-keys";
 import type {
 	AuthSource,
@@ -58,7 +61,8 @@ export class ModelAuthService {
 	constructor(private readonly deps: ModelAuthServiceDeps) {
 		this.authPath = path.join(deps.macpiRoot, "auth.json");
 		this.modelsPath = path.join(deps.macpiRoot, "models.json");
-		this.loadPi = deps.loadPi ?? (async () => import("@earendil-works/pi-coding-agent"));
+		this.loadPi =
+			deps.loadPi ?? (async () => import("@earendil-works/pi-coding-agent"));
 		this.fetchImpl = deps.fetch ?? fetch;
 	}
 
@@ -238,7 +242,9 @@ export class ModelAuthService {
 		valid: boolean;
 		error?: string;
 	}> {
-		const model = getSelectedModelSetting(this.deps.appSettings?.getAll() ?? {});
+		const model = getSelectedModelSetting(
+			this.deps.appSettings?.getAll() ?? {},
+		);
 		if (!model) return { model: null, valid: true };
 		const registry = await this.getModelRegistry();
 		if (registry.find(model.provider, model.modelId)) {
@@ -265,7 +271,9 @@ export class ModelAuthService {
 	}
 
 	async resolveSelectedModel(): Promise<Model<Api> | undefined> {
-		const model = getSelectedModelSetting(this.deps.appSettings?.getAll() ?? {});
+		const model = getSelectedModelSetting(
+			this.deps.appSettings?.getAll() ?? {},
+		);
 		if (!model) return undefined;
 		const registry = await this.getModelRegistry();
 		const resolved = registry.find(model.provider, model.modelId);
@@ -295,7 +303,9 @@ export class ModelAuthService {
 				JSON.parse(trimmed);
 			} catch (e) {
 				const msg = e instanceof Error ? e.message : String(e);
-				throw new Error(`macpi editor currently accepts strict JSON only: ${msg}`);
+				throw new Error(
+					`macpi editor currently accepts strict JSON only: ${msg}`,
+				);
 			}
 		}
 		fs.mkdirSync(path.dirname(this.modelsPath), { recursive: true });
@@ -332,7 +342,9 @@ export class ModelAuthService {
 		if (!response.ok) {
 			throw new Error(`Failed to fetch models: HTTP ${response.status}`);
 		}
-		const body = (await response.json()) as { data?: Array<{ id?: unknown; name?: unknown }> };
+		const body = (await response.json()) as {
+			data?: Array<{ id?: unknown; name?: unknown }>;
+		};
 		const data = Array.isArray(body.data) ? body.data : [];
 		const models = data
 			.map((model) => ({
@@ -345,7 +357,8 @@ export class ModelAuthService {
 							: "",
 			}))
 			.filter((model) => model.id.length > 0);
-		if (models.length === 0) throw new Error("No models returned from provider");
+		if (models.length === 0)
+			throw new Error("No models returned from provider");
 		return models;
 	}
 
@@ -475,7 +488,10 @@ export class ModelAuthService {
 			});
 	}
 
-	async listModels(): Promise<{ models: ModelSummary[]; registryError?: string }> {
+	async listModels(): Promise<{
+		models: ModelSummary[];
+		registryError?: string;
+	}> {
 		const registry = await this.getModelRegistry();
 		return {
 			models: this.summarizeModels(registry, registry.getAll()),
@@ -502,12 +518,12 @@ export class ModelAuthService {
 		}));
 	}
 
-	private waitForOAuthPrompt<T extends Extract<OAuthEvent, { promptId: string }>>(
-		loginId: string,
-		event: T,
-	): Promise<string> {
+	private waitForOAuthPrompt<
+		T extends Extract<OAuthEvent, { promptId: string }>,
+	>(loginId: string, event: T): Promise<string> {
 		const state = this.logins.get(loginId);
-		if (!state) return Promise.reject(new Error(`Unknown OAuth login ${loginId}`));
+		if (!state)
+			return Promise.reject(new Error(`Unknown OAuth login ${loginId}`));
 		return new Promise((resolve, reject) => {
 			state.prompts.set(event.promptId, {
 				resolve: (value) => resolve(value ?? ""),
@@ -556,14 +572,24 @@ export class ModelAuthService {
 			parsed = JSON.parse(text);
 		} catch (e) {
 			const msg = e instanceof Error ? e.message : String(e);
-			throw new Error(`Cannot update local provider: models.json is invalid: ${msg}`);
+			throw new Error(
+				`Cannot update local provider: models.json is invalid: ${msg}`,
+			);
 		}
 		if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-			throw new Error("Cannot update local provider: models.json root must be an object");
+			throw new Error(
+				"Cannot update local provider: models.json root must be an object",
+			);
 		}
 		const root = parsed as { providers?: unknown };
-		if (!root.providers || typeof root.providers !== "object" || Array.isArray(root.providers)) {
-			return { ...root, providers: {} } as { providers: Record<string, Record<string, unknown>> };
+		if (
+			!root.providers ||
+			typeof root.providers !== "object" ||
+			Array.isArray(root.providers)
+		) {
+			return { ...root, providers: {} } as {
+				providers: Record<string, Record<string, unknown>>;
+			};
 		}
 		return root as { providers: Record<string, Record<string, unknown>> };
 	}

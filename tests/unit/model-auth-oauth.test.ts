@@ -2,6 +2,12 @@ import { describe, expect, it } from "vitest";
 import { ModelAuthService } from "../../src/main/model-auth-service";
 import type { OAuthEvent } from "../../src/shared/model-auth-types";
 
+interface TestLoginCallbacks {
+	onAuth(event: { url: string; instructions?: string }): void;
+	onProgress?(message: string): void;
+	onPrompt(prompt: { message: string; placeholder?: string }): Promise<string>;
+}
+
 function fakeModelRegistry() {
 	return {
 		getAll: () => [],
@@ -26,10 +32,16 @@ describe("ModelAuthService OAuth", () => {
 			loadPi: async () => ({
 				AuthStorage: {
 					create: () => ({
-						login: async (_provider: string, callbacks: any) => {
-							callbacks.onAuth({ url: "https://auth.example", instructions: "Go" });
+						login: async (_provider: string, callbacks: TestLoginCallbacks) => {
+							callbacks.onAuth({
+								url: "https://auth.example",
+								instructions: "Go",
+							});
 							callbacks.onProgress?.("Waiting");
-							promptValue = await callbacks.onPrompt({ message: "Code?", placeholder: "123" });
+							promptValue = await callbacks.onPrompt({
+								message: "Code?",
+								placeholder: "123",
+							});
 						},
 						reload: () => {},
 						list: () => [],
@@ -39,7 +51,12 @@ describe("ModelAuthService OAuth", () => {
 					}),
 				},
 				ModelRegistry: {
-					create: () => ({ ...fakeModelRegistry(), refresh: () => { refreshed = true; } }),
+					create: () => ({
+						...fakeModelRegistry(),
+						refresh: () => {
+							refreshed = true;
+						},
+					}),
 				},
 			}),
 		});
@@ -48,7 +65,8 @@ describe("ModelAuthService OAuth", () => {
 		const { loginId } = await service.startOAuthLogin("anthropic");
 		await waitFor(() => events.some((event) => event.type === "oauth.prompt"));
 		const prompt = events.find((event) => event.type === "oauth.prompt");
-		if (!prompt || prompt.type !== "oauth.prompt") throw new Error("missing prompt");
+		if (!prompt || prompt.type !== "oauth.prompt")
+			throw new Error("missing prompt");
 
 		service.respondOAuthPrompt(loginId, prompt.promptId, "abc123");
 		await waitFor(() => events.some((event) => event.type === "oauth.success"));
@@ -67,7 +85,7 @@ describe("ModelAuthService OAuth", () => {
 			loadPi: async () => ({
 				AuthStorage: {
 					create: () => ({
-						login: async (_provider: string, callbacks: any) => {
+						login: async (_provider: string, callbacks: TestLoginCallbacks) => {
 							await callbacks.onPrompt({ message: "Code?" });
 						},
 						reload: () => {},

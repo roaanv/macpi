@@ -1,5 +1,5 @@
-// Left-pane skills list. Header + toolbar at top with Install + Import
-// buttons. Each row: enabled checkbox + name (click selects) + hover-revealed
+// Left-pane skills list. Header + install button at top. Each row:
+// enabled checkbox + name (click selects) + hover-revealed
 // ⋮ menu with Uninstall. The raw pi source is collapsed to a friendly label
 // (and shown in full on hover) because the install path is rarely what the
 // user wants to read.
@@ -17,14 +17,12 @@ interface SkillsListProps {
 	selectedId: string | null;
 	onSelect: (id: string | null) => void;
 	onInstall: () => void;
-	onImport: () => void;
 }
 
 export function SkillsList({
 	selectedId,
 	onSelect,
 	onInstall,
-	onImport,
 }: SkillsListProps) {
 	const skills = useSkills();
 	const setEnabled = useSetSkillEnabled();
@@ -45,13 +43,6 @@ export function SkillsList({
 					>
 						+ Install…
 					</button>
-					<button
-						type="button"
-						onClick={onImport}
-						className="surface-row rounded px-2 py-1 text-xs hover:opacity-80"
-					>
-						Import from ~/.pi
-					</button>
 				</div>
 			</div>
 			<div className="flex-1 overflow-y-auto p-1">
@@ -65,7 +56,7 @@ export function SkillsList({
 				)}
 				{skills.data && skills.data.skills.length === 0 && (
 					<div className="p-2 text-xs text-muted">
-						No skills yet. Install or import from ~/.pi.
+						No skills yet. Install a Pi package to add skills.
 					</div>
 				)}
 				{skills.data?.skills.map((s) => {

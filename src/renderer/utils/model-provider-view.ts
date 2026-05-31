@@ -1,4 +1,7 @@
-import type { ModelSummary, ProviderSummary } from "../../shared/model-auth-types";
+import type {
+	ModelSummary,
+	ProviderSummary,
+} from "../../shared/model-auth-types";
 
 export type ProviderFilter = "all" | "configured" | "cloud" | "local";
 
@@ -27,7 +30,8 @@ export function filterProviderViews(
 ): ProviderView[] {
 	const normalized = query.trim().toLowerCase();
 	return providers.filter((provider) => {
-		if (filter === "configured" && !provider.authStatus.configured) return false;
+		if (filter === "configured" && !provider.authStatus.configured)
+			return false;
 		if (filter === "cloud" && provider.kind !== "cloud") return false;
 		if (filter === "local" && provider.kind !== "local") return false;
 		if (!normalized) return true;
@@ -49,5 +53,9 @@ export function providerInitials(name: string): string {
 }
 
 function isLocalProvider(providerId: string): boolean {
-	return providerId.startsWith("local-") || providerId.includes("ollama") || providerId.includes("lmstudio");
+	return (
+		providerId.startsWith("local-") ||
+		providerId.includes("ollama") ||
+		providerId.includes("lmstudio")
+	);
 }

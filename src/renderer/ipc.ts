@@ -30,7 +30,9 @@ export function onPiEvent(listener: (event: unknown) => void): () => void {
 	return window.macpi.onPiEvent(listener);
 }
 
-export function onOAuthEvent(listener: (event: OAuthEvent) => void): () => void {
+export function onOAuthEvent(
+	listener: (event: OAuthEvent) => void,
+): () => void {
 	return window.macpi.onOAuthEvent(listener);
 }
 

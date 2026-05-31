@@ -179,7 +179,8 @@ export function buildProxyEnv(
 }
 
 /**
- * Resource root — where pi's loader/package-manager are pointed. Home-relative
+ * MacPi app data root. Pi runtime resources use ~/.pi/agent; this location is
+ * for MacPi-owned data such as notes, auth, and model settings. Home-relative
  * default (~/.macpi) is resolved at read time so we don't bake the path into
  * the defaults map.
  */

@@ -9,13 +9,11 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import {
-	getResourceEnabled,
-	getResourceRoot,
-} from "../shared/app-settings-keys";
+import { getResourceEnabled } from "../shared/app-settings-keys";
 import type { PiEvent } from "../shared/pi-events";
 import type { PromptManifest, PromptSummary } from "../shared/prompts-types";
 import { promptResourceId } from "../shared/resource-id";
+import { getGlobalPiAgentRoot } from "./pi-agent-root";
 import type { AppSettingsRepo } from "./repos/app-settings";
 
 interface PiPromptTemplate {
@@ -64,7 +62,7 @@ export class PromptsService {
 	constructor(private readonly deps: PromptsServiceDeps) {}
 
 	private resourceRoot(): string {
-		return getResourceRoot(this.deps.appSettings.getAll(), this.deps.homeDir);
+		return getGlobalPiAgentRoot(this.deps.homeDir);
 	}
 
 	private idFor(p: PiPromptTemplate): {

@@ -29,7 +29,11 @@ export function navigateComposerHistory({
 		if (activeIndex === null) {
 			if (input.length > 0) return { handled: false, input, activeIndex: null };
 			const nextIndex = history.length - 1;
-			return { handled: true, input: history[nextIndex], activeIndex: nextIndex };
+			return {
+				handled: true,
+				input: history[nextIndex],
+				activeIndex: nextIndex,
+			};
 		}
 
 		const nextIndex = Math.max(0, activeIndex - 1);

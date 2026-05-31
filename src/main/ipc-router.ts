@@ -3,18 +3,13 @@
 // registry. Errors are caught and returned as structured IpcResult values.
 
 import os from "node:os";
-import path from "node:path";
 import { app, ipcMain, shell } from "electron";
-import {
-	getResourceRoot,
-	getDefaultCwd as readDefaultCwdFromSettings,
-} from "../shared/app-settings-keys";
+import { getDefaultCwd as readDefaultCwdFromSettings } from "../shared/app-settings-keys";
 import {
 	buildContextBreakdown,
 	sumAssistantUsage,
 } from "../shared/context-breakdown";
 import { resolveCwd } from "../shared/cwd-resolver";
-import { friendlyNameForSource } from "../shared/friendly-name";
 import {
 	coerceThinkingLevel,
 	err,
@@ -30,10 +25,6 @@ import { FilesError, type FilesService } from "./files-service";
 import type { Logger } from "./logger";
 import type { ModelAuthService } from "./model-auth-service";
 import type { NotesService } from "./notes-service";
-import {
-	importSelectedPiTopLevelFiles,
-	listPiTopLevelFiles,
-} from "./pi-import";
 import type { PiSessionManager } from "./pi-session-manager";
 import type { PromptsService } from "./prompts-service";
 import type { AppSettingsRepo } from "./repos/app-settings";
@@ -551,91 +542,6 @@ export class IpcRouter {
 				return ok({});
 			} catch (e) {
 				return err("remove_failed", e instanceof Error ? e.message : String(e));
-			}
-		});
-		this.register("resources.listPiResources", async (args) => {
-			const piAgentRoot = path.join(os.homedir(), ".pi", "agent");
-			const macpiRoot = getResourceRoot(
-				this.deps.appSettings.getAll(),
-				os.homedir(),
-			);
-			if (args.kind === "skill" || args.kind === "prompt") {
-				const subdir = args.kind === "skill" ? "skills" : "prompts";
-				const files = listPiTopLevelFiles({
-					piAgentRoot,
-					macpiRoot,
-					subdir,
-				});
-				return ok({
-					resources: files.map((f) => ({
-						name: f.name,
-						displayName: f.name,
-						alreadyImported: f.alreadyImported,
-					})),
-				});
-			}
-			// extension kind: list pi's configured packages and compare against
-			// macpi's already-registered sources.
-			try {
-				const [piPackages, macpiSources] = await Promise.all([
-					this.deps.piSessionManager.listConfiguredPiPackages(piAgentRoot),
-					this.deps.piSessionManager.listMacpiConfiguredSources(),
-				]);
-				const macpiSet = new Set(macpiSources);
-				const resources = piPackages
-					.map((p) => ({
-						name: p.source,
-						displayName: friendlyNameForSource(p.source),
-						alreadyImported: macpiSet.has(p.source),
-					}))
-					.sort((a, b) => a.displayName.localeCompare(b.displayName));
-				return ok({ resources });
-			} catch (e) {
-				const msg = e instanceof Error ? e.message : String(e);
-				return err("list_failed", msg);
-			}
-		});
-		this.register("resources.importPiResources", async (args) => {
-			if (args.kind === "skill" || args.kind === "prompt") {
-				try {
-					const subdir = args.kind === "skill" ? "skills" : "prompts";
-					const r = importSelectedPiTopLevelFiles({
-						piAgentRoot: path.join(os.homedir(), ".pi", "agent"),
-						macpiRoot: getResourceRoot(
-							this.deps.appSettings.getAll(),
-							os.homedir(),
-						),
-						subdir,
-						names: args.names,
-					});
-					return ok(r);
-				} catch (e) {
-					const msg = e instanceof Error ? e.message : String(e);
-					return err("import_failed", msg);
-				}
-			}
-			// extension kind: register each source via macpi's package manager.
-			// installAndPersist both adds to settings.packages and installs the
-			// package into macpi's agent dir.
-			try {
-				const pm = await this.deps.piSessionManager.loadPackageManager();
-				let copied = 0;
-				let skipped = 0;
-				const existing = new Set(
-					pm.listConfiguredPackages().map((p) => p.source),
-				);
-				for (const source of args.names) {
-					if (existing.has(source)) {
-						skipped++;
-						continue;
-					}
-					await pm.installAndPersist(source, { local: false });
-					copied++;
-				}
-				return ok({ copied, skipped });
-			} catch (e) {
-				const msg = e instanceof Error ? e.message : String(e);
-				return err("import_failed", msg);
 			}
 		});
 		this.register("extensions.list", async () => {

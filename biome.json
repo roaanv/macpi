@@ -1,7 +1,17 @@
 {
 	"$schema": "https://biomejs.dev/schemas/2.4.14/schema.json",
 	"files": {
-		"includes": ["**", "!**/dist", "!**/out", "!**/node_modules", "!**/.vite"]
+		"includes": [
+			"**",
+			"!**/dist",
+			"!**/out",
+			"!**/node_modules",
+			"!**/.vite",
+			"!**/.pi",
+			"!**/.gitnexus",
+			"!**/.claire",
+			"!**/graphify-out"
+		]
 	},
 	"formatter": { "enabled": true, "indentStyle": "tab" },
 	"linter": {

@@ -16,11 +16,16 @@ describe("ModelAuthService paths", () => {
 			macpiRoot: root,
 			loadPi: async () => ({
 				AuthStorage: {
-					create: (p: string) => (calls.push(`auth:${p}`), fakeAuthStorage()),
+					create: (p: string) => {
+						calls.push(`auth:${p}`);
+						return fakeAuthStorage();
+					},
 				},
 				ModelRegistry: {
-					create: (_auth: unknown, p: string) =>
-						(calls.push(`models:${p}`), fakeModelRegistry()),
+					create: (_auth: unknown, p: string) => {
+						calls.push(`models:${p}`);
+						return fakeModelRegistry();
+					},
 				},
 			}),
 		});
@@ -52,11 +57,11 @@ describe("ModelAuthService API key auth", () => {
 			}),
 		});
 
-		await expect(service.saveApiKey("anthropic", " sk-test ")).resolves.toBeUndefined();
+		await expect(
+			service.saveApiKey("anthropic", " sk-test "),
+		).resolves.toBeUndefined();
 
-		expect(calls).toEqual([
-			["anthropic", { type: "api_key", key: "sk-test" }],
-		]);
+		expect(calls).toEqual([["anthropic", { type: "api_key", key: "sk-test" }]]);
 	});
 
 	it("rejects empty keys and invalid provider ids", async () => {
@@ -83,7 +88,12 @@ describe("ModelAuthService API key auth", () => {
 					}),
 				},
 				ModelRegistry: {
-					create: () => ({ ...fakeModelRegistry(), refresh: () => { refreshed = true; } }),
+					create: () => ({
+						...fakeModelRegistry(),
+						refresh: () => {
+							refreshed = true;
+						},
+					}),
 				},
 			}),
 		});
@@ -176,7 +186,9 @@ describe("ModelAuthService models.json editor", () => {
 			macpiRoot: root,
 			loadPi: async () => ({
 				AuthStorage: { create: () => fakeAuthStorage() },
-				ModelRegistry: { create: () => fakeModelRegistry({ registryError: "warn" }) },
+				ModelRegistry: {
+					create: () => fakeModelRegistry({ registryError: "warn" }),
+				},
 			}),
 		});
 
@@ -195,21 +207,30 @@ describe("ModelAuthService models.json editor", () => {
 			loadPi: async () => ({
 				AuthStorage: { create: () => fakeAuthStorage() },
 				ModelRegistry: {
-					create: () => ({ ...fakeModelRegistry(), refresh: () => { refreshed = true; } }),
+					create: () => ({
+						...fakeModelRegistry(),
+						refresh: () => {
+							refreshed = true;
+						},
+					}),
 				},
 			}),
 		});
 
-		await expect(service.writeModelsJson("{\"providers\":[]}")).resolves.toEqual({ registryError: undefined });
+		await expect(service.writeModelsJson('{"providers":[]}')).resolves.toEqual({
+			registryError: undefined,
+		});
 
-		expect(fs.readFileSync(path.join(root, "models.json"), "utf8")).toBe("{\"providers\":[]}");
+		expect(fs.readFileSync(path.join(root, "models.json"), "utf8")).toBe(
+			'{"providers":[]}',
+		);
 		expect(refreshed).toBe(true);
 	});
 
 	it("rejects invalid models JSON before writing", async () => {
 		const service = new ModelAuthService({ macpiRoot: tempRoot() });
 
-		await expect(service.writeModelsJson("{" )).rejects.toThrow(
+		await expect(service.writeModelsJson("{")).rejects.toThrow(
 			"macpi editor currently accepts strict JSON only",
 		);
 	});
@@ -248,11 +269,17 @@ describe("ModelAuthService local OpenAI providers", () => {
 				AuthStorage: {
 					create: () => ({
 						...fakeAuthStorage(),
-						set: (provider: string, credential: unknown) => authCalls.push([provider, credential]),
+						set: (provider: string, credential: unknown) =>
+							authCalls.push([provider, credential]),
 					}),
 				},
 				ModelRegistry: {
-					create: () => ({ ...fakeModelRegistry(), refresh: () => { refreshed = true; } }),
+					create: () => ({
+						...fakeModelRegistry(),
+						refresh: () => {
+							refreshed = true;
+						},
+					}),
 				},
 			}),
 		});
@@ -266,7 +293,9 @@ describe("ModelAuthService local OpenAI providers", () => {
 			selectedModelId: "llama3",
 		});
 
-		const saved = JSON.parse(fs.readFileSync(path.join(root, "models.json"), "utf8"));
+		const saved = JSON.parse(
+			fs.readFileSync(path.join(root, "models.json"), "utf8"),
+		);
 		expect(saved.providers["local-ollama"]).toMatchObject({
 			name: "Local Ollama",
 			baseUrl: "http://localhost:11434/v1",
@@ -304,15 +333,20 @@ describe("ModelAuthService import", () => {
 		const home = tempRoot();
 		const root = tempRoot();
 		fs.mkdirSync(path.join(home, ".pi", "agent"), { recursive: true });
-		fs.writeFileSync(path.join(home, ".pi", "agent", "auth.json"), "{\"a\":1}");
-		fs.writeFileSync(path.join(home, ".pi", "agent", "models.json"), "{\"m\":1}");
+		fs.writeFileSync(path.join(home, ".pi", "agent", "auth.json"), '{"a":1}');
+		fs.writeFileSync(path.join(home, ".pi", "agent", "models.json"), '{"m":1}');
 		let refreshed = false;
 		const service = new ModelAuthService({
 			macpiRoot: root,
 			loadPi: async () => ({
 				AuthStorage: { create: () => fakeAuthStorage() },
 				ModelRegistry: {
-					create: () => ({ ...fakeModelRegistry(), refresh: () => { refreshed = true; } }),
+					create: () => ({
+						...fakeModelRegistry(),
+						refresh: () => {
+							refreshed = true;
+						},
+					}),
 				},
 			}),
 		});
@@ -325,8 +359,12 @@ describe("ModelAuthService import", () => {
 		});
 
 		expect(result).toEqual({ copiedAuth: true, copiedModels: true });
-		expect(fs.readFileSync(path.join(root, "auth.json"), "utf8")).toBe("{\"a\":1}");
-		expect(fs.readFileSync(path.join(root, "models.json"), "utf8")).toBe("{\"m\":1}");
+		expect(fs.readFileSync(path.join(root, "auth.json"), "utf8")).toBe(
+			'{"a":1}',
+		);
+		expect(fs.readFileSync(path.join(root, "models.json"), "utf8")).toBe(
+			'{"m":1}',
+		);
 		expect(refreshed).toBe(true);
 	});
 
@@ -334,8 +372,8 @@ describe("ModelAuthService import", () => {
 		const home = tempRoot();
 		const root = tempRoot();
 		fs.mkdirSync(path.join(home, ".pi", "agent"), { recursive: true });
-		fs.writeFileSync(path.join(home, ".pi", "agent", "auth.json"), "{\"new\":1}");
-		fs.writeFileSync(path.join(root, "auth.json"), "{\"old\":1}");
+		fs.writeFileSync(path.join(home, ".pi", "agent", "auth.json"), '{"new":1}');
+		fs.writeFileSync(path.join(root, "auth.json"), '{"old":1}');
 		const service = new ModelAuthService({ macpiRoot: root });
 
 		await expect(
@@ -390,9 +428,9 @@ describe("ModelAuthService summaries", () => {
 			"anthropic",
 			"openai-codex",
 		]);
-		expect(
-			providers.find((p) => p.id === "openai-codex")?.supportsOAuth,
-		).toBe(true);
+		expect(providers.find((p) => p.id === "openai-codex")?.supportsOAuth).toBe(
+			true,
+		);
 		expect(providers.find((p) => p.id === "anthropic")?.modelCount).toBe(2);
 		expect(
 			providers.find((p) => p.id === "anthropic")?.availableModelCount,
@@ -408,7 +446,9 @@ describe("ModelAuthService summaries", () => {
 				ModelRegistry: {
 					create: () =>
 						fakeModelRegistry({
-							models: [fakeModel("anthropic", "claude-sonnet", "Claude Sonnet")],
+							models: [
+								fakeModel("anthropic", "claude-sonnet", "Claude Sonnet"),
+							],
 							displayNames: { anthropic: "Anthropic" },
 							authenticatedModelKeys: new Set(["anthropic/claude-sonnet"]),
 							oauthModelKeys: new Set(["anthropic/claude-sonnet"]),
@@ -463,7 +503,10 @@ function fakeModelRegistry(opts?: {
 	models?: ReturnType<typeof fakeModel>[];
 	availableModels?: ReturnType<typeof fakeModel>[];
 	displayNames?: Record<string, string>;
-	authStatuses?: Record<string, { configured: boolean; source?: string; label?: string }>;
+	authStatuses?: Record<
+		string,
+		{ configured: boolean; source?: string; label?: string }
+	>;
 	authenticatedModelKeys?: Set<string>;
 	oauthModelKeys?: Set<string>;
 	registryError?: string;
@@ -483,7 +526,8 @@ function fakeModelRegistry(opts?: {
 		getProviderDisplayName: (provider: string) =>
 			opts?.displayNames?.[provider] ?? provider,
 		hasConfiguredAuth: (model: ReturnType<typeof fakeModel>) =>
-			opts?.authenticatedModelKeys?.has(`${model.provider}/${model.id}`) ?? false,
+			opts?.authenticatedModelKeys?.has(`${model.provider}/${model.id}`) ??
+			false,
 		isUsingOAuth: (model: ReturnType<typeof fakeModel>) =>
 			opts?.oauthModelKeys?.has(`${model.provider}/${model.id}`) ?? false,
 	};

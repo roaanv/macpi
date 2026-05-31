@@ -28,7 +28,7 @@ describe("ExtensionsService", () => {
 	let dir: string;
 	beforeEach(() => {
 		dir = mkdtempSync(path.join(os.tmpdir(), "macpi-ext-"));
-		mkdirSync(path.join(dir, ".macpi/extensions"), { recursive: true });
+		mkdirSync(path.join(dir, ".pi/agent/extensions"), { recursive: true });
 	});
 	afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
@@ -36,7 +36,6 @@ describe("ExtensionsService", () => {
 		const db = makeDb();
 		const appSettings = new AppSettingsRepo(db);
 		if (opts.enabled) appSettings.set("resourceEnabled", opts.enabled);
-		appSettings.set("resourceRoot", path.join(dir, ".macpi"));
 		return new ExtensionsService({
 			appSettings,
 			homeDir: dir,
@@ -44,12 +43,12 @@ describe("ExtensionsService", () => {
 				extensions: [
 					{
 						path: "a.ts",
-						resolvedPath: path.join(dir, ".macpi/extensions/a.ts"),
+						resolvedPath: path.join(dir, ".pi/agent/extensions/a.ts"),
 						sourceInfo: { source: "local" },
 					},
 					{
 						path: "b.ts",
-						resolvedPath: path.join(dir, ".macpi/extensions/b.ts"),
+						resolvedPath: path.join(dir, ".pi/agent/extensions/b.ts"),
 						sourceInfo: { source: "local" },
 					},
 				],
@@ -88,7 +87,7 @@ describe("ExtensionsService", () => {
 
 	it("read returns the entry file body", async () => {
 		writeFileSync(
-			path.join(dir, ".macpi/extensions/a.ts"),
+			path.join(dir, ".pi/agent/extensions/a.ts"),
 			"export default () => {}",
 		);
 		const svc = makeService({});
@@ -104,19 +103,18 @@ describe("ExtensionsService", () => {
 	});
 
 	it("save writes the body to resolvedPath", async () => {
-		writeFileSync(path.join(dir, ".macpi/extensions/a.ts"), "old");
+		writeFileSync(path.join(dir, ".pi/agent/extensions/a.ts"), "old");
 		const svc = makeService({});
 		const result = await svc.list();
 		await svc.save(result.extensions[0].id, "new body");
-		expect(readFileSync(path.join(dir, ".macpi/extensions/a.ts"), "utf8")).toBe(
-			"new body",
-		);
+		expect(
+			readFileSync(path.join(dir, ".pi/agent/extensions/a.ts"), "utf8"),
+		).toBe("new body");
 	});
 
 	it("save throws when the extension has no resolved path", async () => {
 		const db = makeDb();
 		const appSettings = new AppSettingsRepo(db);
-		appSettings.set("resourceRoot", path.join(dir, ".macpi"));
 		const svc = new ExtensionsService({
 			appSettings,
 			homeDir: dir,
@@ -151,10 +149,9 @@ describe("ExtensionsService", () => {
 	});
 
 	it("lint forwards to the injected biome runner", async () => {
-		writeFileSync(path.join(dir, ".macpi/extensions/a.ts"), "const x = 1;");
+		writeFileSync(path.join(dir, ".pi/agent/extensions/a.ts"), "const x = 1;");
 		const db = makeDb();
 		const appSettings = new AppSettingsRepo(db);
-		appSettings.set("resourceRoot", path.join(dir, ".macpi"));
 		const runBiome = vi.fn().mockResolvedValue([
 			{
 				severity: "warn",
@@ -171,7 +168,7 @@ describe("ExtensionsService", () => {
 				extensions: [
 					{
 						path: "a.ts",
-						resolvedPath: path.join(dir, ".macpi/extensions/a.ts"),
+						resolvedPath: path.join(dir, ".pi/agent/extensions/a.ts"),
 						sourceInfo: { source: "local" },
 					},
 				],
@@ -186,7 +183,7 @@ describe("ExtensionsService", () => {
 		const result = await svc.list();
 		const diags = await svc.lint(result.extensions[0].id);
 		expect(runBiome).toHaveBeenCalledWith(
-			path.join(dir, ".macpi/extensions/a.ts"),
+			path.join(dir, ".pi/agent/extensions/a.ts"),
 		);
 		expect(diags).toHaveLength(1);
 	});

@@ -12,13 +12,17 @@ export function ImportPiAuthModels() {
 		(auth && data?.destAuthExists) || (models && data?.destModelsExists),
 	);
 	const canImport =
-		Boolean((auth && data?.sourceAuthExists) || (models && data?.sourceModelsExists)) &&
+		Boolean(
+			(auth && data?.sourceAuthExists) || (models && data?.sourceModelsExists),
+		) &&
 		(!hasConflict || replaceExisting);
 
 	return (
 		<div className="flex flex-col gap-2 rounded border border-border/40 p-2 text-sm">
 			<div className="font-medium">Import from installed pi</div>
-			{status.error ? <div className="text-xs text-red-400">{status.error.message}</div> : null}
+			{status.error ? (
+				<div className="text-xs text-red-400">{status.error.message}</div>
+			) : null}
 			{data ? (
 				<div className="grid gap-1 text-xs text-muted">
 					<div>Source auth: {data.sourceAuthPath}</div>
@@ -63,11 +67,14 @@ export function ImportPiAuthModels() {
 			</button>
 			{importMutation.data ? (
 				<div className="text-xs text-green-400">
-					Imported auth: {String(importMutation.data.copiedAuth)}, models: {String(importMutation.data.copiedModels)}
+					Imported auth: {String(importMutation.data.copiedAuth)}, models:{" "}
+					{String(importMutation.data.copiedModels)}
 				</div>
 			) : null}
 			{importMutation.error ? (
-				<div className="text-xs text-red-400">{importMutation.error.message}</div>
+				<div className="text-xs text-red-400">
+					{importMutation.error.message}
+				</div>
 			) : null}
 		</div>
 	);
