@@ -1,37 +1,62 @@
 #!/usr/bin/env bash
-# Patch the dev-mode Electron binary's Info.plist so the macOS menu bar and
-# app switcher show "MacPi" instead of "Electron" during `npm start`.
+# Patch the dev-mode Electron bundle so the macOS Dock and app switcher show
+# "MacPi" instead of "Electron" during `npm start`.
 #
-# macOS reads CFBundleName/CFBundleDisplayName from the running bundle's
-# Info.plist BEFORE the JS executes, so app.setName() at runtime cannot fix
-# this in dev. Packaged builds get the right name automatically via
-# forge.config.ts (packagerConfig.name) — this script is dev-only.
+# In dev, Electron Forge launches the binary from node_modules/electron/dist.
+# macOS derives the visible application/process name from the bundle metadata
+# and executable before our JS runs, so app.setName() cannot fix this at
+# runtime.
 #
-# Runs as a postinstall step so the patch survives reinstalls of the
-# electron package. Silent no-op on non-macOS hosts.
+# We patch the existing Electron.app in place, rename its executable to MacPi,
+# update Info.plist, and rewrite electron/path.txt so the `electron` package
+# returns the renamed binary. The bundle directory remains Electron.app to stay
+# compatible with tools that expect the stock layout.
+#
+# Runs as a postinstall step so the patch survives reinstalls of the electron
+# package. Silent no-op on non-macOS hosts.
 
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
 if [[ "$(uname)" != "Darwin" ]]; then
-    exit 0
-fi
-
-PLIST="node_modules/electron/dist/Electron.app/Contents/Info.plist"
-if [[ ! -f "$PLIST" ]]; then
-    # Electron not installed yet (or layout changed); not our problem.
-    exit 0
+	exit 0
 fi
 
 NAME="MacPi"
+DIST_DIR="node_modules/electron/dist"
+APP_DIR="$DIST_DIR/Electron.app"
+PATH_FILE="node_modules/electron/path.txt"
+ORIGINAL_BIN="$APP_DIR/Contents/MacOS/Electron"
+TARGET_BIN="$APP_DIR/Contents/MacOS/$NAME"
+TARGET_BIN_REL="Electron.app/Contents/MacOS/$NAME"
+PLIST="$APP_DIR/Contents/Info.plist"
+
+if [[ ! -d "$APP_DIR" || ! -f "$PLIST" ]]; then
+	# Electron not installed yet (or layout changed); not our problem.
+	exit 0
+fi
+
+if [[ -f "$ORIGINAL_BIN" && ! -f "$TARGET_BIN" ]]; then
+	mv "$ORIGINAL_BIN" "$TARGET_BIN"
+fi
+
+# Defensive cleanup from older script revisions that renamed the bundle.
+if [[ -d "$DIST_DIR/$NAME.app" && "$DIST_DIR/$NAME.app" != "$APP_DIR" ]]; then
+	rm -rf "$DIST_DIR/$NAME.app"
+fi
+
 /usr/libexec/PlistBuddy -c "Set :CFBundleName $NAME" "$PLIST" 2>/dev/null \
-    || /usr/libexec/PlistBuddy -c "Add :CFBundleName string $NAME" "$PLIST"
+	|| /usr/libexec/PlistBuddy -c "Add :CFBundleName string $NAME" "$PLIST"
 /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName $NAME" "$PLIST" 2>/dev/null \
-    || /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string $NAME" "$PLIST"
+	|| /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string $NAME" "$PLIST"
+/usr/libexec/PlistBuddy -c "Set :CFBundleExecutable $NAME" "$PLIST" 2>/dev/null \
+	|| /usr/libexec/PlistBuddy -c "Add :CFBundleExecutable string $NAME" "$PLIST"
 
-# Bust macOS's LaunchServices cache for this binary so the Finder/Dock pick
-# up the new name immediately instead of relying on a logout/reboot.
-touch node_modules/electron/dist/Electron.app
+printf '%s\n' "$TARGET_BIN_REL" > "$PATH_FILE"
 
-echo "Patched $PLIST: CFBundleName -> $NAME"
+# Bust macOS's LaunchServices cache for this bundle so the Finder/Dock pick up
+# the new name immediately instead of relying on a logout/reboot.
+touch "$APP_DIR"
+
+echo "Patched Electron dev bundle: $APP_DIR ($TARGET_BIN_REL)"
