@@ -28,6 +28,7 @@ DIST_DIR="node_modules/electron/dist"
 APP_DIR="$DIST_DIR/Electron.app"
 PATH_FILE="node_modules/electron/path.txt"
 DEFAULT_BIN="$APP_DIR/Contents/MacOS/Electron"
+BACKUP_BIN="$APP_DIR/Contents/MacOS/Electron.backup_test"
 TARGET_BIN="$APP_DIR/Contents/MacOS/$NAME"
 TARGET_BIN_REL="Electron.app/Contents/MacOS/$NAME"
 PLIST="$APP_DIR/Contents/Info.plist"
@@ -37,12 +38,27 @@ if [[ ! -d "$APP_DIR" || ! -f "$PLIST" ]]; then
 	exit 0
 fi
 
+if [[ -L "$DEFAULT_BIN" ]]; then
+	rm -f "$DEFAULT_BIN"
+	if [[ -f "$TARGET_BIN" ]]; then
+		cp -f "$TARGET_BIN" "$DEFAULT_BIN"
+	elif [[ -f "$BACKUP_BIN" ]]; then
+		cp -f "$BACKUP_BIN" "$DEFAULT_BIN"
+	fi
+	chmod +x "$DEFAULT_BIN" 2>/dev/null || true
+fi
+
+if [[ ! -f "$DEFAULT_BIN" && -f "$TARGET_BIN" ]]; then
+	cp -f "$TARGET_BIN" "$DEFAULT_BIN"
+	chmod +x "$DEFAULT_BIN"
+elif [[ ! -f "$DEFAULT_BIN" && -f "$BACKUP_BIN" ]]; then
+	cp -f "$BACKUP_BIN" "$DEFAULT_BIN"
+	chmod +x "$DEFAULT_BIN"
+fi
+
 if [[ -f "$DEFAULT_BIN" ]]; then
 	cp -f "$DEFAULT_BIN" "$TARGET_BIN"
 	chmod +x "$TARGET_BIN"
-elif [[ -f "$TARGET_BIN" && ! -f "$DEFAULT_BIN" ]]; then
-	cp -f "$TARGET_BIN" "$DEFAULT_BIN"
-	chmod +x "$DEFAULT_BIN"
 fi
 
 # Defensive cleanup from older script revisions that renamed the bundle.
@@ -57,7 +73,7 @@ fi
 /usr/libexec/PlistBuddy -c "Set :CFBundleExecutable $NAME" "$PLIST" 2>/dev/null \
 	|| /usr/libexec/PlistBuddy -c "Add :CFBundleExecutable string $NAME" "$PLIST"
 
-printf '%s\n' "$TARGET_BIN_REL" > "$PATH_FILE"
+printf '%s' "$TARGET_BIN_REL" > "$PATH_FILE"
 
 # Bust macOS's LaunchServices cache for this bundle so the Finder/Dock pick up
 # the new name immediately instead of relying on a logout/reboot.
