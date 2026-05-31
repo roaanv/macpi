@@ -6,8 +6,7 @@
 	"main": ".vite/build/index.js",
 	"private": true,
 	"scripts": {
-		"postinstall": "bash scripts/dev-rename-electron.sh",
-		"start": "bash scripts/dev-rename-electron.sh && electron-forge start",
+		"start": "bash scripts/dev-start-electron.sh",
 		"package": "electron-forge package",
 		"make": "electron-forge make",
 		"publish": "electron-forge publish",

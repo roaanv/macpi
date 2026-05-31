@@ -24,6 +24,7 @@ build/icon.iconset/
 .serverless/
 .superpowers/
 .vite/
+.dev-electron/
 .vuepress/dist
 .webpack/
 .yarn-integrity

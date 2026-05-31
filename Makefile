@@ -1,7 +1,7 @@
 # macpi — top-level Makefile.
 # Canonical commands per project conventions: `make build`, `make run`.
 
-.PHONY: setup build run test test-all lint format typecheck clean deploy dmg
+.PHONY: setup build run run-packaged test test-all lint format typecheck clean deploy dmg
 
 setup:
 	npm install
@@ -11,6 +11,11 @@ build:
 
 run:
 	npm start
+
+# Build and run the packaged .app. This is the closest local approximation of
+# production bundle behavior, including the final Dock / app switcher identity.
+run-packaged: build
+	bash scripts/run-packaged-app.sh
 
 test:
 	npm test

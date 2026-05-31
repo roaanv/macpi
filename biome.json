@@ -10,7 +10,8 @@
 			"!**/.pi",
 			"!**/.gitnexus",
 			"!**/.claire",
-			"!**/graphify-out"
+			"!**/graphify-out",
+			"!**/.dev-electron"
 		]
 	},
 	"formatter": { "enabled": true, "indentStyle": "tab" },

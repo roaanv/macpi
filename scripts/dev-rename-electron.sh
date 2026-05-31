@@ -1,19 +1,11 @@
 #!/usr/bin/env bash
-# Patch the dev-mode Electron bundle so the macOS Dock and app switcher show
-# "MacPi" instead of "Electron" during `npm start`.
+# Prepare a dedicated macOS dev Electron bundle that shows "MacPi" in the
+# Dock / app switcher without mutating node_modules/electron in place.
 #
-# In dev, Electron Forge launches the binary from node_modules/electron/dist.
-# macOS derives the visible application/process name from the bundle metadata
-# and executable before our JS runs, so app.setName() cannot fix this at
-# runtime.
-#
-# We patch the existing Electron.app in place, duplicate the executable to a
-# MacPi-named binary, update Info.plist, and rewrite electron/path.txt so the
-# `electron` package returns the renamed binary. The stock Electron binary is
-# kept in place so the install remains healthy even if other tooling expects it.
-#
-# Runs as a postinstall step so the patch survives reinstalls of the electron
-# package. Silent no-op on non-macOS hosts.
+# This copies Electron.app into .dev-electron/MacPi.app, patches the copied
+# bundle metadata, and duplicates the executable to a MacPi-named binary.
+# electron-forge start is then pointed at .dev-electron via
+# ELECTRON_OVERRIDE_DIST_PATH by scripts/dev-start-electron.sh.
 
 set -euo pipefail
 
@@ -24,47 +16,30 @@ if [[ "$(uname)" != "Darwin" ]]; then
 fi
 
 NAME="MacPi"
-DIST_DIR="node_modules/electron/dist"
-APP_DIR="$DIST_DIR/Electron.app"
-PATH_FILE="node_modules/electron/path.txt"
-DEFAULT_BIN="$APP_DIR/Contents/MacOS/Electron"
-BACKUP_BIN="$APP_DIR/Contents/MacOS/Electron.backup_test"
-TARGET_BIN="$APP_DIR/Contents/MacOS/$NAME"
-TARGET_BIN_REL="Electron.app/Contents/MacOS/$NAME"
-PLIST="$APP_DIR/Contents/Info.plist"
+BUNDLE_ID="io.0112.macpi.dev"
+SRC_APP="node_modules/electron/dist/Electron.app"
+DEV_DIST_DIR=".dev-electron"
+DST_APP="$DEV_DIST_DIR/$NAME.app"
+PLIST="$DST_APP/Contents/Info.plist"
+SRC_BIN="$DST_APP/Contents/MacOS/Electron"
+DST_BIN="$DST_APP/Contents/MacOS/$NAME"
 
-if [[ ! -d "$APP_DIR" || ! -f "$PLIST" ]]; then
-	# Electron not installed yet (or layout changed); not our problem.
-	exit 0
+if [[ ! -d "$SRC_APP" ]]; then
+	echo "error: $SRC_APP not found. Run npm install first." >&2
+	exit 1
 fi
 
-if [[ -L "$DEFAULT_BIN" ]]; then
-	rm -f "$DEFAULT_BIN"
-	if [[ -f "$TARGET_BIN" ]]; then
-		cp -f "$TARGET_BIN" "$DEFAULT_BIN"
-	elif [[ -f "$BACKUP_BIN" ]]; then
-		cp -f "$BACKUP_BIN" "$DEFAULT_BIN"
-	fi
-	chmod +x "$DEFAULT_BIN" 2>/dev/null || true
+rm -rf "$DEV_DIST_DIR"
+mkdir -p "$DEV_DIST_DIR"
+cp -R "$SRC_APP" "$DST_APP"
+
+if [[ ! -f "$PLIST" || ! -f "$SRC_BIN" ]]; then
+	echo "error: copied Electron bundle is missing expected files" >&2
+	exit 1
 fi
 
-if [[ ! -f "$DEFAULT_BIN" && -f "$TARGET_BIN" ]]; then
-	cp -f "$TARGET_BIN" "$DEFAULT_BIN"
-	chmod +x "$DEFAULT_BIN"
-elif [[ ! -f "$DEFAULT_BIN" && -f "$BACKUP_BIN" ]]; then
-	cp -f "$BACKUP_BIN" "$DEFAULT_BIN"
-	chmod +x "$DEFAULT_BIN"
-fi
-
-if [[ -f "$DEFAULT_BIN" ]]; then
-	cp -f "$DEFAULT_BIN" "$TARGET_BIN"
-	chmod +x "$TARGET_BIN"
-fi
-
-# Defensive cleanup from older script revisions that renamed the bundle.
-if [[ -d "$DIST_DIR/$NAME.app" && "$DIST_DIR/$NAME.app" != "$APP_DIR" ]]; then
-	rm -rf "$DIST_DIR/$NAME.app"
-fi
+cp -f "$SRC_BIN" "$DST_BIN"
+chmod +x "$DST_BIN"
 
 /usr/libexec/PlistBuddy -c "Set :CFBundleName $NAME" "$PLIST" 2>/dev/null \
 	|| /usr/libexec/PlistBuddy -c "Add :CFBundleName string $NAME" "$PLIST"
@@ -72,11 +47,11 @@ fi
 	|| /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string $NAME" "$PLIST"
 /usr/libexec/PlistBuddy -c "Set :CFBundleExecutable $NAME" "$PLIST" 2>/dev/null \
 	|| /usr/libexec/PlistBuddy -c "Add :CFBundleExecutable string $NAME" "$PLIST"
+/usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_ID" "$PLIST" 2>/dev/null \
+	|| /usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string $BUNDLE_ID" "$PLIST"
 
-printf '%s' "$TARGET_BIN_REL" > "$PATH_FILE"
+codesign --force --deep --sign - "$DST_APP" >/dev/null 2>&1 || true
 
-# Bust macOS's LaunchServices cache for this bundle so the Finder/Dock pick up
-# the new name immediately instead of relying on a logout/reboot.
-touch "$APP_DIR"
+touch "$DST_APP"
 
-echo "Patched Electron dev bundle: $APP_DIR ($TARGET_BIN_REL)"
+echo "Prepared dev Electron bundle: $DST_APP"
