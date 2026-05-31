@@ -7,7 +7,7 @@
 	"private": true,
 	"scripts": {
 		"postinstall": "bash scripts/dev-rename-electron.sh",
-		"start": "electron-forge start",
+		"start": "bash scripts/dev-rename-electron.sh && electron-forge start",
 		"package": "electron-forge package",
 		"make": "electron-forge make",
 		"publish": "electron-forge publish",

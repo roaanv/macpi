@@ -7,10 +7,10 @@
 # and executable before our JS runs, so app.setName() cannot fix this at
 # runtime.
 #
-# We patch the existing Electron.app in place, rename its executable to MacPi,
-# update Info.plist, and rewrite electron/path.txt so the `electron` package
-# returns the renamed binary. The bundle directory remains Electron.app to stay
-# compatible with tools that expect the stock layout.
+# We patch the existing Electron.app in place, duplicate the executable to a
+# MacPi-named binary, update Info.plist, and rewrite electron/path.txt so the
+# `electron` package returns the renamed binary. The stock Electron binary is
+# kept in place so the install remains healthy even if other tooling expects it.
 #
 # Runs as a postinstall step so the patch survives reinstalls of the electron
 # package. Silent no-op on non-macOS hosts.
@@ -27,7 +27,7 @@ NAME="MacPi"
 DIST_DIR="node_modules/electron/dist"
 APP_DIR="$DIST_DIR/Electron.app"
 PATH_FILE="node_modules/electron/path.txt"
-ORIGINAL_BIN="$APP_DIR/Contents/MacOS/Electron"
+DEFAULT_BIN="$APP_DIR/Contents/MacOS/Electron"
 TARGET_BIN="$APP_DIR/Contents/MacOS/$NAME"
 TARGET_BIN_REL="Electron.app/Contents/MacOS/$NAME"
 PLIST="$APP_DIR/Contents/Info.plist"
@@ -37,8 +37,12 @@ if [[ ! -d "$APP_DIR" || ! -f "$PLIST" ]]; then
 	exit 0
 fi
 
-if [[ -f "$ORIGINAL_BIN" && ! -f "$TARGET_BIN" ]]; then
-	mv "$ORIGINAL_BIN" "$TARGET_BIN"
+if [[ -f "$DEFAULT_BIN" ]]; then
+	cp -f "$DEFAULT_BIN" "$TARGET_BIN"
+	chmod +x "$TARGET_BIN"
+elif [[ -f "$TARGET_BIN" && ! -f "$DEFAULT_BIN" ]]; then
+	cp -f "$TARGET_BIN" "$DEFAULT_BIN"
+	chmod +x "$DEFAULT_BIN"
 fi
 
 # Defensive cleanup from older script revisions that renamed the bundle.
