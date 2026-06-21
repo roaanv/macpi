@@ -1,4 +1,9 @@
 import React from "react";
+import {
+	type FavouriteModelSetting,
+	getFavouriteModels,
+	modelRefKey,
+} from "../../shared/app-settings-keys";
 import type {
 	LocalOpenAIModelCandidate,
 	ModelSummary,
@@ -12,6 +17,8 @@ import {
 	useSaveLocalOpenAIProvider,
 	useSelectedModel,
 	useSetSelectedModel,
+	useSetSetting,
+	useSettings,
 } from "../queries";
 import {
 	buildProviderViews,
@@ -25,6 +32,7 @@ import { OAuthLoginDialog } from "./OAuthLoginDialog";
 
 const FILTERS: Array<{ id: ProviderFilter; label: string }> = [
 	{ id: "all", label: "All" },
+	{ id: "favourites", label: "Favourites" },
 	{ id: "configured", label: "Configured" },
 	{ id: "cloud", label: "Cloud" },
 	{ id: "local", label: "Local" },
@@ -34,8 +42,10 @@ export function ModelsAuthSettings() {
 	const providers = useModelAuthProviders();
 	const models = useModelAuthModels();
 	const selected = useSelectedModel();
+	const settings = useSettings();
 	const setSelected = useSetSelectedModel();
 	const saveApiKey = useSaveApiKey();
+	const setSetting = useSetSetting();
 	const logout = useLogoutProvider();
 	const [oauthProvider, setOAuthProvider] = React.useState<string | null>(null);
 	const [selectedProviderId, setSelectedProviderId] = React.useState<
@@ -50,6 +60,14 @@ export function ModelsAuthSettings() {
 	const [showAdvanced, setShowAdvanced] = React.useState(false);
 	const [showImport, setShowImport] = React.useState(false);
 	const [addingLocal, setAddingLocal] = React.useState(false);
+	const favouriteModels = React.useMemo(
+		() => getFavouriteModels(settings.data?.settings ?? {}),
+		[settings.data?.settings],
+	);
+	const favouriteModelKeys = React.useMemo(
+		() => new Set(favouriteModels.map(modelRefKey)),
+		[favouriteModels],
+	);
 
 	const providerViews = React.useMemo(
 		() =>
@@ -60,16 +78,15 @@ export function ModelsAuthSettings() {
 		[providers.data?.providers, models.data?.models],
 	);
 	const filteredProviders = React.useMemo(
-		() => filterProviderViews(providerViews, filter, query),
-		[providerViews, filter, query],
+		() => filterProviderViews(providerViews, filter, query, favouriteModelKeys),
+		[providerViews, filter, query, favouriteModelKeys],
 	);
 	const activeProvider =
-		providerViews.find((provider) => provider.id === selectedProviderId) ??
-		providerViews.find(
+		filteredProviders.find((provider) => provider.id === selectedProviderId) ??
+		filteredProviders.find(
 			(provider) => provider.id === selected.data?.model?.provider,
 		) ??
 		filteredProviders[0] ??
-		providerViews[0] ??
 		null;
 
 	React.useEffect(() => {
@@ -77,6 +94,17 @@ export function ModelsAuthSettings() {
 		if (selectedProviderId === activeProvider.id) return;
 		setSelectedProviderId(activeProvider.id);
 	}, [activeProvider, selectedProviderId]);
+
+	const toggleFavouriteModel = React.useCallback(
+		(model: FavouriteModelSetting) => {
+			const key = modelRefKey(model);
+			const next = favouriteModelKeys.has(key)
+				? favouriteModels.filter((item) => modelRefKey(item) !== key)
+				: [...favouriteModels, model];
+			setSetting.mutate({ key: "modelFavourites", value: next });
+		},
+		[favouriteModelKeys, favouriteModels, setSetting],
+	);
 
 	const selectedLabel = selected.data?.model
 		? `${selected.data.model.provider} / ${selected.data.model.modelId}`
@@ -219,6 +247,9 @@ export function ModelsAuthSettings() {
 							selectedModel={selected.data?.model ?? null}
 							selectedValid={selected.data?.valid ?? true}
 							selectedError={selected.data?.error}
+							favouriteModelKeys={favouriteModelKeys}
+							showFavouritesOnly={filter === "favourites"}
+							onToggleFavouriteModel={toggleFavouriteModel}
 							onSelectModel={(model) => setSelected.mutate({ model })}
 							onStartOAuth={setOAuthProvider}
 							onStartApiKey={() => {
@@ -482,6 +513,9 @@ function ProviderDetail({
 	selectedModel,
 	selectedValid,
 	selectedError,
+	favouriteModelKeys,
+	showFavouritesOnly,
+	onToggleFavouriteModel,
 	onSelectModel,
 	onStartOAuth,
 	onStartApiKey,
@@ -497,6 +531,9 @@ function ProviderDetail({
 	selectedModel: { provider: string; modelId: string } | null;
 	selectedValid: boolean;
 	selectedError?: string;
+	favouriteModelKeys: ReadonlySet<string>;
+	showFavouritesOnly: boolean;
+	onToggleFavouriteModel: (model: FavouriteModelSetting) => void;
 	onSelectModel: (model: { provider: string; modelId: string }) => void;
 	onStartOAuth: (provider: string) => void;
 	onStartApiKey: () => void;
@@ -508,6 +545,17 @@ function ProviderDetail({
 	onSaveApiKey: () => void;
 	authError?: string;
 }) {
+	const visibleModels = showFavouritesOnly
+		? provider.models.filter((model) =>
+				favouriteModelKeys.has(
+					modelRefKey({ provider: model.provider, modelId: model.id }),
+				),
+			)
+		: provider.models;
+	const modelCountLabel = showFavouritesOnly
+		? `Favourite models · ${visibleModels.length} / ${provider.models.length}`
+		: `Models · ${provider.models.length}`;
+
 	return (
 		<div className="mx-auto flex max-w-4xl flex-col gap-6">
 			<section className="flex items-start gap-4">
@@ -599,7 +647,7 @@ function ProviderDetail({
 
 			<section>
 				<div className="mb-3 text-xs uppercase tracking-widest text-muted">
-					Models · {provider.models.length}
+					{modelCountLabel}
 				</div>
 				{selectedError && !selectedValid ? (
 					<div className="mb-3 rounded bg-red-500/10 p-3 text-sm text-red-300">
@@ -607,8 +655,10 @@ function ProviderDetail({
 					</div>
 				) : null}
 				<ModelList
-					models={provider.models}
+					models={visibleModels}
 					selectedModel={selectedModel}
+					favouriteModelKeys={favouriteModelKeys}
+					onToggleFavouriteModel={onToggleFavouriteModel}
 					onSelectModel={onSelectModel}
 				/>
 			</section>
@@ -619,10 +669,14 @@ function ProviderDetail({
 function ModelList({
 	models,
 	selectedModel,
+	favouriteModelKeys,
+	onToggleFavouriteModel,
 	onSelectModel,
 }: {
 	models: ModelSummary[];
 	selectedModel: { provider: string; modelId: string } | null;
+	favouriteModelKeys: ReadonlySet<string>;
+	onToggleFavouriteModel: (model: FavouriteModelSetting) => void;
 	onSelectModel: (model: { provider: string; modelId: string }) => void;
 }) {
 	if (models.length === 0) {
@@ -638,41 +692,60 @@ function ModelList({
 				const isSelected =
 					selectedModel?.provider === model.provider &&
 					selectedModel.modelId === model.id;
+				const favouriteRef = { provider: model.provider, modelId: model.id };
+				const isFavourite = favouriteModelKeys.has(modelRefKey(favouriteRef));
 				return (
-					<button
-						type="button"
+					<div
 						key={`${model.provider}/${model.id}`}
-						disabled={!model.authConfigured}
-						onClick={() =>
-							onSelectModel({ provider: model.provider, modelId: model.id })
-						}
-						className="flex w-full items-center gap-4 border-b border-divider p-4 text-left last:border-b-0 hover:surface-row disabled:opacity-60"
+						className="flex w-full items-center gap-3 border-b border-divider p-4 last:border-b-0 hover:surface-row"
 					>
-						<span
-							className={`flex h-7 w-7 items-center justify-center rounded ${isSelected ? "bg-blue-400 text-black" : "surface-row text-muted"}`}
+						<button
+							type="button"
+							onClick={() => onToggleFavouriteModel(favouriteRef)}
+							className={`flex h-7 w-7 shrink-0 items-center justify-center rounded text-lg ${isFavourite ? "text-yellow-300" : "text-muted hover:text-primary"}`}
+							aria-label={
+								isFavourite
+									? `Remove ${model.name} from favourites`
+									: `Add ${model.name} to favourites`
+							}
+							title={isFavourite ? "Remove favourite" : "Add favourite"}
 						>
-							{isSelected ? "✓" : ""}
-						</span>
-						<span className="min-w-0 flex-1">
-							<span className="flex flex-wrap items-center gap-2 font-medium">
-								{model.name}
-								{model.reasoning ? (
-									<span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-xs text-blue-300">
-										reasoning
-									</span>
-								) : null}
+							{isFavourite ? "★" : "☆"}
+						</button>
+						<button
+							type="button"
+							disabled={!model.authConfigured}
+							onClick={() =>
+								onSelectModel({ provider: model.provider, modelId: model.id })
+							}
+							className="flex min-w-0 flex-1 items-center gap-4 text-left disabled:opacity-60"
+						>
+							<span
+								className={`flex h-7 w-7 shrink-0 items-center justify-center rounded ${isSelected ? "bg-blue-400 text-black" : "surface-row text-muted"}`}
+							>
+								{isSelected ? "✓" : ""}
 							</span>
-							<span className="block truncate font-mono text-xs text-muted">
-								{model.id}
+							<span className="min-w-0 flex-1">
+								<span className="flex flex-wrap items-center gap-2 font-medium">
+									{model.name}
+									{model.reasoning ? (
+										<span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-xs text-blue-300">
+											reasoning
+										</span>
+									) : null}
+								</span>
+								<span className="block truncate font-mono text-xs text-muted">
+									{model.id}
+								</span>
 							</span>
-						</span>
-						<span className="font-mono text-sm text-muted">
-							{formatContext(model.contextWindow)}
-						</span>
-						<span className="text-sm text-muted">
-							{model.authConfigured ? "Set default" : "Configure auth first"}
-						</span>
-					</button>
+							<span className="font-mono text-sm text-muted">
+								{formatContext(model.contextWindow)}
+							</span>
+							<span className="text-sm text-muted">
+								{model.authConfigured ? "Set default" : "Configure auth first"}
+							</span>
+						</button>
+					</div>
 				);
 			})}
 		</div>

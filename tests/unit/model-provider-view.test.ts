@@ -71,4 +71,12 @@ describe("model provider view helpers", () => {
 			"codex",
 		]);
 	});
+
+	it("filters by favourite models", () => {
+		const views = buildProviderViews(providers, models);
+		const favourites = new Set(["anthropic\u0000claude"]);
+		expect(
+			filterProviderViews(views, "favourites", "", favourites).map((p) => p.id),
+		).toEqual(["anthropic"]);
+	});
 });

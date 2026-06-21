@@ -198,6 +198,45 @@ export interface SelectedModelSetting {
 	modelId: string;
 }
 
+export interface FavouriteModelSetting {
+	provider: string;
+	modelId: string;
+}
+
+export function modelRefKey(model: FavouriteModelSetting): string {
+	return `${model.provider}\u0000${model.modelId}`;
+}
+
+export function getFavouriteModels(
+	settings: Record<string, unknown>,
+): FavouriteModelSetting[] {
+	const v = settings.modelFavourites;
+	if (!Array.isArray(v)) return [];
+	const seen = new Set<string>();
+	const favourites: FavouriteModelSetting[] = [];
+	for (const item of v) {
+		if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+		const candidate = item as Record<string, unknown>;
+		if (
+			typeof candidate.provider !== "string" ||
+			candidate.provider.length === 0 ||
+			typeof candidate.modelId !== "string" ||
+			candidate.modelId.length === 0
+		) {
+			continue;
+		}
+		const favourite = {
+			provider: candidate.provider,
+			modelId: candidate.modelId,
+		};
+		const key = modelRefKey(favourite);
+		if (seen.has(key)) continue;
+		seen.add(key);
+		favourites.push(favourite);
+	}
+	return favourites;
+}
+
 export function getSelectedModel(
 	settings: Record<string, unknown>,
 ): SelectedModelSetting | null {

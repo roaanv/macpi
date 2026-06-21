@@ -3,6 +3,7 @@ import {
 	APP_SETTINGS_DEFAULTS,
 	buildProxyEnv,
 	getDefaultCwd,
+	getFavouriteModels,
 	getFontFamily,
 	getFontFamilyMono,
 	getFontSize,
@@ -14,6 +15,7 @@ import {
 	getSelectedModel,
 	getTheme,
 	getThemeFamily,
+	modelRefKey,
 	validateProxyUrl,
 } from "../../src/shared/app-settings-keys";
 
@@ -89,6 +91,31 @@ describe("selected model setting", () => {
 			getSelectedModel({ selectedModel: { provider: "anthropic" } }),
 		).toBeNull();
 		expect(getSelectedModel({ selectedModel: "anthropic/claude" })).toBeNull();
+	});
+});
+
+describe("favourite model setting", () => {
+	it("returns validated unique favourites", () => {
+		expect(
+			getFavouriteModels({
+				modelFavourites: [
+					{ provider: "anthropic", modelId: "claude" },
+					{ provider: "anthropic", modelId: "claude" },
+					{ provider: "openai", modelId: "gpt-5" },
+					{ provider: "bad" },
+					"nope",
+				],
+			}),
+		).toEqual([
+			{ provider: "anthropic", modelId: "claude" },
+			{ provider: "openai", modelId: "gpt-5" },
+		]);
+	});
+
+	it("builds stable favourite keys", () => {
+		expect(modelRefKey({ provider: "anthropic", modelId: "claude" })).toBe(
+			"anthropic\u0000claude",
+		);
 	});
 });
 
