@@ -42,7 +42,7 @@ export function SkillDetail({ id, onUninstalled }: SkillDetailProps) {
 	}
 	if (detail.isError || !detail.data) {
 		return (
-			<section className="flex-1 surface-panel p-6 text-sm text-red-300">
+			<section className="flex-1 surface-panel p-6 text-sm text-err">
 				{(detail.error as Error)?.message ?? "Skill not found."}
 			</section>
 		);
@@ -62,11 +62,11 @@ export function SkillDetail({ id, onUninstalled }: SkillDetailProps) {
 			</header>
 			<CodeEditor value={draft} onChange={setDraft} language="markdown" />
 			<footer className="flex items-center justify-end gap-2 border-t border-divider p-2">
-				{dirty && <span className="text-xs text-amber-300">• unsaved</span>}
+				{dirty && <span className="text-xs text-warn">• unsaved</span>}
 				<button
 					type="button"
 					onClick={() => setRemoveTarget({ id, name: skillName, source })}
-					className="mr-auto rounded px-3 py-1 text-xs text-red-400 hover:bg-red-500/10"
+					className="mr-auto rounded px-3 py-1 text-xs text-err hover:surface-err-soft"
 				>
 					Uninstall…
 				</button>

@@ -126,7 +126,7 @@ export function ChatPane({
 				<div>
 					Couldn't attach to session{" "}
 					<code className="text-primary">{piSessionId}</code>
-					<div className="mt-2 text-xs text-red-300">{msg}</div>
+					<div className="mt-2 text-xs text-err">{msg}</div>
 				</div>
 			</div>
 		);
@@ -207,7 +207,7 @@ export function ChatPane({
 					<button
 						type="button"
 						onClick={() => setFilesOpen((v) => !v)}
-						className="mt-1 rounded px-2 py-1 text-xs hover:bg-white/5"
+						className="mt-1 rounded px-2 py-1 text-xs hover:surface-row"
 						title={filesOpen ? "Hide file browser" : "Show file browser"}
 						aria-label={filesOpen ? "Hide file browser" : "Show file browser"}
 						aria-pressed={filesOpen}

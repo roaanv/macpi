@@ -84,7 +84,7 @@ export function UninstallResourceDialog({
 						)}
 						. Pi removes the package from disk, including any other {kind}s it
 						shipped. You can reinstall it any time.
-						{error && <div className="mt-2 text-red-400">⚠ {error}</div>}
+						{error && <div className="mt-2 text-err">⚠ {error}</div>}
 					</>
 				)
 			}

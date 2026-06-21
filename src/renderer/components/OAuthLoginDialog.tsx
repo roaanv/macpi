@@ -82,7 +82,7 @@ export function OAuthLoginDialog({ provider, onClose }: OAuthLoginDialogProps) {
 				</div>
 
 				{start.error ? (
-					<div className="text-sm text-red-400">{start.error.message}</div>
+					<div className="text-sm text-err">{start.error.message}</div>
 				) : null}
 				{latestUrl?.type === "oauth.authUrl" ? (
 					<div className="rounded border border-border/40 p-2 text-sm">
@@ -92,7 +92,7 @@ export function OAuthLoginDialog({ provider, onClose }: OAuthLoginDialogProps) {
 						<div className="break-all text-xs text-muted">{latestUrl.url}</div>
 						<button
 							type="button"
-							className="mt-2 rounded bg-blue-500/20 px-2 py-1 text-sm hover:opacity-80"
+							className="mt-2 rounded surface-accent-soft px-2 py-1 text-sm hover:opacity-80"
 							onClick={() =>
 								void invoke("system.openExternalUrl", { url: latestUrl.url })
 							}
@@ -114,7 +114,7 @@ export function OAuthLoginDialog({ provider, onClose }: OAuthLoginDialogProps) {
 						/>
 						<button
 							type="button"
-							className="rounded bg-blue-500/20 px-2 py-1 hover:opacity-80"
+							className="rounded surface-accent-soft px-2 py-1 hover:opacity-80"
 							onClick={() => {
 								respond.mutate({
 									loginId: latestPrompt.loginId,

@@ -30,9 +30,9 @@ export function ErrorBanner({ state, onOpenSettings }: ErrorBannerProps) {
 		<div
 			role="alert"
 			aria-live="assertive"
-			className="flex items-start gap-2 rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200"
+			className="flex items-start gap-2 rounded border border-err surface-err-soft px-3 py-2 text-sm text-err"
 		>
-			<span className="font-semibold uppercase tracking-wide text-[10px] text-red-300">
+			<span className="font-semibold uppercase tracking-wide text-[10px] text-err">
 				{state.code}
 			</span>
 			<span className="flex-1 whitespace-pre-wrap">{state.message}</span>
@@ -40,7 +40,7 @@ export function ErrorBanner({ state, onOpenSettings }: ErrorBannerProps) {
 				<button
 					type="button"
 					onClick={onOpenSettings}
-					className="rounded border border-red-400/50 px-2 py-0.5 text-xs hover:bg-red-500/20"
+					className="rounded border border-err px-2 py-0.5 text-xs hover:surface-err-soft"
 				>
 					Open Models & Auth
 				</button>
@@ -49,7 +49,7 @@ export function ErrorBanner({ state, onOpenSettings }: ErrorBannerProps) {
 				type="button"
 				onClick={() => setDismissed(state)}
 				aria-label="Dismiss"
-				className="rounded px-1 text-red-300 hover:text-red-100"
+				className="rounded px-1 text-err hover:opacity-80"
 			>
 				×
 			</button>

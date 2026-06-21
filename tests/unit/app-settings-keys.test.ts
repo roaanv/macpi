@@ -148,6 +148,14 @@ describe("themeFamily setting", () => {
 		expect(getThemeFamily({ themeFamily: "slate" })).toBe("slate");
 	});
 
+	it("accepts the four trend-forward families", () => {
+		// Widened in the multi-family redesign: each id must round-trip rather
+		// than collapse to slate (guards against the union being narrowed later).
+		for (const v of ["carbon", "ember", "marine", "punch"]) {
+			expect(getThemeFamily({ themeFamily: v })).toBe(v);
+		}
+	});
+
 	it("collapses every retired family to 'slate'", () => {
 		// Retired aliases (was distinct family) AND legacy aliases (pre-redesign
 		// names) all reduce to slate via the default fallback — no explicit

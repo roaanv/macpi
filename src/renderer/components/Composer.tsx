@@ -324,7 +324,8 @@ export function Composer({
 						<button
 							type="button"
 							onClick={() => void submit("steer")}
-							className="rounded border border-amber-500 px-3 text-sm text-amber-200 hover:bg-amber-900/30 disabled:opacity-50"
+							className="rounded border px-3 text-sm transition-colors hover:surface-row disabled:opacity-50"
+							style={{ borderColor: "var(--warn)", color: "var(--warn)" }}
 							disabled={!hasText}
 							title="Interrupt the agent and inject this message before its next step"
 						>
@@ -332,7 +333,8 @@ export function Composer({
 						</button>
 						<button
 							type="submit"
-							className="rounded bg-indigo-600 px-3 text-sm text-white disabled:opacity-50"
+							className="rounded px-3 text-sm text-[color:var(--accent-fg)] disabled:opacity-50"
+							style={{ background: "var(--accent)" }}
 							disabled={!hasText}
 							title="Queue this message to run after the current turn finishes"
 						>
@@ -342,7 +344,8 @@ export function Composer({
 				) : (
 					<button
 						type="submit"
-						className="rounded bg-indigo-600 px-3 text-sm text-white disabled:opacity-50"
+						className="rounded px-3 text-sm text-[color:var(--accent-fg)] disabled:opacity-50"
+						style={{ background: "var(--accent)" }}
 						disabled={!hasText}
 					>
 						Send

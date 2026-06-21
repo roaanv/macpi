@@ -93,7 +93,7 @@ export function CreateSessionDialog({
 					<button
 						type="submit"
 						disabled={createSession.isPending}
-						className="rounded bg-indigo-600 px-3 py-1 text-xs text-white hover:bg-indigo-500 disabled:opacity-50"
+						className="rounded surface-accent px-3 py-1 text-xs hover:opacity-90 disabled:opacity-50"
 					>
 						{createSession.isPending ? "Creating…" : "Create"}
 					</button>

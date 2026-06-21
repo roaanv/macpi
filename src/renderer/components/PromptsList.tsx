@@ -50,7 +50,7 @@ export function PromptsList({
 					<div className="p-2 text-xs text-muted">Loading…</div>
 				)}
 				{prompts.isError && (
-					<div className="p-2 text-xs text-red-300">
+					<div className="p-2 text-xs text-err">
 						{(prompts.error as Error).message}
 					</div>
 				)}

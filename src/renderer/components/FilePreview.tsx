@@ -49,7 +49,7 @@ export function FilePreview({
 	if (query.isError) {
 		const msg =
 			query.error instanceof Error ? query.error.message : String(query.error);
-		return <div className="px-3 py-2 text-sm text-red-300">Error: {msg}</div>;
+		return <div className="px-3 py-2 text-sm text-err">Error: {msg}</div>;
 	}
 	const content = query.data?.content ?? "";
 

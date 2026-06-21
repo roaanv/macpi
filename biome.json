@@ -11,7 +11,8 @@
 			"!**/.gitnexus",
 			"!**/.claire",
 			"!**/graphify-out",
-			"!**/.dev-electron"
+			"!**/.dev-electron",
+			"!**/design-updates"
 		]
 	},
 	"formatter": { "enabled": true, "indentStyle": "tab" },

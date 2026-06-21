@@ -29,12 +29,12 @@ export function DiagnosticsPanel({ diagnostics }: DiagnosticsPanelProps) {
 				<span>{collapsed ? "▸" : "▾"}</span>
 				<span className="font-semibold">Diagnostics</span>
 				{counts.error && (
-					<span className="text-red-300">
+					<span className="text-err">
 						{counts.error} error{counts.error > 1 && "s"}
 					</span>
 				)}
 				{counts.warn && (
-					<span className="text-amber-300">
+					<span className="text-warn">
 						{counts.warn} warning{counts.warn > 1 && "s"}
 					</span>
 				)}
@@ -45,7 +45,7 @@ export function DiagnosticsPanel({ diagnostics }: DiagnosticsPanelProps) {
 						<div
 							// biome-ignore lint/suspicious/noArrayIndexKey: diagnostic rows have no stable id
 							key={i}
-							className={`flex gap-2 px-1 py-0.5 ${d.severity === "error" ? "text-red-300" : d.severity === "warn" ? "text-amber-300" : "text-muted"}`}
+							className={`flex gap-2 px-1 py-0.5 ${d.severity === "error" ? "text-err" : d.severity === "warn" ? "text-warn" : "text-muted"}`}
 						>
 							<span className="font-mono text-[10px]">
 								{d.line}:{d.column}

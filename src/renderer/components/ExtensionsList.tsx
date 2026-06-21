@@ -52,7 +52,7 @@ export function ExtensionsList({
 				{ext.data?.loadErrors.map((e) => (
 					<div
 						key={e.path}
-						className="rounded border-l-2 border-red-500 bg-red-500/10 px-2 py-1 text-xs text-red-200"
+						className="rounded border-l-2 border-err surface-err-soft px-2 py-1 text-xs text-err"
 					>
 						<div className="font-semibold">⚠ {e.path}</div>
 						<div className="truncate text-[10px]">{e.error}</div>

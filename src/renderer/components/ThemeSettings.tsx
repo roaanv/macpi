@@ -1,6 +1,7 @@
-// Theme category: single Slate family + light/dark/auto mode radio.
-// The picker UI is preserved (rather than collapsing the screen entirely)
-// so re-introducing additional families later doesn't require relayout.
+// Theme category: family picker (Slate + four trend-forward palettes) plus a
+// light/dark/auto mode radio. Each family option previews its light and dark
+// swatches and names its type pairing; selecting one writes the themeFamily
+// setting, which SettingsApplier maps to html[data-theme-family="…"].
 
 import {
 	getTheme,
@@ -14,6 +15,7 @@ interface FamilyOption {
 	value: ThemeFamily;
 	label: string;
 	tagline: string;
+	fonts: string;
 	swatches: {
 		light: { bg: string; panel: string; row: string; accent: string };
 		dark: { bg: string; panel: string; row: string; accent: string };
@@ -25,6 +27,7 @@ const FAMILY_OPTIONS: FamilyOption[] = [
 		value: "slate",
 		label: "Slate",
 		tagline: "Neutral cool grey. Quiet and classic.",
+		fonts: "Inter · JetBrains Mono",
 		swatches: {
 			light: {
 				bg: "#fcfcfd",
@@ -37,6 +40,86 @@ const FAMILY_OPTIONS: FamilyOption[] = [
 				panel: "#26262b",
 				row: "#34343a",
 				accent: "#7aa9ee",
+			},
+		},
+	},
+	{
+		value: "carbon",
+		label: "Carbon",
+		tagline: "Brutalist mono-tech. Acid-lime accent.",
+		fonts: "Space Grotesk · IBM Plex Mono",
+		swatches: {
+			light: {
+				bg: "#fbfbf6",
+				panel: "#f1f1e9",
+				row: "#e6e6dc",
+				accent: "#5b6b00",
+			},
+			dark: {
+				bg: "#14150f",
+				panel: "#1c1d15",
+				row: "#26271c",
+				accent: "#c6f432",
+			},
+		},
+	},
+	{
+		value: "ember",
+		label: "Ember",
+		tagline: "Warm editorial. Terracotta on cream.",
+		fonts: "Instrument Serif · Hanken Grotesk",
+		swatches: {
+			light: {
+				bg: "#fbf6ef",
+				panel: "#f4ebde",
+				row: "#ebddcb",
+				accent: "#c5562e",
+			},
+			dark: {
+				bg: "#1e160f",
+				panel: "#271d14",
+				row: "#33271b",
+				accent: "#e0743f",
+			},
+		},
+	},
+	{
+		value: "marine",
+		label: "Marine",
+		tagline: "Deep marine surfaces, crisp aqua.",
+		fonts: "Bricolage Grotesque · Spline Sans",
+		swatches: {
+			light: {
+				bg: "#f6f9fa",
+				panel: "#e9f1f2",
+				row: "#dae7e9",
+				accent: "#0e8c8c",
+			},
+			dark: {
+				bg: "#0b1518",
+				panel: "#112022",
+				row: "#182d2e",
+				accent: "#34d6c0",
+			},
+		},
+	},
+	{
+		value: "punch",
+		label: "Punch",
+		tagline: "Neutral canvas, hot-magenta pop.",
+		fonts: "Familjen Grotesk · IBM Plex Mono",
+		swatches: {
+			light: {
+				bg: "#fcfbfc",
+				panel: "#f3f1f4",
+				row: "#e8e4ea",
+				accent: "#e11d74",
+			},
+			dark: {
+				bg: "#161318",
+				panel: "#1f1b22",
+				row: "#2a252e",
+				accent: "#ff4d9d",
 			},
 		},
 	},
@@ -87,7 +170,7 @@ export function ThemeSettings() {
 				<div>
 					<h2 className="font-semibold text-primary text-sm">Family</h2>
 					<p className="text-muted text-xs">
-						Surface colour and accent. Calibrated low-saturation palette.
+						Surface palette, accent, and type pairing.
 					</p>
 				</div>
 				<div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
@@ -133,6 +216,9 @@ export function ThemeSettings() {
 									<span>Light</span>
 									<span>Dark</span>
 								</div>
+								<p className="text-[10px] text-faint leading-snug">
+									{opt.fonts}
+								</p>
 							</button>
 						);
 					})}

@@ -7,7 +7,7 @@ import type { RetryState } from "../../state/timeline-state";
 export function RetryBanner({ retry }: { retry: RetryState | null }) {
 	if (!retry) return null;
 	return (
-		<div className="rounded border-l-2 border-amber-500 bg-amber-900/30 px-3 py-2 text-xs text-amber-200">
+		<div className="rounded border-l-2 border-warn surface-warn-soft px-3 py-2 text-xs text-warn">
 			Retrying ({retry.attempt}/{retry.maxAttempts})… {retry.errorMessage}
 		</div>
 	);

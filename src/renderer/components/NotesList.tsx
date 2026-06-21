@@ -51,7 +51,7 @@ export function NotesList({
 					<div className="p-2 text-xs text-muted">Loading…</div>
 				)}
 				{notes.isError && (
-					<div className="p-2 text-xs text-red-300">
+					<div className="p-2 text-xs text-err">
 						{(notes.error as Error).message}
 					</div>
 				)}
@@ -89,7 +89,7 @@ export function NotesList({
 								onClick={() => onRequestDelete(n.id)}
 								title="Delete note"
 								aria-label={`Delete ${title}`}
-								className="opacity-0 transition-opacity group-hover:opacity-100 rounded px-1 text-xs text-faint hover:text-red-400"
+								className="opacity-0 transition-opacity group-hover:opacity-100 rounded px-1 text-xs text-faint hover:text-err"
 							>
 								🗑
 							</button>

@@ -175,7 +175,7 @@ export function ModelsAuthSettings() {
 								onClick={() => setFilter(item.id)}
 								className={`rounded-full px-3 py-1 ${
 									filter === item.id
-										? "bg-blue-500/20 text-blue-300"
+										? "surface-accent-soft text-accent"
 										: "text-muted hover:surface-row"
 								}`}
 							>
@@ -192,7 +192,7 @@ export function ModelsAuthSettings() {
 							}}
 							className={`mb-3 flex w-full items-center gap-3 rounded border border-dashed border-divider p-3 text-left text-sm ${
 								addingLocal
-									? "bg-blue-500/10 text-primary"
+									? "surface-accent-soft text-primary"
 									: "text-muted hover:surface-row"
 							}`}
 						>
@@ -200,7 +200,7 @@ export function ModelsAuthSettings() {
 							<span>Add local OpenAI-compatible provider</span>
 						</button>
 						{providers.error ? (
-							<div className="rounded bg-red-500/10 p-2 text-sm text-red-300">
+							<div className="rounded surface-err-soft p-2 text-sm text-err">
 								{providers.error.message}
 							</div>
 						) : providers.isLoading ? (
@@ -224,12 +224,12 @@ export function ModelsAuthSettings() {
 
 				<main className="min-h-0 overflow-y-auto p-6">
 					{models.data?.registryError ? (
-						<div className="mb-4 rounded bg-yellow-500/10 p-3 text-sm text-yellow-300">
+						<div className="mb-4 rounded surface-warn-soft p-3 text-sm text-warn">
 							{models.data.registryError}
 						</div>
 					) : null}
 					{selected.error ? (
-						<div className="mb-4 rounded bg-red-500/10 p-3 text-sm text-red-300">
+						<div className="mb-4 rounded surface-err-soft p-3 text-sm text-err">
 							{selected.error.message}
 						</div>
 					) : null}
@@ -290,7 +290,7 @@ export function ModelsAuthSettings() {
 					Active:{" "}
 					<span className="font-mono text-primary">{selectedLabel}</span>
 					{selected.data && !selected.data.valid ? (
-						<span className="ml-2 text-red-400">{selected.data.error}</span>
+						<span className="ml-2 text-err">{selected.data.error}</span>
 					) : null}
 				</div>
 			</footer>
@@ -388,7 +388,7 @@ function LocalOpenAIProviderForm({
 				<div className="mt-4 flex flex-wrap gap-2">
 					<button
 						type="button"
-						className="rounded bg-blue-500/20 px-3 py-2 text-sm hover:opacity-80 disabled:opacity-50"
+						className="rounded surface-accent-soft px-3 py-2 text-sm hover:opacity-80 disabled:opacity-50"
 						disabled={listModels.isPending}
 						onClick={discoverModels}
 					>
@@ -403,7 +403,7 @@ function LocalOpenAIProviderForm({
 					</button>
 				</div>
 				{listModels.error ? (
-					<div className="mt-3 text-sm text-red-400">
+					<div className="mt-3 text-sm text-err">
 						{listModels.error.message}
 					</div>
 				) : null}
@@ -428,7 +428,7 @@ function LocalOpenAIProviderForm({
 								className="flex w-full items-center gap-4 border-b border-divider p-4 text-left last:border-b-0 hover:surface-row"
 							>
 								<span
-									className={`flex h-7 w-7 items-center justify-center rounded ${selectedModelId === model.id ? "bg-blue-400 text-black" : "surface-row text-muted"}`}
+									className={`flex h-7 w-7 items-center justify-center rounded ${selectedModelId === model.id ? "surface-accent" : "surface-row text-muted"}`}
 								>
 									{selectedModelId === model.id ? "✓" : ""}
 								</span>
@@ -445,7 +445,7 @@ function LocalOpenAIProviderForm({
 				<div className="mt-4 flex justify-end">
 					<button
 						type="button"
-						className="rounded bg-blue-500 px-4 py-2 text-sm text-white hover:opacity-90 disabled:opacity-50"
+						className="rounded surface-accent px-4 py-2 text-sm hover:opacity-90 disabled:opacity-50"
 						disabled={!selectedModelId || saveProvider.isPending}
 						onClick={save}
 					>
@@ -455,7 +455,7 @@ function LocalOpenAIProviderForm({
 					</button>
 				</div>
 				{saveProvider.error ? (
-					<div className="mt-3 text-sm text-red-400">
+					<div className="mt-3 text-sm text-err">
 						{saveProvider.error.message}
 					</div>
 				) : null}
@@ -479,7 +479,7 @@ function ProviderRow({
 			onClick={onClick}
 			className={`flex w-full items-center gap-3 rounded p-3 text-left ${
 				selected
-					? "border border-blue-500/50 bg-blue-500/10"
+					? "border border-accent surface-accent-soft"
 					: "hover:surface-row"
 			}`}
 		>
@@ -493,7 +493,9 @@ function ProviderRow({
 			</div>
 			<span
 				className={`h-2.5 w-2.5 rounded-full ${
-					provider.authStatus.configured ? "bg-green-400" : "bg-slate-500"
+					provider.authStatus.configured
+						? "surface-ok"
+						: "bg-[var(--text-faint)]"
 				}`}
 			/>
 		</button>
@@ -590,7 +592,7 @@ function ProviderDetail({
 							<button
 								type="button"
 								onClick={() => onStartOAuth(provider.id)}
-								className="rounded bg-blue-500 px-3 py-2 text-white hover:opacity-90"
+								className="rounded surface-accent px-3 py-2 hover:opacity-90"
 							>
 								↗ Sign in with {provider.name}
 							</button>
@@ -599,7 +601,7 @@ function ProviderDetail({
 							<button
 								type="button"
 								onClick={onStartApiKey}
-								className="rounded bg-blue-500/20 px-3 py-2 hover:opacity-80"
+								className="rounded surface-accent-soft px-3 py-2 hover:opacity-80"
 							>
 								Add / replace API key
 							</button>
@@ -608,7 +610,7 @@ function ProviderDetail({
 							<button
 								type="button"
 								onClick={onLogout}
-								className="rounded bg-red-500/20 px-3 py-2 text-red-200 hover:opacity-80"
+								className="rounded surface-err-soft px-3 py-2 text-err hover:opacity-80"
 							>
 								Remove auth
 							</button>
@@ -625,7 +627,7 @@ function ProviderDetail({
 							/>
 							<button
 								type="button"
-								className="rounded bg-blue-500/20 px-3 py-2 text-sm"
+								className="rounded surface-accent-soft px-3 py-2 text-sm"
 								onClick={onSaveApiKey}
 							>
 								Save
@@ -640,7 +642,7 @@ function ProviderDetail({
 						</div>
 					) : null}
 					{authError ? (
-						<div className="mt-3 text-sm text-red-400">{authError}</div>
+						<div className="mt-3 text-sm text-err">{authError}</div>
 					) : null}
 				</div>
 			</section>
@@ -650,7 +652,7 @@ function ProviderDetail({
 					{modelCountLabel}
 				</div>
 				{selectedError && !selectedValid ? (
-					<div className="mb-3 rounded bg-red-500/10 p-3 text-sm text-red-300">
+					<div className="mb-3 rounded surface-err-soft p-3 text-sm text-err">
 						{selectedError}
 					</div>
 				) : null}
@@ -702,7 +704,7 @@ function ModelList({
 						<button
 							type="button"
 							onClick={() => onToggleFavouriteModel(favouriteRef)}
-							className={`flex h-7 w-7 shrink-0 items-center justify-center rounded text-lg ${isFavourite ? "text-yellow-300" : "text-muted hover:text-primary"}`}
+							className={`flex h-7 w-7 shrink-0 items-center justify-center rounded text-lg ${isFavourite ? "text-warn" : "text-muted hover:text-primary"}`}
 							aria-label={
 								isFavourite
 									? `Remove ${model.name} from favourites`
@@ -721,7 +723,7 @@ function ModelList({
 							className="flex min-w-0 flex-1 items-center gap-4 text-left disabled:opacity-60"
 						>
 							<span
-								className={`flex h-7 w-7 shrink-0 items-center justify-center rounded ${isSelected ? "bg-blue-400 text-black" : "surface-row text-muted"}`}
+								className={`flex h-7 w-7 shrink-0 items-center justify-center rounded ${isSelected ? "surface-accent" : "surface-row text-muted"}`}
 							>
 								{isSelected ? "✓" : ""}
 							</span>
@@ -729,7 +731,7 @@ function ModelList({
 								<span className="flex flex-wrap items-center gap-2 font-medium">
 									{model.name}
 									{model.reasoning ? (
-										<span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-xs text-blue-300">
+										<span className="rounded-full surface-accent-soft px-2 py-0.5 text-xs text-accent">
 											reasoning
 										</span>
 									) : null}

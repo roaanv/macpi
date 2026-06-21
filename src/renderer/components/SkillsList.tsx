@@ -50,7 +50,7 @@ export function SkillsList({
 					<div className="p-2 text-xs text-muted">Loading…</div>
 				)}
 				{skills.isError && (
-					<div className="p-2 text-xs text-red-300">
+					<div className="p-2 text-xs text-err">
 						{(skills.error as Error).message}
 					</div>
 				)}

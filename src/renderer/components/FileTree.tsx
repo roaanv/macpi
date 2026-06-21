@@ -59,7 +59,7 @@ export function FileTree(props: FileTreeProps) {
 						: "(error)";
 		return (
 			<div
-				className="px-2 py-1 text-xs text-red-300"
+				className="px-2 py-1 text-xs text-err"
 				style={{ paddingLeft: depth * 12 + 8 }}
 			>
 				{msg}
@@ -134,7 +134,7 @@ function DirRow({
 			<button
 				type="button"
 				onClick={onToggle}
-				className="flex w-full items-center gap-1 px-2 py-0.5 text-left text-xs hover:bg-white/5"
+				className="flex w-full items-center gap-1 px-2 py-0.5 text-left text-xs hover:surface-row"
 				style={{ paddingLeft: depth * 12 + 8 }}
 			>
 				<span className="inline-block w-3 text-muted">
@@ -160,8 +160,8 @@ function FileRow({
 }) {
 	const className = [
 		"flex w-full items-center gap-1 px-2 py-0.5 text-left text-xs",
-		entry.isText ? "hover:bg-white/5" : "opacity-50 cursor-default",
-		isSelected ? "bg-indigo-500/20" : "",
+		entry.isText ? "hover:surface-row" : "opacity-50 cursor-default",
+		isSelected ? "surface-accent-soft" : "",
 	].join(" ");
 	return (
 		<button

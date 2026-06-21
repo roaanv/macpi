@@ -14,20 +14,20 @@ export function AssistantMessage({ entry }: { entry: AssistantTextEntry }) {
 	return (
 		<div className="text-[length:var(--font-size-chat-assistant)] leading-relaxed">
 			<div className="mb-1">
-				<span className="text-amber-300">pi</span>
+				<span className="text-warn">pi</span>
 				<span className="text-muted"> · </span>
 				{hasThinking && (
 					<button
 						type="button"
 						onClick={() => setThinkingOpen((open) => !open)}
-						className="rounded border border-zinc-700 px-1.5 py-0.5 text-[10px] text-muted hover:surface-row"
+						className="rounded border border-divider px-1.5 py-0.5 text-[10px] text-muted hover:surface-row"
 					>
 						{showThinking ? "▾ thinking" : "▸ thinking"}
 					</button>
 				)}
 			</div>
 			{showThinking && (
-				<div className="my-1 border-l-2 border-zinc-700 pl-2 text-xs italic text-muted whitespace-pre-wrap">
+				<div className="my-1 border-l-2 border-divider pl-2 text-xs italic text-muted whitespace-pre-wrap">
 					{entry.thinking}
 				</div>
 			)}

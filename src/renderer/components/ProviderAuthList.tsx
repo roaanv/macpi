@@ -40,9 +40,7 @@ export function ProviderAuthList({
 						<div className="text-right text-xs">
 							<div
 								className={
-									provider.authStatus.configured
-										? "text-green-400"
-										: "text-yellow-400"
+									provider.authStatus.configured ? "text-ok" : "text-warn"
 								}
 							>
 								{provider.authStatus.configured
@@ -66,7 +64,7 @@ export function ProviderAuthList({
 						{provider.supportsStoredApiKey ? (
 							<button
 								type="button"
-								className="rounded bg-blue-500/20 px-2 py-1 hover:opacity-80"
+								className="rounded surface-accent-soft px-2 py-1 hover:opacity-80"
 								onClick={() => {
 									setEditingProvider(provider.id);
 									setApiKey("");
@@ -78,7 +76,7 @@ export function ProviderAuthList({
 						{provider.supportsOAuth ? (
 							<button
 								type="button"
-								className="rounded bg-blue-500/20 px-2 py-1 hover:opacity-80"
+								className="rounded surface-accent-soft px-2 py-1 hover:opacity-80"
 								onClick={() => onStartOAuth?.(provider.id)}
 							>
 								Sign in
@@ -87,7 +85,7 @@ export function ProviderAuthList({
 						{provider.authStatus.configured ? (
 							<button
 								type="button"
-								className="rounded bg-red-500/20 px-2 py-1 hover:opacity-80"
+								className="rounded surface-err-soft px-2 py-1 hover:opacity-80"
 								onClick={() => logout.mutate({ provider: provider.id })}
 							>
 								Remove stored key / sign out
@@ -105,7 +103,7 @@ export function ProviderAuthList({
 							/>
 							<button
 								type="button"
-								className="rounded bg-blue-500/20 px-2 py-1 text-xs hover:opacity-80"
+								className="rounded surface-accent-soft px-2 py-1 text-xs hover:opacity-80"
 								onClick={() => {
 									saveApiKey.mutate(
 										{ provider: provider.id, apiKey },
@@ -135,10 +133,10 @@ export function ProviderAuthList({
 				</div>
 			))}
 			{saveApiKey.error ? (
-				<div className="text-xs text-red-400">{saveApiKey.error.message}</div>
+				<div className="text-xs text-err">{saveApiKey.error.message}</div>
 			) : null}
 			{logout.error ? (
-				<div className="text-xs text-red-400">{logout.error.message}</div>
+				<div className="text-xs text-err">{logout.error.message}</div>
 			) : null}
 		</div>
 	);

@@ -17,7 +17,7 @@ export function CompactionBanner({
 }) {
 	if (compaction) {
 		return (
-			<div className="rounded border-l-2 border-sky-500 bg-sky-900/30 px-3 py-2 text-xs text-sky-200">
+			<div className="rounded border-l-2 border-accent surface-accent-soft px-3 py-2 text-xs text-accent">
 				Compacting… ({compaction.reason})
 			</div>
 		);
@@ -25,13 +25,13 @@ export function CompactionBanner({
 	if (!lastResult) return null;
 	if (lastResult.ok) {
 		return (
-			<div className="rounded border-l-2 border-emerald-500 bg-emerald-900/30 px-3 py-2 text-xs text-emerald-200">
+			<div className="rounded border-l-2 border-ok surface-ok-soft px-3 py-2 text-xs text-ok">
 				Compacted ✓
 			</div>
 		);
 	}
 	return (
-		<div className="rounded border-l-2 border-red-500 bg-red-900/30 px-3 py-2 text-xs text-red-200">
+		<div className="rounded border-l-2 border-err surface-err-soft px-3 py-2 text-xs text-err">
 			Compaction failed: {lastResult.message ?? "(no message)"}
 		</div>
 	);

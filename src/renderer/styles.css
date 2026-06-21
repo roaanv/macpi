@@ -8,17 +8,32 @@
 @import "@fontsource-variable/inter/index.css";
 @import "@fontsource-variable/jetbrains-mono/index.css";
 
+/* Theme-family fonts (added for Carbon / Ember / Marine / Punch). */
+@import "@fontsource-variable/space-grotesk/index.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+@import "@fontsource/ibm-plex-mono/600.css";
+@import "@fontsource/instrument-serif/400.css";
+@import "@fontsource-variable/hanken-grotesk/index.css";
+@import "@fontsource-variable/bricolage-grotesque/index.css";
+@import "@fontsource-variable/spline-sans/index.css";
+@import "@fontsource-variable/spline-sans-mono/index.css";
+@import "@fontsource-variable/familjen-grotesk/index.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /*
- * Theme system has one dimension today: html.dark toggles light/dark
- * surfaces within the single Slate family. SettingsApplier still writes
- * html[data-theme-family="slate"] for forward-compatibility if additional
- * families return later, but no per-family CSS block is needed — the
- * defaults below (light) and html.dark (dark) cover the entire palette.
- * Surface chroma ≤ 0.012 oklch.
+ * Theme system has two dimensions: html.dark toggles light/dark surfaces,
+ * and html[data-theme-family="…"] selects the palette + type pairing.
+ * The :root / html.dark blocks below are the Slate family (default + the
+ * fallback for any unrecognised family). Each additional family overrides
+ * the tokens in a scoped block: a light variant
+ * (html[data-theme-family="x"]:not(.dark)) and a dark variant
+ * (html[data-theme-family="x"].dark). SettingsApplier writes the
+ * data-theme-family attribute + .dark class, so switching is instant with
+ * no rebuild. Surface chroma is kept low; accents carry the personality.
  */
 
 :root {
@@ -69,6 +84,201 @@ html.dark {
 	--accent: oklch(72% 0.13 250);
 	--accent-fg: oklch(20% 0.008 260);
 	--accent-soft: oklch(30% 0.05 250);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Carbon — brutalist mono-tech, acid-lime accent.
+ * Space Grotesk (display + body) · IBM Plex Mono.
+ * ───────────────────────────────────────────────────────────────────────── */
+html[data-theme-family="carbon"] {
+	--font-display: "Space Grotesk Variable", "Space Grotesk", sans-serif;
+	--font-body: "Space Grotesk Variable", "Space Grotesk", sans-serif;
+	--font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+	--font-family-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+}
+html[data-theme-family="carbon"]:not(.dark) {
+	--app-bg: #fbfbf6;
+	--app-fg: #16170f;
+	--panel-bg: #f1f1e9;
+	--row-bg: #e6e6dc;
+	--row-active-bg: #dcdcce;
+	--rail-bg: #ecece3;
+	--text-primary: #16170f;
+	--text-muted: #5c5e50;
+	--text-faint: #8c8e7d;
+	--divider: #e2e2d6;
+	--accent: #5b6b00;
+	--accent-fg: #fbfbf6;
+	--accent-soft: #ecf3c2;
+	--ok: #1f8f4e;
+	--warn: #a06a00;
+	--err: #c2402f;
+}
+html[data-theme-family="carbon"].dark {
+	--app-bg: #14150f;
+	--app-fg: #ecede0;
+	--panel-bg: #1c1d15;
+	--row-bg: #26271c;
+	--row-active-bg: #31321f;
+	--rail-bg: #101108;
+	--text-primary: #ecede0;
+	--text-muted: #9fa08e;
+	--text-faint: #6e6f5e;
+	--divider: #2c2d1f;
+	--accent: #c6f432;
+	--accent-fg: #14150f;
+	--accent-soft: #2e3417;
+	--ok: #5bd888;
+	--warn: #e6b454;
+	--err: #f08a7a;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Ember — warm editorial, terracotta on cream.
+ * Instrument Serif (display) · Hanken Grotesk (body) · JetBrains Mono.
+ * ───────────────────────────────────────────────────────────────────────── */
+html[data-theme-family="ember"] {
+	--font-display: "Instrument Serif", Georgia, serif;
+	--font-body:
+		"Hanken Grotesk Variable", "Hanken Grotesk", system-ui, sans-serif;
+	--font-mono:
+		"JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
+	--font-family-mono:
+		"JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
+}
+html[data-theme-family="ember"]:not(.dark) {
+	--app-bg: #fbf6ef;
+	--app-fg: #2e2218;
+	--panel-bg: #f4ebde;
+	--row-bg: #ebddcb;
+	--row-active-bg: #e4d2bb;
+	--rail-bg: #f0e5d5;
+	--text-primary: #2e2218;
+	--text-muted: #6b5a48;
+	--text-faint: #9c8b78;
+	--divider: #e8d9c5;
+	--accent: #c5562e;
+	--accent-fg: #fff7ef;
+	--accent-soft: #f3d9c8;
+	--ok: #3f8f4a;
+	--warn: #b07400;
+	--err: #c53d2e;
+}
+html[data-theme-family="ember"].dark {
+	--app-bg: #1e160f;
+	--app-fg: #f1e6d7;
+	--panel-bg: #271d14;
+	--row-bg: #33271b;
+	--row-active-bg: #3f3122;
+	--rail-bg: #181109;
+	--text-primary: #f1e6d7;
+	--text-muted: #b49c84;
+	--text-faint: #836e58;
+	--divider: #352819;
+	--accent: #e0743f;
+	--accent-fg: #1e160f;
+	--accent-soft: #3a2817;
+	--ok: #6fcb7e;
+	--warn: #e6b454;
+	--err: #f08a6e;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Marine — deep marine surfaces, crisp aqua accent.
+ * Bricolage Grotesque (display) · Spline Sans (body) · Spline Sans Mono.
+ * ───────────────────────────────────────────────────────────────────────── */
+html[data-theme-family="marine"] {
+	--font-display:
+		"Bricolage Grotesque Variable", "Bricolage Grotesque", sans-serif;
+	--font-body: "Spline Sans Variable", "Spline Sans", system-ui, sans-serif;
+	--font-mono:
+		"Spline Sans Mono Variable", "Spline Sans Mono", ui-monospace, monospace;
+	--font-family-mono:
+		"Spline Sans Mono Variable", "Spline Sans Mono", ui-monospace, monospace;
+}
+html[data-theme-family="marine"]:not(.dark) {
+	--app-bg: #f6f9fa;
+	--app-fg: #0e1b1e;
+	--panel-bg: #e9f1f2;
+	--row-bg: #dae7e9;
+	--row-active-bg: #c9dcdf;
+	--rail-bg: #e2edee;
+	--text-primary: #0e1b1e;
+	--text-muted: #47636a;
+	--text-faint: #7c969c;
+	--divider: #d6e3e5;
+	--accent: #0e8c8c;
+	--accent-fg: #ffffff;
+	--accent-soft: #cde9e7;
+	--ok: #1f9d6b;
+	--warn: #b07400;
+	--err: #c53d43;
+}
+html[data-theme-family="marine"].dark {
+	--app-bg: #0b1518;
+	--app-fg: #e2f0ef;
+	--panel-bg: #112022;
+	--row-bg: #182d2e;
+	--row-active-bg: #21393a;
+	--rail-bg: #081012;
+	--text-primary: #e2f0ef;
+	--text-muted: #93b0ae;
+	--text-faint: #5f7e7d;
+	--divider: #1c3133;
+	--accent: #34d6c0;
+	--accent-fg: #08201e;
+	--accent-soft: #133230;
+	--ok: #4fd8a0;
+	--warn: #e6b454;
+	--err: #f0888e;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Punch — neutral canvas, hot-magenta pop.
+ * Familjen Grotesk (display + body) · IBM Plex Mono.
+ * ───────────────────────────────────────────────────────────────────────── */
+html[data-theme-family="punch"] {
+	--font-display: "Familjen Grotesk Variable", "Familjen Grotesk", sans-serif;
+	--font-body:
+		"Familjen Grotesk Variable", "Familjen Grotesk", system-ui, sans-serif;
+	--font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+	--font-family-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+}
+html[data-theme-family="punch"]:not(.dark) {
+	--app-bg: #fcfbfc;
+	--app-fg: #1a1620;
+	--panel-bg: #f3f1f4;
+	--row-bg: #e8e4ea;
+	--row-active-bg: #dcd8e0;
+	--rail-bg: #eeecf0;
+	--text-primary: #1a1620;
+	--text-muted: #5c5566;
+	--text-faint: #8c8595;
+	--divider: #e6e2ea;
+	--accent: #e11d74;
+	--accent-fg: #ffffff;
+	--accent-soft: #fbd6e7;
+	--ok: #1f9d55;
+	--warn: #a06a00;
+	--err: #c53d43;
+}
+html[data-theme-family="punch"].dark {
+	--app-bg: #161318;
+	--app-fg: #efeaf2;
+	--panel-bg: #1f1b22;
+	--row-bg: #2a252e;
+	--row-active-bg: #352e3a;
+	--rail-bg: #110f14;
+	--text-primary: #efeaf2;
+	--text-muted: #aba1b3;
+	--text-faint: #756c7d;
+	--divider: #2d2732;
+	--accent: #ff4d9d;
+	--accent-fg: #161318;
+	--accent-soft: #3a1e2d;
+	--ok: #5dd88a;
+	--warn: #e6b454;
+	--err: #f0888e;
 }
 
 html,
@@ -252,6 +462,54 @@ html {
 	.border-divider {
 		border-color: var(--divider);
 	}
+	/* Status + accent semantics (theme-token backed). These replace hardcoded
+	 * Tailwind palette colours (text-red-300, bg-indigo-600, …) so status and
+	 * accent surfaces track the active family + light/dark mode. Soft variants
+	 * are translucent tints via color-mix so they read on both light and dark
+	 * backgrounds. */
+	.text-ok {
+		color: var(--ok);
+	}
+	.text-warn {
+		color: var(--warn);
+	}
+	.text-err {
+		color: var(--err);
+	}
+	.border-accent {
+		border-color: var(--accent);
+	}
+	.border-ok {
+		border-color: var(--ok);
+	}
+	.border-warn {
+		border-color: var(--warn);
+	}
+	.border-err {
+		border-color: var(--err);
+	}
+	.surface-accent {
+		background: var(--accent);
+		color: var(--accent-fg);
+	}
+	.surface-accent-soft {
+		background: var(--accent-soft);
+	}
+	.surface-ok {
+		background: var(--ok);
+	}
+	.surface-err {
+		background: var(--err);
+	}
+	.surface-ok-soft {
+		background: color-mix(in oklab, var(--ok) 16%, transparent);
+	}
+	.surface-warn-soft {
+		background: color-mix(in oklab, var(--warn) 16%, transparent);
+	}
+	.surface-err-soft {
+		background: color-mix(in oklab, var(--err) 16%, transparent);
+	}
 	.font-display {
 		font-family: var(--font-display);
 	}
@@ -297,17 +555,23 @@ html {
 	opacity: 0.65;
 }
 .macpi-node {
-	width: 6px;
-	height: 6px;
-	border-radius: 9999px;
-	background: var(--text-faint);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 13px;
+	height: 13px;
+	color: var(--text-faint);
 	flex-shrink: 0;
 }
+.macpi-node svg {
+	width: 100%;
+	height: 100%;
+}
 .macpi-node-active {
-	background: var(--accent);
+	color: var(--accent);
 }
 .macpi-node-streaming {
-	background: var(--accent);
+	color: var(--accent);
 	animation: macpi-pulse 1.4s ease-in-out infinite;
 }
 @keyframes macpi-pulse {

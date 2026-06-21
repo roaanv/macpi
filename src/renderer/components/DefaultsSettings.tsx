@@ -85,7 +85,7 @@ export function DefaultsSettings() {
 					onClick={() => {
 						void invoke("system.openLogsFolder", {}).catch(() => {});
 					}}
-					className="text-blue-400 hover:underline text-sm"
+					className="text-accent hover:underline text-sm"
 				>
 					Open logs folder
 				</button>

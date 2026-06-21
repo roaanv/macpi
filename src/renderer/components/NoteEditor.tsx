@@ -73,7 +73,7 @@ export function NoteEditor({ id }: NoteEditorProps) {
 	}
 	if (detail.isError || !detail.data) {
 		return (
-			<section className="flex-1 surface-panel p-6 text-sm text-red-300">
+			<section className="flex-1 surface-panel p-6 text-sm text-err">
 				{(detail.error as Error)?.message ?? "Note not found."}
 			</section>
 		);
@@ -104,7 +104,7 @@ export function NoteEditor({ id }: NoteEditorProps) {
 	return (
 		<section className="flex flex-1 flex-col surface-panel">
 			{staleConflict && (
-				<div className="border-b border-divider bg-amber-500/10 px-4 py-2 text-sm text-amber-200">
+				<div className="border-b border-divider surface-warn-soft px-4 py-2 text-sm text-warn">
 					NOTES.md changed on disk.{" "}
 					<button
 						type="button"

@@ -5,12 +5,13 @@
 
 export type ThemeMode = "light" | "dark" | "auto";
 
-export type ThemeFamily = "slate";
+export type ThemeFamily = "slate" | "carbon" | "ember" | "marine" | "punch";
 
-// Slate is the only surviving family. Any persisted theme name (legacy
-// "sunrise"/"meadow"/"catppuccin" or the retired "linen"/"pebble"/"sage"/
-// "graphite"/"nocturne") falls through `getThemeFamily`'s default path and
-// becomes "slate" — no explicit migration table needed.
+// Five families ship today: the classic neutral "slate" plus four
+// trend-forward palettes (each with its own type pairing) defined in
+// styles.css under html[data-theme-family="…"]. Any unrecognised persisted
+// theme name falls through `getThemeFamily`'s default path and becomes
+// "slate" — no explicit migration table needed.
 
 export type FontSizeRegion =
 	| "sidebar"
@@ -44,6 +45,10 @@ const THEME_VALUES: ReadonlySet<ThemeMode> = new Set<ThemeMode>([
 ]);
 const THEME_FAMILY_VALUES: ReadonlySet<ThemeFamily> = new Set<ThemeFamily>([
 	"slate",
+	"carbon",
+	"ember",
+	"marine",
+	"punch",
 ]);
 
 export function getTheme(settings: Record<string, unknown>): ThemeMode {

@@ -62,7 +62,7 @@ export function ModelPicker({ models, selected, onSelect }: ModelPickerProps) {
 											onSelect({ provider: model.provider, modelId: model.id })
 										}
 										className={`rounded px-2 py-1 text-left text-sm ${
-											isSelected ? "bg-blue-500/20" : "surface-row"
+											isSelected ? "surface-accent-soft" : "surface-row"
 										} ${model.authConfigured ? "hover:opacity-80" : "opacity-60"}`}
 									>
 										<div className="flex items-center justify-between gap-2">

@@ -10,9 +10,9 @@ import { truncateOutput } from "../../utils/truncate-output";
 import { type DiffLine, unifiedDiffLines } from "../../utils/unified-diff";
 
 const BORDERS: Record<ToolCallEntry["state"], string> = {
-	pending: "border-blue-500",
-	ok: "border-emerald-500",
-	error: "border-red-500",
+	pending: "border-accent",
+	ok: "border-ok",
+	error: "border-err",
 };
 
 function clip(s: string, max: number): string {
@@ -50,7 +50,7 @@ export function ToolBlock({ entry }: { entry: ToolCallEntry }) {
 
 	return (
 		<div
-			className={`rounded border-l-2 ${BORDERS[entry.state]} bg-zinc-900/40 px-2 py-1 font-[family-name:var(--font-family-mono)] text-[length:var(--font-size-code-block)] text-primary`}
+			className={`rounded border-l-2 ${BORDERS[entry.state]} surface-row px-2 py-1 font-[family-name:var(--font-family-mono)] text-[length:var(--font-size-code-block)] text-primary`}
 		>
 			<button
 				type="button"
@@ -90,7 +90,7 @@ export function ToolBlock({ entry }: { entry: ToolCallEntry }) {
 					{entry.state !== "pending" && (
 						<DetailSection label={entry.state === "ok" ? "result" : "error"}>
 							<pre
-								className={`whitespace-pre-wrap ${entry.state === "error" ? "text-red-300" : "text-primary"}`}
+								className={`whitespace-pre-wrap ${entry.state === "error" ? "text-err" : "text-primary"}`}
 							>
 								{(() => {
 									if (typeof entry.result === "string") {
@@ -160,16 +160,16 @@ function diffFromArgs(toolName: string, args: unknown): DiffLine[] | null {
 
 function DiffView({ lines }: { lines: DiffLine[] }) {
 	return (
-		<div className="overflow-x-auto rounded bg-zinc-950/40 p-2 font-[family-name:var(--font-family-mono)] text-[length:var(--font-size-code-block)] leading-relaxed">
+		<div className="overflow-x-auto rounded surface-row p-2 font-[family-name:var(--font-family-mono)] text-[length:var(--font-size-code-block)] leading-relaxed">
 			{lines.map((line, i) => (
 				<div
 					// biome-ignore lint/suspicious/noArrayIndexKey: diff lines have no stable id
 					key={i}
 					className={
 						line.kind === "add"
-							? "bg-emerald-900/30 text-emerald-200"
+							? "surface-ok-soft text-ok"
 							: line.kind === "remove"
-								? "bg-red-900/30 text-red-200"
+								? "surface-err-soft text-err"
 								: "text-muted"
 					}
 				>

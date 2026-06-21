@@ -27,7 +27,7 @@ export function ModelsJsonEditor() {
 						<div className="text-xs text-muted">{modelsJson.data.path}</div>
 					) : null}
 					{modelsJson.data?.registryError ? (
-						<div className="rounded bg-yellow-500/10 p-2 text-xs text-yellow-300">
+						<div className="rounded surface-warn-soft p-2 text-xs text-warn">
 							{modelsJson.data.registryError}
 						</div>
 					) : null}
@@ -42,18 +42,18 @@ export function ModelsJsonEditor() {
 						<button
 							type="button"
 							disabled={save.isPending}
-							className="rounded bg-blue-500/20 px-2 py-1 text-sm hover:opacity-80 disabled:opacity-50"
+							className="rounded surface-accent-soft px-2 py-1 text-sm hover:opacity-80 disabled:opacity-50"
 							onClick={() => save.mutate({ text: draft })}
 						>
 							{save.isPending ? "Saving…" : "Save models.json"}
 						</button>
 						{save.data?.registryError ? (
-							<span className="text-xs text-yellow-300">
+							<span className="text-xs text-warn">
 								{save.data.registryError}
 							</span>
 						) : null}
 						{save.error ? (
-							<span className="text-xs text-red-400">{save.error.message}</span>
+							<span className="text-xs text-err">{save.error.message}</span>
 						) : null}
 					</div>
 				</div>

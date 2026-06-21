@@ -112,8 +112,8 @@ export function ResizablePane({
 
 	const handleClass =
 		side === "left"
-			? "absolute left-0 top-0 h-full w-1 cursor-col-resize outline-none hover:bg-indigo-500/50 focus-visible:bg-indigo-500/50 active:bg-indigo-500/70"
-			: "absolute right-0 top-0 h-full w-1 cursor-col-resize outline-none hover:bg-indigo-500/50 focus-visible:bg-indigo-500/50 active:bg-indigo-500/70";
+			? "absolute left-0 top-0 h-full w-1 cursor-col-resize outline-none hover:bg-[var(--accent-soft)] focus-visible:bg-[var(--accent-soft)] active:bg-[var(--accent)]"
+			: "absolute right-0 top-0 h-full w-1 cursor-col-resize outline-none hover:bg-[var(--accent-soft)] focus-visible:bg-[var(--accent-soft)] active:bg-[var(--accent)]";
 
 	return (
 		<div className="relative flex h-full flex-shrink-0" style={{ width }}>

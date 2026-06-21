@@ -113,7 +113,7 @@ export function InstallSkillDialog({
 					</div>
 				)}
 				{install.isError && (
-					<div className="text-xs text-red-300">
+					<div className="text-xs text-err">
 						{(install.error as Error).message}
 					</div>
 				)}

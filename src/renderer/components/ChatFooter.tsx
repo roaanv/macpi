@@ -26,7 +26,7 @@ function stripClaudePrefix(name: string): string {
 
 /**
  * Pick a CSS color var based on context usage. Theme variables stay in the
- * theme system so dark/light always have legible severities (`text-red-400`
+ * theme system so dark/light always have legible severities (`text-err`
  * etc. don't track the theme).
  */
 function contextPillVar(percent: number | null): string | undefined {

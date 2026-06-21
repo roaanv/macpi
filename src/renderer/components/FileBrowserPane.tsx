@@ -146,7 +146,7 @@ export function FileBrowserPane({
 	) : (
 		<div className="flex h-full flex-col">
 			{/* Header */}
-			<div className="flex items-center gap-1 border-b border-white/5 px-2 py-1 text-xs">
+			<div className="flex items-center gap-1 border-b border-divider px-2 py-1 text-xs">
 				<span className="truncate text-muted" title={sessionCwd}>
 					{sessionCwd}
 				</span>
@@ -162,7 +162,7 @@ export function FileBrowserPane({
 					<button
 						type="button"
 						onClick={refreshAll}
-						className="rounded px-1 hover:bg-white/5"
+						className="rounded px-1 hover:surface-row"
 						title="Refresh"
 					>
 						⟳
@@ -170,7 +170,7 @@ export function FileBrowserPane({
 					<button
 						type="button"
 						onClick={onClose}
-						className="rounded px-1 hover:bg-white/5"
+						className="rounded px-1 hover:surface-row"
 						title="Close pane"
 					>
 						✕
@@ -204,7 +204,7 @@ export function FileBrowserPane({
 				onPointerMove={onSplitPointerMove}
 				onPointerUp={onSplitPointerUp}
 				onPointerCancel={onSplitPointerUp}
-				className="h-1 w-full cursor-row-resize bg-white/5 hover:bg-indigo-500/50 active:bg-indigo-500/70"
+				className="h-1 w-full cursor-row-resize surface-row hover:bg-[var(--accent-soft)] active:bg-[var(--accent)]"
 			/>
 			{/* Preview */}
 			<div
@@ -228,7 +228,7 @@ export function FileBrowserPane({
 			maxWidth={720}
 			side="left"
 		>
-			<div className="flex h-full w-full flex-col border-l border-white/5 bg-black/10">
+			<div className="flex h-full w-full flex-col border-l border-divider bg-black/10">
 				{body}
 			</div>
 		</ResizablePane>

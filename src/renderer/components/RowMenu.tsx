@@ -64,7 +64,7 @@ export function RowMenu({ items, alwaysVisible }: RowMenuProps) {
 								item.onClick();
 							}}
 							className={`block w-full px-3 py-1 text-left text-xs hover:surface-row ${
-								item.destructive ? "text-red-300" : "text-primary"
+								item.destructive ? "text-err" : "text-primary"
 							}`}
 						>
 							{item.label}

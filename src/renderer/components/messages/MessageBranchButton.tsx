@@ -40,7 +40,7 @@ export function MessageBranchButton({
 				{fork.isPending ? "forking…" : "↪ Branch here"}
 			</button>
 			{errMsg && (
-				<span className="text-[10px] text-red-300" title={errMsg} role="alert">
+				<span className="text-[10px] text-err" title={errMsg} role="alert">
 					fork failed: {errMsg.length > 40 ? `${errMsg.slice(0, 40)}…` : errMsg}
 				</span>
 			)}

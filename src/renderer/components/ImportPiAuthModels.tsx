@@ -21,7 +21,7 @@ export function ImportPiAuthModels() {
 		<div className="flex flex-col gap-2 rounded border border-border/40 p-2 text-sm">
 			<div className="font-medium">Import from installed pi</div>
 			{status.error ? (
-				<div className="text-xs text-red-400">{status.error.message}</div>
+				<div className="text-xs text-err">{status.error.message}</div>
 			) : null}
 			{data ? (
 				<div className="grid gap-1 text-xs text-muted">
@@ -48,7 +48,7 @@ export function ImportPiAuthModels() {
 				Import models.json {data?.sourceModelsExists ? "" : "(missing)"}
 			</label>
 			{hasConflict ? (
-				<label className="flex items-center gap-2 text-xs text-yellow-300">
+				<label className="flex items-center gap-2 text-xs text-warn">
 					<input
 						type="checkbox"
 						checked={replaceExisting}
@@ -66,15 +66,13 @@ export function ImportPiAuthModels() {
 				{importMutation.isPending ? "Importing…" : "Import from installed pi"}
 			</button>
 			{importMutation.data ? (
-				<div className="text-xs text-green-400">
+				<div className="text-xs text-ok">
 					Imported auth: {String(importMutation.data.copiedAuth)}, models:{" "}
 					{String(importMutation.data.copiedModels)}
 				</div>
 			) : null}
 			{importMutation.error ? (
-				<div className="text-xs text-red-400">
-					{importMutation.error.message}
-				</div>
+				<div className="text-xs text-err">{importMutation.error.message}</div>
 			) : null}
 		</div>
 	);
