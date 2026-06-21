@@ -89,6 +89,11 @@ export type OAuthEvent =
 	| { type: "oauth.error"; loginId: string; provider: string; message: string }
 	| { type: "oauth.cancelled"; loginId: string; provider: string };
 
+export interface OAuthLoginStart {
+	loginId: string;
+	events: OAuthEvent[];
+}
+
 export interface ModelsJsonReadResult {
 	path: string;
 	text: string;

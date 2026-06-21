@@ -14,6 +14,7 @@ import type {
 	LocalOpenAIProviderInput,
 	ModelSummary,
 	OAuthEvent,
+	OAuthLoginStart,
 	ProviderAuthType,
 	ProviderSummary,
 	SelectedModelRef,
@@ -35,6 +36,7 @@ type LoginState = {
 	provider: string;
 	abort: AbortController;
 	prompts: Map<string, PendingPrompt>;
+	events: OAuthEvent[];
 };
 
 export interface ModelAuthServiceDeps {
@@ -113,7 +115,7 @@ export class ModelAuthService {
 		};
 	}
 
-	async startOAuthLogin(provider: string): Promise<{ loginId: string }> {
+	async startOAuthLogin(provider: string): Promise<OAuthLoginStart> {
 		const normalizedProvider = this.validateProviderId(provider);
 		const auth = await this.getAuthStorage();
 		const loginId = randomUUID();
@@ -121,6 +123,7 @@ export class ModelAuthService {
 			provider: normalizedProvider,
 			abort: new AbortController(),
 			prompts: new Map(),
+			events: [],
 		};
 		this.logins.set(loginId, state);
 
@@ -193,7 +196,7 @@ export class ModelAuthService {
 				this.logins.delete(loginId);
 			});
 
-		return { loginId };
+		return { loginId, events: [...state.events] };
 	}
 
 	respondOAuthPrompt(loginId: string, promptId: string, value: string): void {
@@ -534,6 +537,7 @@ export class ModelAuthService {
 	}
 
 	private emitOAuth(event: OAuthEvent): void {
+		this.logins.get(event.loginId)?.events.push(event);
 		for (const listener of this.oauthListeners) listener(event);
 	}
 

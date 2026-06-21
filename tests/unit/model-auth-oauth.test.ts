@@ -62,7 +62,13 @@ describe("ModelAuthService OAuth", () => {
 		});
 		service.onOAuthEvent((event) => events.push(event));
 
-		const { loginId } = await service.startOAuthLogin("anthropic");
+		const { loginId, events: initialEvents } =
+			await service.startOAuthLogin("anthropic");
+		expect(initialEvents.map((event) => event.type)).toEqual([
+			"oauth.authUrl",
+			"oauth.progress",
+			"oauth.prompt",
+		]);
 		await waitFor(() => events.some((event) => event.type === "oauth.prompt"));
 		const prompt = events.find((event) => event.type === "oauth.prompt");
 		if (!prompt || prompt.type !== "oauth.prompt")

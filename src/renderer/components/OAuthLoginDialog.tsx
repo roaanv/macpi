@@ -22,20 +22,31 @@ export function OAuthLoginDialog({ provider, onClose }: OAuthLoginDialogProps) {
 
 	React.useEffect(() => {
 		if (!provider) return;
-		setEvents([]);
-		setPromptValue("");
-		void start
-			.mutateAsync({ provider })
-			.then((result) => setLoginId(result.loginId));
-	}, [provider, start]);
+		return onOAuthEvent((event) => {
+			if (event.provider !== provider) return;
+			setLoginId((current) => current ?? event.loginId);
+			setEvents((prev) => {
+				if (prev.length > 0 && prev[0].loginId !== event.loginId) return prev;
+				return appendOAuthEvent(prev, event);
+			});
+		});
+	}, [provider]);
 
 	React.useEffect(() => {
-		if (!loginId) return;
-		return onOAuthEvent((event) => {
-			if (event.loginId !== loginId) return;
-			setEvents((prev) => [...prev, event]);
+		if (!provider) return;
+		setLoginId(null);
+		setEvents([]);
+		setPromptValue("");
+		let cancelled = false;
+		void start.mutateAsync({ provider }).then((result) => {
+			if (cancelled) return;
+			setLoginId((current) => current ?? result.loginId);
+			setEvents((prev) => result.events.reduce(appendOAuthEvent, prev));
 		});
-	}, [loginId]);
+		return () => {
+			cancelled = true;
+		};
+	}, [provider, start.mutateAsync]);
 
 	if (!provider) return null;
 	const latestPrompt = [...events]
@@ -156,6 +167,7 @@ export function OAuthLoginDialog({ provider, onClose }: OAuthLoginDialogProps) {
 						className="rounded px-2 py-1 text-sm hover:opacity-80"
 						onClick={() => {
 							if (loginId && !done) cancel.mutate({ loginId });
+
 							onClose();
 						}}
 					>
@@ -165,6 +177,15 @@ export function OAuthLoginDialog({ provider, onClose }: OAuthLoginDialogProps) {
 			</div>
 		</div>
 	);
+}
+
+function appendOAuthEvent(
+	events: OAuthEvent[],
+	event: OAuthEvent,
+): OAuthEvent[] {
+	const key = oauthEventKey(event);
+	if (events.some((existing) => oauthEventKey(existing) === key)) return events;
+	return [...events, event];
 }
 
 function oauthEventKey(event: OAuthEvent): string {

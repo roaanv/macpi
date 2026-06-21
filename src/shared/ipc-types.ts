@@ -42,6 +42,7 @@ import type {
 	LocalOpenAIProviderInput,
 	ModelSummary,
 	ModelsJsonReadResult,
+	OAuthLoginStart,
 	ProviderSummary,
 	SelectedModelRef,
 } from "./model-auth-types";
@@ -274,7 +275,7 @@ export interface IpcMethods {
 	};
 	"modelsAuth.startOAuthLogin": {
 		req: { provider: string };
-		res: { loginId: string };
+		res: OAuthLoginStart;
 	};
 	"modelsAuth.respondOAuthPrompt": {
 		req: { loginId: string; promptId: string; value: string };
