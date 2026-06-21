@@ -4,30 +4,30 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
-	ensureGlobalPiAgentRoot,
-	getGlobalPiAgentRoot,
+	ensureMacPiPiAgentRoot,
+	getMacPiPiAgentRoot,
 } from "../../src/main/pi-agent-root";
 
-let homeDir: string;
+let macpiRoot: string;
 
 beforeEach(async () => {
-	homeDir = await mkdtemp(path.join(os.tmpdir(), "macpi-pi-root-"));
+	macpiRoot = await mkdtemp(path.join(os.tmpdir(), "macpi-pi-root-"));
 });
 
 afterEach(() => {
-	rmSync(homeDir, { recursive: true, force: true });
+	rmSync(macpiRoot, { recursive: true, force: true });
 });
 
-describe("global Pi agent root", () => {
-	it("resolves to ~/.pi/agent", () => {
-		expect(getGlobalPiAgentRoot(homeDir)).toBe(
-			path.join(homeDir, ".pi", "agent"),
+describe("MacPi Pi agent root", () => {
+	it("resolves to <macpiRoot>/pi-agent", () => {
+		expect(getMacPiPiAgentRoot(macpiRoot)).toBe(
+			path.join(macpiRoot, "pi-agent"),
 		);
 	});
 
-	it("ensures the global Pi root exists", () => {
-		const root = ensureGlobalPiAgentRoot(homeDir);
-		expect(root).toBe(path.join(homeDir, ".pi", "agent"));
+	it("ensures the MacPi Pi root exists", () => {
+		const root = ensureMacPiPiAgentRoot(macpiRoot);
+		expect(root).toBe(path.join(macpiRoot, "pi-agent"));
 		expect(existsSync(root)).toBe(true);
 	});
 });

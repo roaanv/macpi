@@ -13,7 +13,6 @@ import { getResourceEnabled } from "../shared/app-settings-keys";
 import type { PiEvent } from "../shared/pi-events";
 import type { PromptManifest, PromptSummary } from "../shared/prompts-types";
 import { promptResourceId } from "../shared/resource-id";
-import { getGlobalPiAgentRoot } from "./pi-agent-root";
 import type { AppSettingsRepo } from "./repos/app-settings";
 
 interface PiPromptTemplate {
@@ -27,7 +26,7 @@ interface PiPromptTemplate {
 
 export interface PromptsServiceDeps {
 	appSettings: AppSettingsRepo;
-	homeDir: string;
+	agentDir: string;
 	loadPrompts: () => Promise<PiPromptTemplate[]>;
 	loadPackageManager: () => Promise<{
 		installAndPersist: (
@@ -62,7 +61,7 @@ export class PromptsService {
 	constructor(private readonly deps: PromptsServiceDeps) {}
 
 	private resourceRoot(): string {
-		return getGlobalPiAgentRoot(this.deps.homeDir);
+		return this.deps.agentDir;
 	}
 
 	private idFor(p: PiPromptTemplate): {

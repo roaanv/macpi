@@ -1,7 +1,7 @@
 // Resolves MacPi's app-owned resource root path from settings (with ~/.macpi
-// default) and ensures the directory exists. Pi runtime resources deliberately
-// use ~/.pi/agent instead; this root is only for MacPi app data such as notes,
-// auth, and model settings.
+// default) and ensures the directory exists. MacPi's Pi runtime state lives
+// beneath this root at <macpiRoot>/pi-agent; auth/model files and notes also
+// remain MacPi-owned.
 
 import fs from "node:fs";
 import { getResourceRoot } from "../shared/app-settings-keys";

@@ -10,7 +10,6 @@
 // node_modules at runtime and pi can find its own templates/themes/wasm.
 
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 import type { Api, Model } from "@earendil-works/pi-ai";
 import type {
@@ -33,9 +32,8 @@ import {
 	skillResourceId,
 } from "../shared/resource-id";
 import type { TimelineEntry } from "../shared/timeline-types";
-import { ensureGlobalPiAgentRoot } from "./pi-agent-root";
 import { agentMessagesToTimeline } from "./pi-history";
-import { withProxyEnv, withProxyEnvImmediate } from "./proxy-env";
+import { withProxyEnvAndPath, withProxyEnvImmediate } from "./proxy-env";
 import type { AppSettingsRepo } from "./repos/app-settings";
 
 type PiCodingModule = typeof import("@earendil-works/pi-coding-agent");
@@ -85,7 +83,7 @@ export interface SessionPathStore {
 
 export interface PiSessionManagerDeps {
 	appSettings: AppSettingsRepo;
-	homeDir: string;
+	agentDir: string;
 	modelAuth?: {
 		getAuthStorage(): Promise<AuthStorage>;
 		getModelRegistry(): Promise<ModelRegistry>;
@@ -114,6 +112,46 @@ export class PiSessionManager {
 		return this.deps?.appSettings.getAll() ?? {};
 	}
 
+	private ensureAgentDir(): string {
+		if (!this.deps) {
+			throw new Error("PiSessionManager requires deps for Pi agent directory");
+		}
+		fs.mkdirSync(this.deps.agentDir, { recursive: true });
+		return this.deps.agentDir;
+	}
+
+	private npmPrefixDir(agentDir = this.ensureAgentDir()): string {
+		return path.join(agentDir, "npm");
+	}
+
+	private npmBinDir(agentDir = this.ensureAgentDir()): string {
+		return path.join(this.npmPrefixDir(agentDir), "bin");
+	}
+
+	private ensureNpmPrefixDir(agentDir = this.ensureAgentDir()): void {
+		fs.mkdirSync(this.npmPrefixDir(agentDir), { recursive: true });
+	}
+
+	private createMacPiPiSettingsManager(
+		ctx: PiContext,
+		cwd: string,
+	): SettingsManager {
+		const agentDir = this.ensureAgentDir();
+		const settingsManager = ctx.mod.SettingsManager.create(cwd, agentDir);
+		settingsManager.applyOverrides({
+			npmCommand: ["npm", "--prefix", this.npmPrefixDir(agentDir)],
+		});
+		return settingsManager;
+	}
+
+	private async withMacPiRuntimeEnv<T>(
+		proxySettings: Record<string, unknown>,
+		callback: () => Promise<T> | T,
+	): Promise<T> {
+		const pathEntries = this.deps ? [this.npmBinDir(this.deps.agentDir)] : [];
+		return await withProxyEnvAndPath(proxySettings, pathEntries, callback);
+	}
+
 	private buildResourceLoader(
 		ctx: PiContext,
 		cwd: string,
@@ -123,10 +161,12 @@ export class PiSessionManager {
 		if (ov?.resourceLoader) return ov.resourceLoader;
 		// Production path: only construct our own loader when deps are wired.
 		if (!this.deps) return undefined;
-		const agentDir = ensureGlobalPiAgentRoot(this.deps.homeDir);
+		const agentDir = this.ensureAgentDir();
+		const settingsManager = this.createMacPiPiSettingsManager(ctx, cwd);
 		return new ctx.mod.DefaultResourceLoader({
 			cwd,
 			agentDir,
+			settingsManager,
 			skillsOverride: this.buildSkillsEnabledFilter(agentDir),
 			extensionsOverride: this.buildExtensionsEnabledFilter(agentDir),
 			promptsOverride: this.buildPromptsEnabledFilter(agentDir),
@@ -140,7 +180,7 @@ export class PiSessionManager {
 	): Promise<ResourceLoader | undefined> {
 		const loader = this.buildResourceLoader(ctx, cwd);
 		if (loader) {
-			await withProxyEnv(proxySettings, () => loader.reload());
+			await this.withMacPiRuntimeEnv(proxySettings, () => loader.reload());
 		}
 		return loader;
 	}
@@ -239,7 +279,7 @@ export class PiSessionManager {
 	}
 
 	/**
-	 * Constructs a one-shot DefaultResourceLoader using the global Pi agent root
+	 * Constructs a one-shot DefaultResourceLoader using the MacPi Pi agent root
 	 * and returns the discovered skills. Used by SkillsService
 	 * for list/read calls outside an active session.
 	 */
@@ -250,18 +290,21 @@ export class PiSessionManager {
 			throw new Error("PiSessionManager requires deps for loadSkills");
 		}
 		const ctx = await this.ensureContext();
-		const agentDir = ensureGlobalPiAgentRoot(this.deps.homeDir);
+		const agentDir = this.ensureAgentDir();
+		const cwd = agentDir;
+		const settingsManager = this.createMacPiPiSettingsManager(ctx, cwd);
 		// loadSkills is used by the UI list — it should show ALL discovered
 		// skills (even disabled ones) so the checkbox reflects current state.
 		// No skillsOverride here; the filter only applies to the per-session
 		// loader so disabled skills don't reach the agent.
 		const loader = new ctx.mod.DefaultResourceLoader({
-			cwd: this.deps.homeDir,
+			cwd,
 			agentDir,
+			settingsManager,
 		});
 		// reload() runs package resolve + auto-discovery of agentDir/skills/.
 		// Without it, getSkills() returns the empty initial state.
-		await withProxyEnv(this.proxySettings(), () => loader.reload());
+		await this.withMacPiRuntimeEnv(this.proxySettings(), () => loader.reload());
 		const result = loader.getSkills();
 		return result.skills as Array<{
 			name: string;
@@ -290,12 +333,15 @@ export class PiSessionManager {
 			throw new Error("PiSessionManager requires deps for loadPrompts");
 		}
 		const ctx = await this.ensureContext();
-		const agentDir = ensureGlobalPiAgentRoot(this.deps.homeDir);
+		const agentDir = this.ensureAgentDir();
+		const cwd = agentDir;
+		const settingsManager = this.createMacPiPiSettingsManager(ctx, cwd);
 		const loader = new ctx.mod.DefaultResourceLoader({
-			cwd: this.deps.homeDir,
+			cwd,
 			agentDir,
+			settingsManager,
 		});
-		await withProxyEnv(this.proxySettings(), () => loader.reload());
+		await this.withMacPiRuntimeEnv(this.proxySettings(), () => loader.reload());
 		const result = loader.getPrompts();
 		return result.prompts as Array<{
 			name: string;
@@ -308,7 +354,7 @@ export class PiSessionManager {
 	}
 
 	/**
-	 * Constructs a one-shot DefaultResourceLoader using the global Pi agent root
+	 * Constructs a one-shot DefaultResourceLoader using the MacPi Pi agent root
 	 * and returns the discovered extensions and any load errors.
 	 * Used by ExtensionsService for list/read calls outside an active session.
 	 */
@@ -324,13 +370,16 @@ export class PiSessionManager {
 			throw new Error("PiSessionManager requires deps for loadExtensions");
 		}
 		const ctx = await this.ensureContext();
-		const agentDir = ensureGlobalPiAgentRoot(this.deps.homeDir);
+		const agentDir = this.ensureAgentDir();
+		const cwd = agentDir;
+		const settingsManager = this.createMacPiPiSettingsManager(ctx, cwd);
 		// No extensionsOverride here — UI shows ALL extensions (incl. disabled).
 		const loader = new ctx.mod.DefaultResourceLoader({
-			cwd: this.deps.homeDir,
+			cwd,
 			agentDir,
+			settingsManager,
 		});
-		await withProxyEnv(this.proxySettings(), () => loader.reload());
+		await this.withMacPiRuntimeEnv(this.proxySettings(), () => loader.reload());
 		const result = loader.getExtensions();
 		return {
 			extensions: result.extensions as Array<{
@@ -348,7 +397,7 @@ export class PiSessionManager {
 		this.emit(event);
 	}
 
-	/** Constructs a one-shot DefaultPackageManager using the global pi agent
+	/** Constructs a one-shot DefaultPackageManager using the MacPi Pi agent
 	 *  root. Caller is responsible for setProgressCallback lifecycle. */
 	async loadPackageManager(): Promise<{
 		listConfiguredPackages: () => Array<{
@@ -381,31 +430,27 @@ export class PiSessionManager {
 			throw new Error("PiSessionManager requires deps for loadPackageManager");
 		}
 		const ctx = await this.ensureContext();
-		const agentDir = ensureGlobalPiAgentRoot(this.deps.homeDir);
-		// Pi exports SettingsManager (with a static `create` factory) rather than a
-		// DefaultSettingsManager class. Construct it pointed at global Pi so
-		// package state is shared with the CLI.
-		const settingsManager = ctx.mod.SettingsManager.create(
-			this.deps.homeDir,
-			agentDir,
-		);
+		const agentDir = this.ensureAgentDir();
+		this.ensureNpmPrefixDir(agentDir);
+		const cwd = agentDir;
+		const settingsManager = this.createMacPiPiSettingsManager(ctx, cwd);
 		const pm = new ctx.mod.DefaultPackageManager({
-			cwd: this.deps.homeDir,
+			cwd,
 			agentDir,
 			settingsManager,
 		});
 		return {
 			listConfiguredPackages: () => pm.listConfiguredPackages(),
 			installAndPersist: (source, options) =>
-				withProxyEnv(this.proxySettings(), () =>
+				this.withMacPiRuntimeEnv(this.proxySettings(), () =>
 					pm.installAndPersist(source, options),
 				),
 			removeAndPersist: (source, options) =>
-				withProxyEnv(this.proxySettings(), () =>
+				this.withMacPiRuntimeEnv(this.proxySettings(), () =>
 					pm.removeAndPersist(source, options),
 				),
 			update: (source) =>
-				withProxyEnv(this.proxySettings(), () => pm.update(source)),
+				this.withMacPiRuntimeEnv(this.proxySettings(), () => pm.update(source)),
 			setProgressCallback: (cb) => pm.setProgressCallback(cb),
 		};
 	}
@@ -423,13 +468,20 @@ export class PiSessionManager {
 		);
 		const model =
 			ov?.model ?? (await this.deps?.modelAuth?.resolveSelectedModel());
-		const result = await withProxyEnv(proxySettings, async () =>
+		const agentDir = this.deps?.agentDir;
+		const settingsManager =
+			ov?.settingsManager ??
+			(this.deps
+				? this.createMacPiPiSettingsManager(ctx, opts.cwd)
+				: undefined);
+		const result = await this.withMacPiRuntimeEnv(proxySettings, async () =>
 			ctx.mod.createAgentSession({
 				cwd: opts.cwd,
+				agentDir,
 				authStorage: ov?.authStorage ?? ctx.auth,
 				modelRegistry: ov?.modelRegistry ?? ctx.registry,
 				resourceLoader,
-				settingsManager: ov?.settingsManager,
+				settingsManager,
 				model,
 			}),
 		);
@@ -455,11 +507,12 @@ export class PiSessionManager {
 
 		let filePath = this.pathStore?.getSessionFilePath(opts.piSessionId) ?? null;
 		if (!filePath) {
-			filePath = discoverSessionFile(opts.piSessionId);
+			const agentDir = this.ensureAgentDir();
+			filePath = discoverSessionFile(opts.piSessionId, agentDir);
 			if (!filePath) {
 				throw new Error(
 					`session file not found on disk for ${opts.piSessionId}. ` +
-						`Tried ~/.pi/agent/sessions/**/<id>.jsonl.`,
+						`Tried ${path.join(agentDir, "sessions")}/**/<id>.jsonl.`,
 				);
 			}
 			this.pathStore?.setSessionFilePath(opts.piSessionId, filePath);
@@ -475,13 +528,18 @@ export class PiSessionManager {
 		);
 		const model =
 			ov?.model ?? (await this.deps?.modelAuth?.resolveSelectedModel());
-		const result = await withProxyEnv(proxySettings, async () =>
+		const agentDir = this.deps?.agentDir;
+		const settingsManager =
+			ov?.settingsManager ??
+			(this.deps ? this.createMacPiPiSettingsManager(ctx, cwd) : undefined);
+		const result = await this.withMacPiRuntimeEnv(proxySettings, async () =>
 			ctx.mod.createAgentSession({
 				cwd,
+				agentDir,
 				authStorage: ov?.authStorage ?? ctx.auth,
 				modelRegistry: ov?.modelRegistry ?? ctx.registry,
 				resourceLoader,
-				settingsManager: ov?.settingsManager,
+				settingsManager,
 				model,
 				sessionManager,
 			}),
@@ -525,13 +583,18 @@ export class PiSessionManager {
 		);
 		const model =
 			ov?.model ?? (await this.deps?.modelAuth?.resolveSelectedModel());
-		const result = await withProxyEnv(proxySettings, async () =>
+		const agentDir = this.deps?.agentDir;
+		const settingsManager =
+			ov?.settingsManager ??
+			(this.deps ? this.createMacPiPiSettingsManager(ctx, cwd) : undefined);
+		const result = await this.withMacPiRuntimeEnv(proxySettings, async () =>
 			ctx.mod.createAgentSession({
 				cwd,
+				agentDir,
 				authStorage: ov?.authStorage ?? ctx.auth,
 				modelRegistry: ov?.modelRegistry ?? ctx.registry,
 				resourceLoader,
-				settingsManager: ov?.settingsManager,
+				settingsManager,
 				model,
 				sessionManager,
 			}),
@@ -581,7 +644,7 @@ export class PiSessionManager {
 					active.session.prompt(text, promptOptions),
 				);
 			} else {
-				await withProxyEnv(active.proxySettings, () =>
+				await this.withMacPiRuntimeEnv(active.proxySettings, () =>
 					active.session.prompt(text, promptOptions),
 				);
 			}
@@ -665,7 +728,7 @@ export class PiSessionManager {
 		if (!active) {
 			throw new Error(`unknown session ${piSessionId}`);
 		}
-		await withProxyEnv(active.proxySettings, () =>
+		await this.withMacPiRuntimeEnv(active.proxySettings, () =>
 			active.session.compact(prompt),
 		);
 	}
@@ -858,8 +921,11 @@ export function classifyError(
 	return "unknown";
 }
 
-function discoverSessionFile(piSessionId: string): string | null {
-	const root = path.join(os.homedir(), ".pi", "agent", "sessions");
+function discoverSessionFile(
+	piSessionId: string,
+	agentDir: string,
+): string | null {
+	const root = path.join(agentDir, "sessions");
 	if (!fs.existsSync(root)) return null;
 	for (const dir of fs.readdirSync(root)) {
 		const dirPath = path.join(root, dir);

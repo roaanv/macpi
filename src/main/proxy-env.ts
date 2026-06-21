@@ -1,3 +1,4 @@
+import path from "node:path";
 import { buildProxyEnv } from "../shared/app-settings-keys";
 
 const PROXY_ENV_KEYS = [
@@ -21,12 +22,27 @@ export async function withProxyEnv<T>(
 	settings: Record<string, unknown>,
 	callback: () => Promise<T> | T,
 ): Promise<T> {
+	return await withProxyEnvAndPath(settings, [], callback);
+}
+
+export async function withProxyEnvAndPath<T>(
+	settings: Record<string, unknown>,
+	pathEntries: string[],
+	callback: () => Promise<T> | T,
+): Promise<T> {
 	return await enqueueProxyEnvCallback(async () => {
 		const overrides = buildProxyEnv(settings);
-		const keys = Object.keys(overrides);
+		const mergedOverrides =
+			pathEntries.length === 0
+				? overrides
+				: {
+						...overrides,
+						PATH: prependPathEntries(pathEntries, process.env.PATH),
+					};
+		const keys = Object.keys(mergedOverrides);
 		if (keys.length === 0) return await callback();
 
-		return await applyProxyEnv(overrides, keys, callback);
+		return await applyProxyEnv(mergedOverrides, keys, callback);
 	});
 }
 
@@ -47,6 +63,17 @@ export async function withProxyEnvImmediate<T>(
 		keys.length === 0 ? [...PROXY_ENV_KEYS] : keys,
 		callback,
 	);
+}
+
+function prependPathEntries(
+	entries: string[],
+	current: string | undefined,
+): string {
+	const prefix = entries
+		.filter((entry) => entry.length > 0)
+		.join(path.delimiter);
+	if (!prefix) return current ?? "";
+	return current ? `${prefix}${path.delimiter}${current}` : prefix;
 }
 
 async function applyProxyEnv<T>(

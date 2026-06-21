@@ -179,9 +179,9 @@ export function buildProxyEnv(
 }
 
 /**
- * MacPi app data root. Pi runtime resources use ~/.pi/agent; this location is
- * for MacPi-owned data such as notes, auth, and model settings. Home-relative
- * default (~/.macpi) is resolved at read time so we don't bake the path into
+ * MacPi app data root. The embedded Pi runtime uses this root's `pi-agent`
+ * subdirectory; notes, auth, and model settings are MacPi-owned siblings.
+ * Home-relative default (~/.macpi) is resolved at read time so we don't bake
  * the defaults map.
  */
 export function getResourceRoot(

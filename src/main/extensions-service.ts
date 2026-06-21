@@ -14,7 +14,6 @@ import type {
 import { friendlyNameForSource } from "../shared/friendly-name";
 import type { PiEvent } from "../shared/pi-events";
 import { extensionResourceId } from "../shared/resource-id";
-import { getGlobalPiAgentRoot } from "./pi-agent-root";
 import type { AppSettingsRepo } from "./repos/app-settings";
 
 interface PiExtension {
@@ -30,7 +29,7 @@ interface PiExtensionsResult {
 
 export interface ExtensionsServiceDeps {
 	appSettings: AppSettingsRepo;
-	homeDir: string;
+	agentDir: string;
 	loadExtensions: () => Promise<PiExtensionsResult>;
 	loadPackageManager: () => Promise<{
 		installAndPersist: (
@@ -60,7 +59,7 @@ export class ExtensionsService {
 	constructor(private readonly deps: ExtensionsServiceDeps) {}
 
 	private extensionsRoot(): string {
-		return path.join(getGlobalPiAgentRoot(this.deps.homeDir), "extensions");
+		return path.join(this.deps.agentDir, "extensions");
 	}
 
 	private idFor(ext: PiExtension): {

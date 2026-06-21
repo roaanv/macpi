@@ -1,12 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
 
-export function getGlobalPiAgentRoot(homeDir: string): string {
-	return path.join(homeDir, ".pi", "agent");
+export function getMacPiPiAgentRoot(macpiRoot: string): string {
+	return path.join(macpiRoot, "pi-agent");
 }
 
-export function ensureGlobalPiAgentRoot(homeDir: string): string {
-	const root = getGlobalPiAgentRoot(homeDir);
+export function ensureMacPiPiAgentRoot(macpiRoot: string): string {
+	const root = getMacPiPiAgentRoot(macpiRoot);
 	fs.mkdirSync(root, { recursive: true });
 	return root;
 }

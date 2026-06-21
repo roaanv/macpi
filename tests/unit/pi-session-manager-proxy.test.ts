@@ -105,7 +105,7 @@ describe("PiSessionManager active session proxy env", () => {
 		const manager = new PiSessionManager({
 			// biome-ignore lint/suspicious/noExplicitAny: minimal AppSettingsRepo stub
 			appSettings: fakeAppSettings(currentSettings) as any,
-			homeDir: "/tmp",
+			agentDir: "/tmp/pi-agent",
 		});
 		installActiveSession(manager, session, {
 			httpProxy: "http://captured.example.com:8080",
@@ -315,7 +315,7 @@ describe("PiSessionManager active session proxy env", () => {
 		const manager = new PiSessionManager({
 			// biome-ignore lint/suspicious/noExplicitAny: minimal AppSettingsRepo stub
 			appSettings: { getAll: () => currentSettings } as any,
-			homeDir: "/tmp",
+			agentDir: "/tmp/pi-agent",
 		});
 		manager.__testOverrides = {
 			authStorage: {},

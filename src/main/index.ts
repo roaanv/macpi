@@ -15,6 +15,7 @@ import { IpcRouter } from "./ipc-router";
 import { createLogger, type Logger } from "./logger";
 import { ModelAuthService } from "./model-auth-service";
 import { NotesService } from "./notes-service";
+import { ensureMacPiPiAgentRoot } from "./pi-agent-root";
 import { PiSessionManager } from "./pi-session-manager";
 import { PromptsService } from "./prompts-service";
 import { AppSettingsRepo } from "./repos/app-settings";
@@ -128,6 +129,7 @@ app.whenReady().then(async () => {
 	const appSettings = new AppSettingsRepo(db);
 
 	const macpiRoot = ensureResourceRoot(appSettings.getAll(), os.homedir());
+	const piAgentDir = ensureMacPiPiAgentRoot(macpiRoot);
 
 	const notesService = new NotesService({
 		filePath: path.join(macpiRoot, "NOTES.md"),
@@ -146,7 +148,7 @@ app.whenReady().then(async () => {
 
 	const manager = new PiSessionManager({
 		appSettings,
-		homeDir: os.homedir(),
+		agentDir: piAgentDir,
 		modelAuth: modelAuthService,
 	});
 	piSessionManager = manager;
@@ -163,7 +165,7 @@ app.whenReady().then(async () => {
 
 	const skillsService = new SkillsService({
 		appSettings,
-		homeDir: os.homedir(),
+		agentDir: piAgentDir,
 		loadSkills: () => manager.loadSkills(),
 		loadPackageManager: () => manager.loadPackageManager(),
 		emitEvent: (event) => manager.broadcastEvent(event),
@@ -171,7 +173,7 @@ app.whenReady().then(async () => {
 
 	const extensionsService = new ExtensionsService({
 		appSettings,
-		homeDir: os.homedir(),
+		agentDir: piAgentDir,
 		loadExtensions: () => manager.loadExtensions(),
 		loadPackageManager: () => manager.loadPackageManager(),
 		emitEvent: (event) => manager.broadcastEvent(event),
@@ -180,7 +182,7 @@ app.whenReady().then(async () => {
 
 	const promptsService = new PromptsService({
 		appSettings,
-		homeDir: os.homedir(),
+		agentDir: piAgentDir,
 		loadPrompts: () => manager.loadPrompts(),
 		loadPackageManager: () => manager.loadPackageManager(),
 		emitEvent: (event) => manager.broadcastEvent(event),

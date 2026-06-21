@@ -8,7 +8,7 @@ import {
 import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { runMigrations } from "../../src/main/db/migrations";
 import { AppSettingsRepo } from "../../src/main/repos/app-settings";
 import { SkillsService } from "../../src/main/skills-service";
@@ -26,10 +26,12 @@ function makeDb() {
 
 describe("SkillsService", () => {
 	let dir: string;
+	let agentDir: string;
 
 	beforeEach(() => {
 		dir = mkdtempSync(path.join(os.tmpdir(), "macpi-skills-"));
-		mkdirSync(path.join(dir, ".pi/agent/skills"), { recursive: true });
+		agentDir = path.join(dir, "pi-agent");
+		mkdirSync(path.join(agentDir, "skills"), { recursive: true });
 	});
 
 	afterEach(() => rmSync(dir, { recursive: true, force: true }));
@@ -42,17 +44,17 @@ describe("SkillsService", () => {
 		}
 		return new SkillsService({
 			appSettings,
-			homeDir: dir,
+			agentDir,
 			loadSkills: async () => [
 				{
 					name: "a",
 					sourceInfo: { source: "local" },
-					filePath: path.join(dir, ".pi/agent/skills/a.md"),
+					filePath: path.join(agentDir, "skills", "a.md"),
 				},
 				{
 					name: "b",
 					sourceInfo: { source: "local" },
-					filePath: path.join(dir, ".pi/agent/skills/b.md"),
+					filePath: path.join(agentDir, "skills", "b.md"),
 				},
 			],
 			loadPackageManager: async () => {
@@ -83,7 +85,7 @@ describe("SkillsService", () => {
 	});
 
 	it("read returns the file body", async () => {
-		writeFileSync(path.join(dir, ".pi/agent/skills/a.md"), "# hello");
+		writeFileSync(path.join(agentDir, "skills", "a.md"), "# hello");
 		const svc = makeService({});
 		const skills = await svc.list();
 		const detail = await svc.read(skills[0].id);
@@ -97,11 +99,11 @@ describe("SkillsService", () => {
 	});
 
 	it("save writes the body to the skill's filePath", async () => {
-		writeFileSync(path.join(dir, ".pi/agent/skills/a.md"), "old");
+		writeFileSync(path.join(agentDir, "skills", "a.md"), "old");
 		const svc = makeService({});
 		const skills = await svc.list();
 		await svc.save(skills[0].id, "new body");
-		expect(readFileSync(path.join(dir, ".pi/agent/skills/a.md"), "utf8")).toBe(
+		expect(readFileSync(path.join(agentDir, "skills", "a.md"), "utf8")).toBe(
 			"new body",
 		);
 	});
@@ -112,7 +114,7 @@ describe("SkillsService", () => {
 		const appSettings = new AppSettingsRepo(db);
 		const svc = new SkillsService({
 			appSettings,
-			homeDir: dir,
+			agentDir,
 			loadSkills: async () => [
 				{ name: "ghost", sourceInfo: { source: "local" } },
 			],
@@ -142,5 +144,55 @@ describe("SkillsService", () => {
 		expect(after.find((s) => s.id === "skill:local:a.md")?.enabled).toBe(false);
 		// The unrelated entry should still be in the map for future skills.
 		// (Indirectly verified by enabling a third skill below if we want — skip.)
+	});
+
+	it("install uses the SDK package manager and emits progress", async () => {
+		const db = makeDb();
+		const appSettings = new AppSettingsRepo(db);
+		let progressCallback:
+			| ((e: {
+					type: string;
+					action: string;
+					source: string;
+					message?: string;
+			  }) => void)
+			| undefined;
+		const installAndPersist = vi.fn(async () => {
+			progressCallback?.({
+				type: "complete",
+				action: "install",
+				source: "npm:test-skill",
+			});
+		});
+		const events: unknown[] = [];
+		const svc = new SkillsService({
+			appSettings,
+			agentDir,
+			loadSkills: async () => [],
+			loadPackageManager: async () => ({
+				installAndPersist,
+				removeAndPersist: vi.fn(),
+				setProgressCallback: (cb) => {
+					progressCallback = cb;
+				},
+			}),
+			emitEvent: (event) => events.push(event),
+		});
+
+		await svc.install("npm:test-skill");
+
+		expect(installAndPersist).toHaveBeenCalledWith("npm:test-skill", {
+			local: false,
+		});
+		expect(events).toEqual([
+			{
+				type: "package.progress",
+				action: "install",
+				source: "npm:test-skill",
+				phase: "complete",
+				message: undefined,
+			},
+		]);
+		expect(progressCallback).toBeUndefined();
 	});
 });

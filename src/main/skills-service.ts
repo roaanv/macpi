@@ -8,7 +8,6 @@ import { getResourceEnabled } from "../shared/app-settings-keys";
 import type { PiEvent } from "../shared/pi-events";
 import { skillResourceId } from "../shared/resource-id";
 import type { SkillManifest, SkillSummary } from "../shared/skills-types";
-import { getGlobalPiAgentRoot } from "./pi-agent-root";
 import type { AppSettingsRepo } from "./repos/app-settings";
 
 interface PiSkill {
@@ -19,7 +18,7 @@ interface PiSkill {
 
 export interface SkillsServiceDeps {
 	appSettings: AppSettingsRepo;
-	homeDir: string;
+	agentDir: string;
 	loadSkills: () => Promise<PiSkill[]>;
 	loadPackageManager: () => Promise<{
 		installAndPersist: (
@@ -48,7 +47,7 @@ export class SkillsService {
 	constructor(private readonly deps: SkillsServiceDeps) {}
 
 	private resourceRoot(): string {
-		return getGlobalPiAgentRoot(this.deps.homeDir);
+		return this.deps.agentDir;
 	}
 
 	private idFor(skill: PiSkill): {

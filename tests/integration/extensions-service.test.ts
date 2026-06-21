@@ -26,9 +26,11 @@ function makeDb() {
 
 describe("ExtensionsService", () => {
 	let dir: string;
+	let agentDir: string;
 	beforeEach(() => {
 		dir = mkdtempSync(path.join(os.tmpdir(), "macpi-ext-"));
-		mkdirSync(path.join(dir, ".pi/agent/extensions"), { recursive: true });
+		agentDir = path.join(dir, "pi-agent");
+		mkdirSync(path.join(agentDir, "extensions"), { recursive: true });
 	});
 	afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
@@ -38,17 +40,17 @@ describe("ExtensionsService", () => {
 		if (opts.enabled) appSettings.set("resourceEnabled", opts.enabled);
 		return new ExtensionsService({
 			appSettings,
-			homeDir: dir,
+			agentDir,
 			loadExtensions: async () => ({
 				extensions: [
 					{
 						path: "a.ts",
-						resolvedPath: path.join(dir, ".pi/agent/extensions/a.ts"),
+						resolvedPath: path.join(agentDir, "extensions", "a.ts"),
 						sourceInfo: { source: "local" },
 					},
 					{
 						path: "b.ts",
-						resolvedPath: path.join(dir, ".pi/agent/extensions/b.ts"),
+						resolvedPath: path.join(agentDir, "extensions", "b.ts"),
 						sourceInfo: { source: "local" },
 					},
 				],
@@ -87,7 +89,7 @@ describe("ExtensionsService", () => {
 
 	it("read returns the entry file body", async () => {
 		writeFileSync(
-			path.join(dir, ".pi/agent/extensions/a.ts"),
+			path.join(agentDir, "extensions", "a.ts"),
 			"export default () => {}",
 		);
 		const svc = makeService({});
@@ -103,12 +105,12 @@ describe("ExtensionsService", () => {
 	});
 
 	it("save writes the body to resolvedPath", async () => {
-		writeFileSync(path.join(dir, ".pi/agent/extensions/a.ts"), "old");
+		writeFileSync(path.join(agentDir, "extensions", "a.ts"), "old");
 		const svc = makeService({});
 		const result = await svc.list();
 		await svc.save(result.extensions[0].id, "new body");
 		expect(
-			readFileSync(path.join(dir, ".pi/agent/extensions/a.ts"), "utf8"),
+			readFileSync(path.join(agentDir, "extensions", "a.ts"), "utf8"),
 		).toBe("new body");
 	});
 
@@ -117,7 +119,7 @@ describe("ExtensionsService", () => {
 		const appSettings = new AppSettingsRepo(db);
 		const svc = new ExtensionsService({
 			appSettings,
-			homeDir: dir,
+			agentDir,
 			loadExtensions: async () => ({
 				extensions: [
 					{
@@ -149,7 +151,7 @@ describe("ExtensionsService", () => {
 	});
 
 	it("lint forwards to the injected biome runner", async () => {
-		writeFileSync(path.join(dir, ".pi/agent/extensions/a.ts"), "const x = 1;");
+		writeFileSync(path.join(agentDir, "extensions", "a.ts"), "const x = 1;");
 		const db = makeDb();
 		const appSettings = new AppSettingsRepo(db);
 		const runBiome = vi.fn().mockResolvedValue([
@@ -163,12 +165,12 @@ describe("ExtensionsService", () => {
 		]);
 		const svc = new ExtensionsService({
 			appSettings,
-			homeDir: dir,
+			agentDir,
 			loadExtensions: async () => ({
 				extensions: [
 					{
 						path: "a.ts",
-						resolvedPath: path.join(dir, ".pi/agent/extensions/a.ts"),
+						resolvedPath: path.join(agentDir, "extensions", "a.ts"),
 						sourceInfo: { source: "local" },
 					},
 				],
@@ -183,7 +185,7 @@ describe("ExtensionsService", () => {
 		const result = await svc.list();
 		const diags = await svc.lint(result.extensions[0].id);
 		expect(runBiome).toHaveBeenCalledWith(
-			path.join(dir, ".pi/agent/extensions/a.ts"),
+			path.join(agentDir, "extensions", "a.ts"),
 		);
 		expect(diags).toHaveLength(1);
 	});

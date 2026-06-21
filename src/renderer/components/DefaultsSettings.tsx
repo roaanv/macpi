@@ -72,9 +72,9 @@ export function DefaultsSettings() {
 			<div>
 				<div className="mb-1 text-sm font-medium">Pi environment</div>
 				<div className="mb-1 text-xs text-muted">
-					MacPi uses the same global Pi environment as the CLI:{" "}
-					<span className="font-mono">~/.pi/agent</span>. Packages, skills,
-					prompts, and extensions installed in either app are shared.
+					MacPi stores its Pi runtime state inside the MacPi resource root at{" "}
+					<span className="font-mono">pi-agent</span>. Packages, skills,
+					prompts, sessions, and extensions are sandboxed from the Pi CLI.
 				</div>
 			</div>
 
