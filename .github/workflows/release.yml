@@ -23,13 +23,22 @@ on:
   push:
     tags:
       - 'v*'
-  # Manual trigger for diagnosing the build on a branch without cutting a
-  # release. On a branch run the publish steps are skipped (they only have
-  # meaningful tags on v* pushes), so this just exercises build+sign+notarize.
+  # Manual trigger so the build can be smoke-tested on a branch without cutting
+  # a release. The publish steps are guarded to tag pushes only, so a branch
+  # run just exercises build + sign + notarize and produces no GitHub Release.
   workflow_dispatch: {}
 
 permissions:
   contents: write
+
+# Node is pinned to an exact version (NOT lts/*). Node 24.15.0/24.16.0 carry a
+# child_process regression that makes electron-packager's signing/finalize step
+# hang: packager() never settles, the event loop drains, and `electron-forge
+# make` exits 0 with no .dmg. 24.14.0 is the last verified-good build toolchain.
+# (node:sqlite — used by src/main/db and the tests — is stable without a flag
+# only on Node 24+, so we can't drop to Node 22.)
+env:
+  NODE_VERSION: '24.14.0'
 
 jobs:
   test:
@@ -41,7 +50,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
       - name: Install dependencies
@@ -62,7 +71,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
       - name: Install dependencies
@@ -118,75 +127,17 @@ jobs:
           echo "$API_KEY_P8_BASE64" | base64 --decode > "$API_KEY_PATH"
           echo "APPLE_API_KEY_PATH=$API_KEY_PATH" >> "$GITHUB_ENV"
 
-      # ── DIAGNOSTIC: preflight environment dump ──
-      - name: Preflight diagnostics
-        run: |
-          echo "::group::node/npm"; node -v; npm -v; echo "::endgroup::"
-          echo "::group::disk"; df -h; echo "::endgroup::"
-          echo "::group::signing identity in keychain"
-          security find-identity -v -p codesigning "$KEYCHAIN_PATH" || true
-          echo "::endgroup::"
-          echo "::group::notarization key file"
-          ls -l "$APPLE_API_KEY_PATH" || true; echo "p8 bytes: $(wc -c < "$APPLE_API_KEY_PATH" 2>/dev/null || echo n/a)"
-          echo "::endgroup::"
-          echo "::group::broken symlinks in node_modules (break fs.cp dereference:true)"
-          find node_modules -type l ! -exec test -e {} \; -print 2>/dev/null | head -50
-          echo "broken count: $(find node_modules -type l ! -exec test -e {} \; -print 2>/dev/null | wc -l)"
-          echo "::endgroup::"
-          echo "::group::xcrun notarytool present?"; xcrun --find notarytool || true; echo "::endgroup::"
-
-      # ── DIAGNOSTIC: warm the Electron cache before make ──
-      # Hypothesis: the cold-cache Electron download inside electron-packager
-      # leaves the event loop in a state where the make process drains and
-      # exits 0 mid-package (only reproduces in CI, where the cache is cold).
-      # Pre-fetching the zip via @electron/get in isolation makes the make
-      # step a cache HIT — the same path that works locally.
-      - name: Pre-fetch Electron (warm @electron/get cache)
-        run: |
-          VER=$(node -p "require('electron/package.json').version")
-          echo "Electron version: $VER"
-          node -e "const v=process.argv[1]; require('@electron/get').downloadArtifact({version:v,platform:'darwin',arch:'arm64',artifactName:'electron'}).then(p=>console.log('cached zip:',p)).catch(e=>{console.error('prefetch failed:',e);process.exit(1)})" "$VER"
-          echo "::group::electron cache contents"
-          ls -la "$HOME/Library/Caches/electron" 2>/dev/null || echo "no cache dir"
-          echo "::endgroup::"
-
       # ── Build (Apple Silicon), sign, and notarize via electron-forge ──
       # forge.config.ts enables osxSign + osxNotarize when these env vars are
       # present, so `make make` produces a signed + notarized + stapled .app
       # packaged into the .dmg.
-      #
-      # DIAGNOSTIC: DEBUG=* surfaces the @electron/packager + osx-sign +
-      # notarize subprocess activity, because electron-forge's package step
-      # swallows an early packager rejection (the make process exits 0 with no
-      # .dmg). The `tee` keeps a copy and the dmg-presence check fails loudly
-      # with the relevant tail so the real error is visible even on exit 0.
       - name: Build, sign, and notarize
         env:
           APPLE_SIGNING_IDENTITY: ${{ env.APPLE_SIGNING_IDENTITY }}
           APPLE_API_KEY_PATH: ${{ env.APPLE_API_KEY_PATH }}
           APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
           APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
-          # Intercept @electron/packager to log whether it rejects (with the
-          # real, otherwise-swallowed error) or never settles before the loop drains.
-          NODE_OPTIONS: '--require ./scripts/trace-packager.cjs'
-        run: |
-          set +e
-          npm run make -- --platform=darwin --arch=arm64 2>&1 | tee "$RUNNER_TEMP/make-debug.log"
-          code="${PIPESTATUS[0]}"
-          set -e
-          echo "=================================================================="
-          echo "npm run make exit code: $code"
-          echo "=================================================================="
-          echo "::group::[trace-packager] markers"
-          grep -nE "\[trace-packager\]" "$RUNNER_TEMP/make-debug.log" || echo "(no trace markers!)"
-          echo "::endgroup::"
-          if ! find out/make -maxdepth 4 -name "*.dmg" -type f 2>/dev/null | grep -q .; then
-            echo "::error::No .dmg produced (make exit $code)."
-            echo "::group::make-debug.log tail (last 60 lines)"
-            tail -60 "$RUNNER_TEMP/make-debug.log"
-            echo "::endgroup::"
-            exit 1
-          fi
+        run: npm run make -- --platform=darwin --arch=arm64
 
       # ── Locate the produced .dmg for the upload steps ──
       - name: Locate .dmg
