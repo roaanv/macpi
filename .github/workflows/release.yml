@@ -23,6 +23,10 @@ on:
   push:
     tags:
       - 'v*'
+  # Manual trigger for diagnosing the build on a branch without cutting a
+  # release. On a branch run the publish steps are skipped (they only have
+  # meaningful tags on v* pushes), so this just exercises build+sign+notarize.
+  workflow_dispatch: {}
 
 permissions:
   contents: write
@@ -114,17 +118,58 @@ jobs:
           echo "$API_KEY_P8_BASE64" | base64 --decode > "$API_KEY_PATH"
           echo "APPLE_API_KEY_PATH=$API_KEY_PATH" >> "$GITHUB_ENV"
 
+      # ── DIAGNOSTIC: preflight environment dump ──
+      - name: Preflight diagnostics
+        run: |
+          echo "::group::node/npm"; node -v; npm -v; echo "::endgroup::"
+          echo "::group::disk"; df -h; echo "::endgroup::"
+          echo "::group::signing identity in keychain"
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH" || true
+          echo "::endgroup::"
+          echo "::group::notarization key file"
+          ls -l "$APPLE_API_KEY_PATH" || true; echo "p8 bytes: $(wc -c < "$APPLE_API_KEY_PATH" 2>/dev/null || echo n/a)"
+          echo "::endgroup::"
+          echo "::group::broken symlinks in node_modules (break fs.cp dereference:true)"
+          find node_modules -type l ! -exec test -e {} \; -print 2>/dev/null | head -50
+          echo "broken count: $(find node_modules -type l ! -exec test -e {} \; -print 2>/dev/null | wc -l)"
+          echo "::endgroup::"
+          echo "::group::xcrun notarytool present?"; xcrun --find notarytool || true; echo "::endgroup::"
+
       # ── Build (Apple Silicon), sign, and notarize via electron-forge ──
       # forge.config.ts enables osxSign + osxNotarize when these env vars are
       # present, so `make make` produces a signed + notarized + stapled .app
       # packaged into the .dmg.
+      #
+      # DIAGNOSTIC: DEBUG=* surfaces the @electron/packager + osx-sign +
+      # notarize subprocess activity, because electron-forge's package step
+      # swallows an early packager rejection (the make process exits 0 with no
+      # .dmg). The `tee` keeps a copy and the dmg-presence check fails loudly
+      # with the relevant tail so the real error is visible even on exit 0.
       - name: Build, sign, and notarize
         env:
           APPLE_SIGNING_IDENTITY: ${{ env.APPLE_SIGNING_IDENTITY }}
           APPLE_API_KEY_PATH: ${{ env.APPLE_API_KEY_PATH }}
           APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
           APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
-        run: npm run make -- --platform=darwin --arch=arm64
+          DEBUG: '*'
+          DEBUG_COLORS: 'no'
+        run: |
+          set -o pipefail
+          npm run make -- --platform=darwin --arch=arm64 2>&1 | tee "$RUNNER_TEMP/make-debug.log" || true
+          echo "make exit (pre-pipe): ${PIPESTATUS[0]}"
+          echo "::group::out/ tree after make"
+          ls -laR out 2>&1 | head -100 || echo "no out/ directory"
+          echo "::endgroup::"
+          if ! find out/make -maxdepth 4 -name "*.dmg" -type f 2>/dev/null | grep -q .; then
+            echo "::error::No .dmg produced. Tail of build log (real error is usually here):"
+            echo "::group::make-debug.log tail (last 120 lines)"
+            tail -120 "$RUNNER_TEMP/make-debug.log"
+            echo "::endgroup::"
+            echo "::group::make-debug.log: lines mentioning sign/notariz/error/throw/ENOENT/EACCES"
+            grep -niE "error|throw|reject|ENOENT|EACCES|ENOSPC|codesign|notariz|signing|cannot|failed|denied|unable" "$RUNNER_TEMP/make-debug.log" | tail -80 || true
+            echo "::endgroup::"
+            exit 1
+          fi
 
       # ── Locate the produced .dmg for the upload steps ──
       - name: Locate .dmg
