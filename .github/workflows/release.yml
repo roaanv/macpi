@@ -166,12 +166,10 @@ jobs:
           APPLE_API_KEY_PATH: ${{ env.APPLE_API_KEY_PATH }}
           APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
           APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
-          # Make Node write a structured diagnostic report (exact exception, JS
-          # stack, and pending libuv handles) on any fatal error or uncaught
-          # exception. No DEBUG here so the crash output is clean, not interleaved.
-          NODE_OPTIONS: '--report-on-fatalerror --report-uncaught-exception --report-directory=${{ runner.temp }}/nodereport'
+          # Intercept @electron/packager to log whether it rejects (with the
+          # real, otherwise-swallowed error) or never settles before the loop drains.
+          NODE_OPTIONS: '--require ./scripts/trace-packager.cjs'
         run: |
-          mkdir -p "$RUNNER_TEMP/nodereport"
           set +e
           npm run make -- --platform=darwin --arch=arm64 2>&1 | tee "$RUNNER_TEMP/make-debug.log"
           code="${PIPESTATUS[0]}"
@@ -179,33 +177,13 @@ jobs:
           echo "=================================================================="
           echo "npm run make exit code: $code"
           echo "=================================================================="
-          echo "::group::out/ tree after make"
-          ls -laR out 2>&1 | head -60 || echo "no out/ directory"
-          echo "::endgroup::"
-          echo "::group::Node diagnostic report(s)"
-          shopt -s nullglob
-          for r in "$RUNNER_TEMP"/nodereport/*.json; do
-            echo "----- report: $r -----"
-            node -e '
-              const r = require(process.argv[1]);
-              console.log("event:   ", r.header && r.header.event);
-              console.log("trigger: ", r.header && r.header.trigger);
-              if (r.javascriptStack) {
-                console.log("errorMessage:", r.javascriptStack.message);
-                console.log("JS stack:\n" + (r.javascriptStack.stack || []).join("\n"));
-              }
-              if (r.nativeStack) {
-                console.log("native stack (top 15):");
-                console.log(r.nativeStack.slice(0,15).map(f => "  " + (f.symbol||JSON.stringify(f))).join("\n"));
-              }
-            ' "$r" || cat "$r"
-          done
-          [ -z "$(ls -A "$RUNNER_TEMP"/nodereport 2>/dev/null)" ] && echo "(no Node report written — not a fatal/uncaught crash)"
+          echo "::group::[trace-packager] markers"
+          grep -nE "\[trace-packager\]" "$RUNNER_TEMP/make-debug.log" || echo "(no trace markers!)"
           echo "::endgroup::"
           if ! find out/make -maxdepth 4 -name "*.dmg" -type f 2>/dev/null | grep -q .; then
-            echo "::error::No .dmg produced (make exit $code). Tail of build log:"
-            echo "::group::make-debug.log tail (last 80 lines)"
-            tail -80 "$RUNNER_TEMP/make-debug.log"
+            echo "::error::No .dmg produced (make exit $code)."
+            echo "::group::make-debug.log tail (last 60 lines)"
+            tail -60 "$RUNNER_TEMP/make-debug.log"
             echo "::endgroup::"
             exit 1
           fi
