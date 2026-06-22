@@ -199,7 +199,9 @@ jobs:
           echo "path=$DMG_PATH" >> "$GITHUB_OUTPUT"
 
       # ── Publish the GitHub Release in this repo ──
+      # Only on real version-tag pushes — never on workflow_dispatch branch runs.
       - name: Create release
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
@@ -211,6 +213,7 @@ jobs:
 
       # ── Mirror the signed .dmg to the central roaanv/releases repo ──
       - name: Publish to roaanv/releases
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           repository: roaanv/releases
