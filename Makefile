@@ -65,7 +65,7 @@ dmg:
 # notarized .dmg and publishes it to this repo and to roaanv/releases.
 # Releases must be cut from a clean `main` by default; override with
 # RELEASE_BRANCH (e.g. `RELEASE_BRANCH=release make release`).
-release:
+release-patch:
 	bash scripts/bump-version.sh patch
 
 # Same as `release` but bumps the minor version (x.Y.0).
