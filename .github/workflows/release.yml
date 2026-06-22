@@ -135,6 +135,21 @@ jobs:
           echo "::endgroup::"
           echo "::group::xcrun notarytool present?"; xcrun --find notarytool || true; echo "::endgroup::"
 
+      # ── DIAGNOSTIC: warm the Electron cache before make ──
+      # Hypothesis: the cold-cache Electron download inside electron-packager
+      # leaves the event loop in a state where the make process drains and
+      # exits 0 mid-package (only reproduces in CI, where the cache is cold).
+      # Pre-fetching the zip via @electron/get in isolation makes the make
+      # step a cache HIT — the same path that works locally.
+      - name: Pre-fetch Electron (warm @electron/get cache)
+        run: |
+          VER=$(node -p "require('electron/package.json').version")
+          echo "Electron version: $VER"
+          node -e "const v=process.argv[1]; require('@electron/get').downloadArtifact({version:v,platform:'darwin',arch:'arm64',artifactName:'electron'}).then(p=>console.log('cached zip:',p)).catch(e=>{console.error('prefetch failed:',e);process.exit(1)})" "$VER"
+          echo "::group::electron cache contents"
+          ls -la "$HOME/Library/Caches/electron" 2>/dev/null || echo "no cache dir"
+          echo "::endgroup::"
+
       # ── Build (Apple Silicon), sign, and notarize via electron-forge ──
       # forge.config.ts enables osxSign + osxNotarize when these env vars are
       # present, so `make make` produces a signed + notarized + stapled .app
@@ -151,7 +166,7 @@ jobs:
           APPLE_API_KEY_PATH: ${{ env.APPLE_API_KEY_PATH }}
           APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
           APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
-          DEBUG: '*'
+          DEBUG: '@electron/get:*,electron-packager'
           DEBUG_COLORS: 'no'
         run: |
           set -o pipefail
