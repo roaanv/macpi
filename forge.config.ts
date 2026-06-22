@@ -10,6 +10,38 @@ import { FusesPlugin } from "@electron-forge/plugin-fuses";
 import { VitePlugin } from "@electron-forge/plugin-vite";
 import type { ForgeConfig } from "@electron-forge/shared-types";
 
+// Code signing + notarization are opt-in via environment variables so local
+// `make build` / `make dmg` runs stay fast and unsigned. The release workflow
+// (.github/workflows/release.yml) exports these before invoking `npm run make`.
+// When APPLE_SIGNING_IDENTITY is absent, osxSign/osxNotarize are undefined and
+// electron-packager skips both steps entirely.
+const signingIdentity = process.env.APPLE_SIGNING_IDENTITY;
+const notarizeApiKey = process.env.APPLE_API_KEY_PATH;
+const notarizeApiKeyId = process.env.APPSTORE_API_KEY_ID;
+const notarizeApiIssuer = process.env.APPSTORE_API_ISSUER_ID;
+
+const osxSign = signingIdentity
+	? {
+			identity: signingIdentity,
+			// Hardened Runtime is required for notarization; the entitlements
+			// relax it for Electron's JIT and pi-coding-agent's unpacked native
+			// modules (see build/entitlements.plist).
+			optionsForFile: () => ({
+				entitlements: "build/entitlements.plist",
+				hardenedRuntime: true,
+			}),
+		}
+	: undefined;
+
+const osxNotarize =
+	notarizeApiKey && notarizeApiKeyId && notarizeApiIssuer
+		? {
+				appleApiKey: notarizeApiKey,
+				appleApiKeyId: notarizeApiKeyId,
+				appleApiIssuer: notarizeApiIssuer,
+			}
+		: undefined;
+
 const config: ForgeConfig = {
 	packagerConfig: {
 		name: "MacPi",
@@ -29,6 +61,10 @@ const config: ForgeConfig = {
 		// Regenerate platform artifacts via ./scripts/build-icons.sh after
 		// replacing build/icon.png.
 		icon: "build/icon",
+		// Both undefined for local dev builds (signing env vars absent), which
+		// leaves electron-packager's sign + notarize steps disabled.
+		osxSign,
+		osxNotarize,
 	},
 	hooks: {
 		// forge's plugin-vite nukes the entire node_modules tree in its

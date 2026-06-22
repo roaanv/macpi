@@ -1,0 +1,172 @@
+# Signed, notarized release pipeline for MacPi (Electron + electron-forge).
+#
+# Triggered by pushing a version tag (v*). Builds an Apple Silicon (arm64)
+# macOS app via `electron-forge make`, code-signed with a Developer ID
+# certificate and notarized through the App Store Connect API (electron-forge
+# reads the APPLE_* env vars in forge.config.ts and runs @electron/osx-sign +
+# @electron/notarize). The signed .dmg is published as a GitHub Release in this
+# repo AND mirrored to roaanv/releases.
+#
+# Required repository secrets (same names/values as the ThoughtBoard repo, so
+# they can be copied across verbatim — `make gh-secrets` does this from your
+# Keychain):
+#   DEVELOPER_ID_CERTIFICATE_P12       - Base64-encoded Developer ID .p12 certificate
+#   DEVELOPER_ID_CERTIFICATE_PASSWORD  - Password for the .p12
+#   APPSTORE_API_KEY_P8_BASE64         - Base64-encoded App Store Connect .p8 key
+#   APPSTORE_API_KEY_ID                - Key ID from App Store Connect
+#   APPSTORE_API_ISSUER_ID             - Issuer ID from App Store Connect
+#   RELEASE_REPO_TOKEN                 - PAT with `contents: write` on roaanv/releases
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    name: Test
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install dependencies
+        run: make setup
+
+      - name: Run tests
+        run: make test
+
+  release:
+    name: Build & Release
+    needs: test
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install dependencies
+        run: make setup
+
+      # ── Import the Developer ID certificate into a throwaway keychain ──
+      - name: Import code signing certificate
+        env:
+          CERTIFICATE_P12: ${{ secrets.DEVELOPER_ID_CERTIFICATE_P12 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.DEVELOPER_ID_CERTIFICATE_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH="$RUNNER_TEMP/signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -base64 32)"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          echo "$CERTIFICATE_P12" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
+          security import "$RUNNER_TEMP/certificate.p12" \
+            -k "$KEYCHAIN_PATH" \
+            -P "$CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign \
+            -T /usr/bin/security
+          rm -f "$RUNNER_TEMP/certificate.p12"
+
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          # Add the signing keychain to the user search list so codesign (run by
+          # @electron/osx-sign without an explicit -keychain) can find the identity.
+          security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"')
+
+          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
+
+      # ── Read the signing identity out of the keychain for electron-forge ──
+      - name: Determine signing identity
+        run: |
+          IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" \
+            | grep "Developer ID Application" | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          if [ -z "$IDENTITY" ]; then
+            echo "Error: No Developer ID Application identity found"
+            exit 1
+          fi
+          echo "Found: $IDENTITY"
+          echo "APPLE_SIGNING_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
+
+      # ── Decode the App Store Connect API key used for notarization ──
+      - name: Prepare notarization API key
+        env:
+          API_KEY_P8_BASE64: ${{ secrets.APPSTORE_API_KEY_P8_BASE64 }}
+        run: |
+          API_KEY_PATH="$RUNNER_TEMP/AuthKey.p8"
+          echo "$API_KEY_P8_BASE64" | base64 --decode > "$API_KEY_PATH"
+          echo "APPLE_API_KEY_PATH=$API_KEY_PATH" >> "$GITHUB_ENV"
+
+      # ── Build (Apple Silicon), sign, and notarize via electron-forge ──
+      # forge.config.ts enables osxSign + osxNotarize when these env vars are
+      # present, so `make make` produces a signed + notarized + stapled .app
+      # packaged into the .dmg.
+      - name: Build, sign, and notarize
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ env.APPLE_SIGNING_IDENTITY }}
+          APPLE_API_KEY_PATH: ${{ env.APPLE_API_KEY_PATH }}
+          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
+        run: npm run make -- --platform=darwin --arch=arm64
+
+      # ── Locate the produced .dmg for the upload steps ──
+      - name: Locate .dmg
+        id: dmg
+        run: |
+          DMG_PATH=$(find out/make -maxdepth 4 -name "*.dmg" -type f | head -1)
+          if [ -z "$DMG_PATH" ]; then
+            echo "Error: build finished but no .dmg found under out/make/"
+            exit 1
+          fi
+          echo "Found $DMG_PATH"
+          echo "path=$DMG_PATH" >> "$GITHUB_OUTPUT"
+
+      # ── Publish the GitHub Release in this repo ──
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: 'MacPi ${{ github.ref_name }}'
+          body: 'See the assets below to download and install this version.'
+          draft: false
+          prerelease: false
+          files: ${{ steps.dmg.outputs.path }}
+
+      # ── Mirror the signed .dmg to the central roaanv/releases repo ──
+      - name: Publish to roaanv/releases
+        uses: softprops/action-gh-release@v2
+        with:
+          repository: roaanv/releases
+          token: ${{ secrets.RELEASE_REPO_TOKEN }}
+          tag_name: macpi-${{ github.ref_name }}
+          name: macpi ${{ github.ref_name }}
+          generate_release_notes: true
+          files: ${{ steps.dmg.outputs.path }}
+
+      # ── Always tear down the signing artifacts ──
+      - name: Clean up signing artifacts
+        if: always()
+        run: |
+          if [ -n "$KEYCHAIN_PATH" ] && [ -f "$KEYCHAIN_PATH" ]; then
+            security delete-keychain "$KEYCHAIN_PATH"
+          fi
+          if [ -n "$APPLE_API_KEY_PATH" ] && [ -f "$APPLE_API_KEY_PATH" ]; then
+            rm -f "$APPLE_API_KEY_PATH"
+          fi
