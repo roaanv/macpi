@@ -2,11 +2,12 @@
 // redesign:
 //   Appearance  — Theme, Font
 //   Capabilities — Skills, Extensions, Prompts (moved out of the mode rail)
-//   Workspace   — Providers, Defaults
+//   Workspace   — Providers, Models, Defaults
 
 import { CapabilitySettings } from "./CapabilitySettings";
 import { DefaultsSettings } from "./DefaultsSettings";
 import { FontSettings } from "./FontSettings";
+import { ModelsSettings } from "./ModelsSettings";
 import { ProvidersSettings } from "./ProvidersSettings";
 import { SettingsDialog } from "./SettingsDialog";
 import { ThemeSettings } from "./ThemeSettings";
@@ -61,6 +62,12 @@ export function GlobalSettingsDialog({
 					label: "Providers",
 					group: "Workspace",
 					render: () => <ProvidersSettings />,
+				},
+				{
+					id: "models",
+					label: "Models",
+					group: "Workspace",
+					render: () => <ModelsSettings />,
 				},
 				{
 					id: "defaults",
