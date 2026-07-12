@@ -233,6 +233,7 @@ export interface IpcMethods {
 		req: { piSessionId: string };
 		res: {
 			model: {
+				provider: string;
 				id: string;
 				name: string;
 				contextWindow: number | null;

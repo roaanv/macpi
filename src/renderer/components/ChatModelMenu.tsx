@@ -1,0 +1,331 @@
+import React from "react";
+import {
+	getFavouriteModels,
+	modelRefKey,
+} from "../../shared/app-settings-keys";
+import type { ModelSummary } from "../../shared/model-auth-types";
+import {
+	useModelAuthModels,
+	useModelAuthProviders,
+	useSetSessionModel,
+	useSettings,
+} from "../queries";
+
+interface ChatModelMenuProps {
+	piSessionId: string;
+	currentModel: { provider: string; id: string } | null;
+	modelLabel: string;
+	streaming: boolean;
+}
+
+interface ModelGroup {
+	provider: string;
+	providerName: string;
+	models: ModelSummary[];
+}
+
+function errorMessage(error: unknown): string {
+	return error instanceof Error ? error.message : "Could not change model";
+}
+
+export function ChatModelMenu({
+	piSessionId,
+	currentModel,
+	modelLabel,
+	streaming,
+}: ChatModelMenuProps) {
+	const providersQuery = useModelAuthProviders();
+	const modelsQuery = useModelAuthModels();
+	const settingsQuery = useSettings();
+	const setModel = useSetSessionModel();
+	const [open, setOpen] = React.useState(false);
+	const [search, setSearch] = React.useState("");
+	const [selectionError, setSelectionError] = React.useState<string | null>(
+		null,
+	);
+	const [selecting, setSelecting] = React.useState(false);
+	const wrapperRef = React.useRef<HTMLSpanElement>(null);
+	const triggerRef = React.useRef<HTMLButtonElement>(null);
+	const searchRef = React.useRef<HTMLInputElement>(null);
+	const pending = selecting || setModel.isPending;
+
+	const configuredProviders = React.useMemo(
+		() =>
+			new Map(
+				(providersQuery.data?.providers ?? [])
+					.filter((provider) => provider.authStatus.configured)
+					.map((provider) => [provider.id, provider.name]),
+			),
+		[providersQuery.data?.providers],
+	);
+	const configuredModels = React.useMemo(
+		() =>
+			(modelsQuery.data?.models ?? []).filter(
+				(model) =>
+					model.authConfigured && configuredProviders.has(model.provider),
+			),
+		[configuredProviders, modelsQuery.data?.models],
+	);
+	const favouriteKeys = React.useMemo(
+		() =>
+			new Set(
+				getFavouriteModels(settingsQuery.data?.settings ?? {}).map(modelRefKey),
+			),
+		[settingsQuery.data?.settings],
+	);
+	const normalizedSearch = search.trim().toLocaleLowerCase();
+	const visibleModels = React.useMemo(
+		() =>
+			configuredModels.filter((model) => {
+				if (!normalizedSearch) return true;
+				const providerName = configuredProviders.get(model.provider) ?? "";
+				return `${providerName} ${model.provider} ${model.providerName} ${model.name} ${model.id}`
+					.toLocaleLowerCase()
+					.includes(normalizedSearch);
+			}),
+		[configuredModels, configuredProviders, normalizedSearch],
+	);
+	const favourites = visibleModels.filter((model) =>
+		favouriteKeys.has(
+			modelRefKey({ provider: model.provider, modelId: model.id }),
+		),
+	);
+	const groups = React.useMemo(() => {
+		const result: ModelGroup[] = [];
+		for (const [provider, providerName] of configuredProviders) {
+			const providerModels = visibleModels.filter(
+				(model) => model.provider === provider,
+			);
+			if (providerModels.length > 0) {
+				result.push({ provider, providerName, models: providerModels });
+			}
+		}
+		return result;
+	}, [configuredProviders, visibleModels]);
+
+	const closeAndFocus = React.useCallback(() => {
+		setOpen(false);
+		triggerRef.current?.focus();
+	}, []);
+
+	React.useEffect(() => {
+		if (!open) return;
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (event.key === "Escape") {
+				event.preventDefault();
+				closeAndFocus();
+			}
+		};
+		const onPointerDown = (event: PointerEvent) => {
+			if (!wrapperRef.current?.contains(event.target as Node)) closeAndFocus();
+		};
+		document.addEventListener("keydown", onKeyDown);
+		document.addEventListener("pointerdown", onPointerDown);
+		return () => {
+			document.removeEventListener("keydown", onKeyDown);
+			document.removeEventListener("pointerdown", onPointerDown);
+		};
+	}, [closeAndFocus, open]);
+
+	React.useEffect(() => {
+		if (open) searchRef.current?.focus();
+	}, [open]);
+
+	function toggleOpen() {
+		if (streaming || pending) return;
+		setOpen((wasOpen) => {
+			if (!wasOpen) {
+				setSearch("");
+				setSelectionError(null);
+			}
+			return !wasOpen;
+		});
+	}
+
+	async function select(model: ModelSummary) {
+		if (pending || streaming) return;
+		setSelecting(true);
+		setSelectionError(null);
+		try {
+			await setModel.mutateAsync({
+				piSessionId,
+				model: { provider: model.provider, modelId: model.id },
+			});
+			closeAndFocus();
+		} catch (error) {
+			setSelectionError(errorMessage(error));
+		} finally {
+			setSelecting(false);
+		}
+	}
+
+	return (
+		<span className="relative inline-flex" ref={wrapperRef}>
+			<button
+				ref={triggerRef}
+				type="button"
+				onClick={toggleOpen}
+				disabled={streaming || pending}
+				aria-expanded={open}
+				aria-haspopup="dialog"
+				className="inline-flex items-center gap-1 rounded px-1 py-0.5 font-medium text-primary hover:surface-row disabled:cursor-not-allowed disabled:opacity-50"
+				title={
+					currentModel
+						? `${currentModel.provider}/${currentModel.id}`
+						: undefined
+				}
+			>
+				<span aria-hidden className="text-faint">
+					◆
+				</span>
+				<span>{modelLabel}</span>
+				<span aria-hidden className="text-faint">
+					▾
+				</span>
+			</button>
+			{open ? (
+				<div
+					role="dialog"
+					aria-label="Choose chat model"
+					className="absolute bottom-full left-0 z-50 mb-2 flex max-h-[min(28rem,70vh)] w-80 flex-col overflow-hidden rounded-lg border border-divider surface-panel p-2 text-left shadow-xl"
+				>
+					<label className="sr-only" htmlFor="chat-model-search">
+						Search chat models
+					</label>
+					<input
+						ref={searchRef}
+						id="chat-model-search"
+						type="search"
+						value={search}
+						onChange={(event) => setSearch(event.target.value)}
+						placeholder="Search models…"
+						className="mb-2 w-full rounded surface-row px-2 py-1.5 text-xs text-primary outline-none"
+					/>
+					<div
+						role="listbox"
+						aria-label="Available chat models"
+						className="min-h-0 overflow-y-auto"
+					>
+						{configuredProviders.size === 0 && !providersQuery.isLoading ? (
+							<div className="p-2 text-xs text-muted">
+								<div className="font-medium text-primary">
+									No configured providers
+								</div>
+								<div className="mt-1">Open Providers to configure one.</div>
+							</div>
+						) : providersQuery.isLoading ||
+							modelsQuery.isLoading ||
+							settingsQuery.isLoading ? (
+							<div className="p-2 text-xs text-muted">Loading models…</div>
+						) : (
+							<>
+								<section aria-labelledby="chat-model-favourites">
+									<h3
+										id="chat-model-favourites"
+										className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-faint"
+									>
+										Favourites
+									</h3>
+									{favourites.length > 0 ? (
+										favourites.map((model) => (
+											<ModelChoice
+												key={`favourite:${model.provider}:${model.id}`}
+												model={model}
+												currentModel={currentModel}
+												disabled={pending || streaming}
+												onSelect={select}
+											/>
+										))
+									) : (
+										<div className="px-2 py-1 text-xs text-muted">
+											No favourite models
+											{normalizedSearch ? " match your search" : ""}.
+										</div>
+									)}
+								</section>
+								<section
+									aria-labelledby="chat-model-all"
+									className="mt-2 border-divider border-t pt-1"
+								>
+									<h3
+										id="chat-model-all"
+										className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-faint"
+									>
+										All
+									</h3>
+									{groups.map((group) => (
+										<fieldset className="m-0 border-0 p-0" key={group.provider}>
+											<legend className="w-full px-2 pb-0.5 pt-1 text-xs font-semibold text-muted">
+												{group.providerName}
+											</legend>
+											{group.models.map((model) => (
+												<ModelChoice
+													key={`${model.provider}:${model.id}`}
+													model={model}
+													currentModel={currentModel}
+													disabled={pending || streaming}
+													onSelect={select}
+												/>
+											))}
+										</fieldset>
+									))}
+									{normalizedSearch && groups.length === 0 ? (
+										<div className="px-2 py-2 text-xs text-muted">
+											No models match your search.
+										</div>
+									) : null}
+								</section>
+							</>
+						)}
+					</div>
+					{selectionError ? (
+						<div
+							role="alert"
+							className="mt-2 border-divider border-t px-2 pt-2 text-xs text-err"
+						>
+							Could not change model: {selectionError}
+						</div>
+					) : null}
+				</div>
+			) : null}
+		</span>
+	);
+}
+
+function ModelChoice({
+	model,
+	currentModel,
+	disabled,
+	onSelect,
+}: {
+	model: ModelSummary;
+	currentModel: { provider: string; id: string } | null;
+	disabled: boolean;
+	onSelect: (model: ModelSummary) => void;
+}) {
+	const current =
+		currentModel?.provider === model.provider && currentModel.id === model.id;
+	return (
+		<button
+			type="button"
+			role="option"
+			aria-selected={current}
+			aria-label={current ? `${model.name}, Current model` : model.name}
+			disabled={disabled}
+			onClick={() => void onSelect(model)}
+			className="flex w-full items-center justify-between gap-2 rounded px-2 py-1.5 text-left text-xs hover:surface-row disabled:cursor-not-allowed disabled:opacity-50"
+		>
+			<span className="min-w-0">
+				<span className="block truncate text-primary">{model.name}</span>
+				<span className="block truncate text-[10px] text-faint">
+					{model.id}
+				</span>
+			</span>
+			{current ? (
+				<span className="shrink-0 text-accent" aria-hidden>
+					✓
+				</span>
+			) : null}
+		</button>
+	);
+}

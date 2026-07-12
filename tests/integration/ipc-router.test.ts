@@ -329,6 +329,46 @@ describe("IpcRouter", () => {
 		if (!r.ok) expect(r.error.code).toBe("exception");
 	});
 
+	it("session.getFooterStats includes the current model provider", async () => {
+		piSessionManagerMock.getAgentSession.mockReturnValue({
+			isStreaming: false,
+			model: {
+				provider: "anthropic",
+				id: "claude-sonnet-4",
+				name: "Claude Sonnet 4",
+				contextWindow: 200000,
+			},
+			thinkingLevel: "high",
+			getContextUsage: () => ({
+				tokens: 100000,
+				contextWindow: 200000,
+				percent: 50,
+			}),
+		});
+
+		const result = await router.dispatch("session.getFooterStats", {
+			piSessionId: "s1",
+		});
+
+		expect(result).toEqual({
+			ok: true,
+			data: {
+				model: {
+					provider: "anthropic",
+					id: "claude-sonnet-4",
+					name: "Claude Sonnet 4",
+					contextWindow: 200000,
+				},
+				thinkingLevel: "high",
+				contextUsage: {
+					tokens: 100000,
+					contextWindow: 200000,
+					percent: 50,
+				},
+			},
+		});
+	});
+
 	it("session.setModel returns not_found when the session is not attached", async () => {
 		piSessionManagerMock.getAgentSession.mockReturnValue(undefined);
 

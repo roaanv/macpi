@@ -258,7 +258,7 @@ export function ChatPane({
 					openHelpDialog={() => setHelpOpen(true)}
 					onSessionCreated={onSelectSession}
 				/>
-				<ChatFooter piSessionId={piSessionId} />
+				<ChatFooter piSessionId={piSessionId} streaming={snapshot.streaming} />
 				<ChatContextBar piSessionId={piSessionId} />
 			</div>
 			{filesOpen && (

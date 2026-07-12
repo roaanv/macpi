@@ -348,6 +348,7 @@ export class IpcRouter {
 			return ok({
 				model: model
 					? {
+							provider: model.provider,
 							id: model.id,
 							name: model.name ?? model.id,
 							contextWindow:

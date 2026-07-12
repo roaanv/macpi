@@ -6,9 +6,11 @@
 import { formatTokens } from "../../shared/context-breakdown";
 import type { ThinkingLevel } from "../../shared/ipc-types";
 import { useInvalidateOnTurnEnd, useSessionFooterStats } from "../queries";
+import { ChatModelMenu } from "./ChatModelMenu";
 
 interface ChatFooterProps {
 	piSessionId: string | null;
+	streaming: boolean;
 }
 
 const THINKING_LABELS: Record<ThinkingLevel, string> = {
@@ -42,7 +44,7 @@ function thinkingPillTone(level: ThinkingLevel): string {
 	return "text-muted";
 }
 
-export function ChatFooter({ piSessionId }: ChatFooterProps) {
+export function ChatFooter({ piSessionId, streaming }: ChatFooterProps) {
 	const stats = useSessionFooterStats(piSessionId);
 	useInvalidateOnTurnEnd(piSessionId, ["session.footerStats", piSessionId]);
 
@@ -75,12 +77,12 @@ export function ChatFooter({ piSessionId }: ChatFooterProps) {
 			role="status"
 			aria-label="Session footer"
 		>
-			<span className="inline-flex items-center gap-1" title={model?.id}>
-				<span aria-hidden className="text-faint">
-					◆
-				</span>
-				<span className="font-medium text-primary">{modelName}</span>
-			</span>
+			<ChatModelMenu
+				piSessionId={piSessionId}
+				currentModel={model ? { provider: model.provider, id: model.id } : null}
+				modelLabel={modelName}
+				streaming={streaming}
+			/>
 			<span aria-hidden className="text-faint">
 				·
 			</span>
