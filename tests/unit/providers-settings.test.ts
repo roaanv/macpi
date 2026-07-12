@@ -50,8 +50,10 @@ const mocks = vi.hoisted(() => ({
 					maxTokens: 8192,
 				},
 			],
-			registryError: undefined,
+			registryError: undefined as string | undefined,
 		},
+		error: null as Error | null,
+		isLoading: false,
 	},
 	mutation: { mutate: vi.fn(), error: null, isPending: false },
 }));
@@ -91,6 +93,8 @@ beforeEach(async () => {
 	container = document.createElement("div");
 	document.body.append(container);
 	root = createRoot(container);
+	mocks.models.error = null;
+	mocks.models.data.registryError = undefined;
 	mocks.mutation.mutate.mockReset();
 	await act(async () => root.render(React.createElement(ProvidersSettings)));
 });
@@ -169,7 +173,12 @@ describe("ProvidersSettings", () => {
 		expect(savePayload).not.toHaveProperty("selectedModelId");
 	});
 
-	it("offers an accessible compact provider filter and applies it", async () => {
+	it("offers accessible provider search and filter controls and labels the inline API key", async () => {
+		const search = container.querySelector<HTMLInputElement>(
+			'input[type="search"]',
+		);
+		expect(search?.getAttribute("aria-label")).toBe("Search providers");
+
 		const select = container.querySelector<HTMLSelectElement>(
 			"select#provider-filter",
 		);
@@ -190,6 +199,36 @@ describe("ProvidersSettings", () => {
 		});
 		expect(container.textContent).toContain("Ollama");
 		expect(container.textContent).not.toContain("Anthropic");
+
+		select.value = "all";
+		await act(async () => {
+			select.dispatchEvent(new Event("change", { bubbles: true }));
+		});
+		await click(button("Anthropic"));
+		await click(button("Add / replace API key"));
+		expect(
+			container.querySelector<HTMLInputElement>(
+				'input[aria-label="API key for Anthropic"]',
+			),
+		).not.toBeNull();
+	});
+
+	it("renders a models query failure separately from a registry warning and hides false zero inventory", async () => {
+		mocks.models.error = new Error("models endpoint unavailable");
+		mocks.models.data.registryError = "models.json contains an invalid entry";
+		await act(async () => root.render(React.createElement(ProvidersSettings)));
+
+		expect(container.textContent).toContain(
+			"Models could not be loaded: models endpoint unavailable",
+		);
+		expect(container.textContent).toContain(
+			"Model registry warning: models.json contains an invalid entry",
+		);
+		expect(container.textContent).toContain("Model inventory unavailable");
+		expect(container.textContent).not.toContain("0 models available");
+		expect(container.textContent).not.toContain(
+			"No models discovered for this provider",
+		);
 	});
 
 	it("keeps model inventory collapsed and expands to read-only name and id rows", async () => {

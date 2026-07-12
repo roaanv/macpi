@@ -24,8 +24,8 @@ interface ModelGroup {
 	models: ModelSummary[];
 }
 
-function errorMessage(error: unknown): string {
-	return error instanceof Error ? error.message : "Could not change model";
+function errorMessage(error: unknown, fallback: string): string {
+	return error instanceof Error ? error.message : fallback;
 }
 
 export function ChatModelMenu({
@@ -47,6 +47,9 @@ export function ChatModelMenu({
 	const wrapperRef = React.useRef<HTMLSpanElement>(null);
 	const triggerRef = React.useRef<HTMLButtonElement>(null);
 	const searchRef = React.useRef<HTMLInputElement>(null);
+	const mountedRef = React.useRef(true);
+	const focusFrameRef = React.useRef<number | null>(null);
+	const restoreFocusWhenReadyRef = React.useRef(false);
 	const pending = selecting || setModel.isPending;
 
 	const configuredProviders = React.useMemo(
@@ -109,15 +112,44 @@ export function ChatModelMenu({
 	}, []);
 
 	React.useEffect(() => {
+		mountedRef.current = true;
+		return () => {
+			mountedRef.current = false;
+			if (
+				focusFrameRef.current !== null &&
+				typeof cancelAnimationFrame === "function"
+			) {
+				cancelAnimationFrame(focusFrameRef.current);
+			}
+		};
+	}, []);
+
+	React.useEffect(() => {
+		if (open || pending || !restoreFocusWhenReadyRef.current) return;
+		restoreFocusWhenReadyRef.current = false;
+		const focusTrigger = () => {
+			focusFrameRef.current = null;
+			if (mountedRef.current) triggerRef.current?.focus();
+		};
+		if (typeof requestAnimationFrame === "function") {
+			focusFrameRef.current = requestAnimationFrame(focusTrigger);
+		} else {
+			queueMicrotask(focusTrigger);
+		}
+	}, [open, pending]);
+
+	React.useEffect(() => {
 		if (!open) return;
 		const onKeyDown = (event: KeyboardEvent) => {
-			if (event.key === "Escape") {
+			if (event.key === "Escape" && !pending) {
 				event.preventDefault();
 				closeAndFocus();
 			}
 		};
 		const onPointerDown = (event: PointerEvent) => {
-			if (!wrapperRef.current?.contains(event.target as Node)) closeAndFocus();
+			if (!pending && !wrapperRef.current?.contains(event.target as Node)) {
+				closeAndFocus();
+			}
 		};
 		document.addEventListener("keydown", onKeyDown);
 		document.addEventListener("pointerdown", onPointerDown);
@@ -125,7 +157,7 @@ export function ChatModelMenu({
 			document.removeEventListener("keydown", onKeyDown);
 			document.removeEventListener("pointerdown", onPointerDown);
 		};
-	}, [closeAndFocus, open]);
+	}, [closeAndFocus, open, pending]);
 
 	React.useEffect(() => {
 		if (open) searchRef.current?.focus();
@@ -151,9 +183,10 @@ export function ChatModelMenu({
 				piSessionId,
 				model: { provider: model.provider, modelId: model.id },
 			});
-			closeAndFocus();
+			restoreFocusWhenReadyRef.current = true;
+			setOpen(false);
 		} catch (error) {
-			setSelectionError(errorMessage(error));
+			setSelectionError(errorMessage(error, "Could not change model"));
 		} finally {
 			setSelecting(false);
 		}
@@ -206,17 +239,54 @@ export function ChatModelMenu({
 						aria-label="Available chat models"
 						className="min-h-0 overflow-y-auto"
 					>
-						{configuredProviders.size === 0 && !providersQuery.isLoading ? (
+						{providersQuery.error ||
+						modelsQuery.error ||
+						settingsQuery.error ? (
+							<div className="space-y-1 p-2 text-xs text-err" role="alert">
+								{providersQuery.error ? (
+									<div>
+										Providers could not be loaded:{" "}
+										{errorMessage(
+											providersQuery.error,
+											"Unknown provider error",
+										)}
+									</div>
+								) : null}
+								{modelsQuery.error ? (
+									<div>
+										Models could not be loaded:{" "}
+										{errorMessage(modelsQuery.error, "Unknown model error")}
+									</div>
+								) : null}
+								{settingsQuery.error ? (
+									<div>
+										Settings could not be loaded:{" "}
+										{errorMessage(
+											settingsQuery.error,
+											"Unknown settings error",
+										)}
+									</div>
+								) : null}
+							</div>
+						) : providersQuery.isLoading ||
+							modelsQuery.isLoading ||
+							settingsQuery.isLoading ? (
+							<div className="space-y-1 p-2 text-xs text-muted" role="status">
+								{providersQuery.isLoading ? (
+									<div>Loading providers…</div>
+								) : null}
+								{modelsQuery.isLoading ? <div>Loading models…</div> : null}
+								{settingsQuery.isLoading ? (
+									<div>Loading favourites…</div>
+								) : null}
+							</div>
+						) : configuredProviders.size === 0 ? (
 							<div className="p-2 text-xs text-muted">
 								<div className="font-medium text-primary">
 									No configured providers
 								</div>
 								<div className="mt-1">Open Providers to configure one.</div>
 							</div>
-						) : providersQuery.isLoading ||
-							modelsQuery.isLoading ||
-							settingsQuery.isLoading ? (
-							<div className="p-2 text-xs text-muted">Loading models…</div>
 						) : (
 							<>
 								<section aria-labelledby="chat-model-favourites">

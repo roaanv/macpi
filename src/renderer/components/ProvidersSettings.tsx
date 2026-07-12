@@ -121,6 +121,7 @@ export function ProvidersSettings() {
 					<div className="flex gap-2 border-b border-divider p-3">
 						<input
 							type="search"
+							aria-label="Search providers"
 							value={query}
 							onChange={(e) => setQuery(e.target.value)}
 							placeholder="Search providers…"
@@ -184,9 +185,17 @@ export function ProvidersSettings() {
 				</aside>
 
 				<main className="min-h-0 overflow-y-auto p-6">
+					{models.error ? (
+						<div
+							className="mb-4 rounded surface-err-soft p-3 text-sm text-err"
+							role="alert"
+						>
+							Models could not be loaded: {models.error.message}
+						</div>
+					) : null}
 					{models.data?.registryError ? (
 						<div className="mb-4 rounded surface-warn-soft p-3 text-sm text-warn">
-							{models.data.registryError}
+							Model registry warning: {models.data.registryError}
 						</div>
 					) : null}
 					{addingLocal ? (
@@ -200,6 +209,7 @@ export function ProvidersSettings() {
 					) : activeProvider ? (
 						<ProviderDetail
 							provider={activeProvider}
+							modelInventoryUnavailable={!!models.error}
 							onStartOAuth={setOAuthProvider}
 							onStartApiKey={() => {
 								setEditingProvider(activeProvider.id);
@@ -438,6 +448,7 @@ function ProviderBadge({ provider }: { provider: ProviderView }) {
 
 function ProviderDetail({
 	provider,
+	modelInventoryUnavailable,
 	onStartOAuth,
 	onStartApiKey,
 	onLogout,
@@ -449,6 +460,7 @@ function ProviderDetail({
 	authError,
 }: {
 	provider: ProviderView;
+	modelInventoryUnavailable: boolean;
 	onStartOAuth: (provider: string) => void;
 	onStartApiKey: () => void;
 	onLogout: () => void;
@@ -521,6 +533,7 @@ function ProviderDetail({
 						<div className="mt-4 flex gap-2">
 							<input
 								type="password"
+								aria-label={`API key for ${provider.name}`}
 								value={apiKey}
 								onChange={(e) => onApiKeyChange(e.target.value)}
 								placeholder="API key"
@@ -549,12 +562,18 @@ function ProviderDetail({
 			</section>
 
 			<section>
-				<details className="rounded border border-divider">
-					<summary className="cursor-pointer px-3 py-2 text-sm text-muted">
-						{provider.models.length} models available
-					</summary>
-					<ReadOnlyModelInventory models={provider.models} />
-				</details>
+				{modelInventoryUnavailable ? (
+					<div className="rounded border border-divider p-3 text-sm text-muted">
+						Model inventory unavailable.
+					</div>
+				) : (
+					<details className="rounded border border-divider">
+						<summary className="cursor-pointer px-3 py-2 text-sm text-muted">
+							{provider.models.length} models available
+						</summary>
+						<ReadOnlyModelInventory models={provider.models} />
+					</details>
+				)}
 			</section>
 		</div>
 	);

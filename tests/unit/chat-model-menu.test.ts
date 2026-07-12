@@ -96,17 +96,17 @@ const mocks = vi.hoisted(() => ({
 	providers: {
 		data: { providers: [] as Array<Record<string, unknown>> },
 		isLoading: false,
-		error: null,
+		error: null as Error | null,
 	},
 	models: {
 		data: { models: [] as Array<Record<string, unknown>> },
 		isLoading: false,
-		error: null,
+		error: null as Error | null,
 	},
 	settings: {
 		data: { settings: {} as Record<string, unknown> },
 		isLoading: false,
-		error: null,
+		error: null as Error | null,
 	},
 	setModel: { mutateAsync: vi.fn(), isPending: false },
 }));
@@ -139,6 +139,12 @@ beforeEach(async () => {
 			{ provider: "openai", modelId: "gpt-5" },
 		],
 	};
+	mocks.providers.isLoading = false;
+	mocks.providers.error = null;
+	mocks.models.isLoading = false;
+	mocks.models.error = null;
+	mocks.settings.isLoading = false;
+	mocks.settings.error = null;
 	mocks.setModel.mutateAsync.mockReset();
 	mocks.setModel.mutateAsync.mockResolvedValue(undefined);
 	mocks.setModel.isPending = false;
@@ -228,19 +234,70 @@ describe("ChatModelMenu", () => {
 			model: { provider: "google", modelId: "gemini-2.5-pro" },
 		});
 		expect(container.querySelector('[role="dialog"]')).toBeNull();
-		expect(document.activeElement).toBe(trigger());
+		await vi.waitFor(() => expect(document.activeElement).toBe(trigger()));
 	});
 
-	it("stays open and shows an adjacent error when selection fails", async () => {
-		mocks.setModel.mutateAsync.mockRejectedValueOnce(
-			new Error("switch denied"),
+	it("keeps the trigger disabled until a deferred switch resolves, then closes and restores focus", async () => {
+		let resolveSwitch: (() => void) | undefined;
+		mocks.setModel.mutateAsync.mockImplementationOnce(
+			() =>
+				new Promise<void>((resolve) => {
+					resolveSwitch = resolve;
+				}),
 		);
 		await openMenu();
 		await act(async () => button("Gemini Pro").click());
+
 		expect(container.querySelector('[role="dialog"]')).not.toBeNull();
+		expect(trigger().disabled).toBe(true);
+		for (const choice of container.querySelectorAll('[role="option"]')) {
+			expect((choice as HTMLButtonElement).disabled).toBe(true);
+		}
+
+		await act(async () => {
+			resolveSwitch?.();
+			await Promise.resolve();
+		});
+		expect(container.querySelector('[role="dialog"]')).toBeNull();
+		expect(trigger().disabled).toBe(false);
+		await vi.waitFor(() => expect(document.activeElement).toBe(trigger()));
+	});
+
+	it("keeps a pending switch open when dismissed and preserves retry context after failure", async () => {
+		let rejectSwitch: ((error: Error) => void) | undefined;
+		mocks.setModel.mutateAsync.mockImplementationOnce(
+			() =>
+				new Promise<void>((_resolve, reject) => {
+					rejectSwitch = reject;
+				}),
+		);
+		await openMenu();
+		await act(async () => button("Gemini Pro").click());
+
+		await act(async () => {
+			document.dispatchEvent(
+				new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+			);
+			document.body.dispatchEvent(
+				new MouseEvent("pointerdown", { bubbles: true }),
+			);
+		});
+		expect(container.querySelector('[role="dialog"]')).not.toBeNull();
+		expect(trigger().disabled).toBe(true);
+
+		await act(async () => {
+			rejectSwitch?.(new Error("switch denied"));
+			await Promise.resolve();
+		});
+		expect(container.querySelector('[role="dialog"]')).not.toBeNull();
+		expect(trigger().disabled).toBe(false);
 		expect(container.querySelector('[role="alert"]')?.textContent).toContain(
 			"switch denied",
 		);
+
+		await act(async () => button("Gemini Pro").click());
+		expect(mocks.setModel.mutateAsync).toHaveBeenCalledTimes(2);
+		expect(container.querySelector('[role="dialog"]')).toBeNull();
 	});
 
 	it("closes on Escape and outside pointer, returning focus to the trigger", async () => {
@@ -307,6 +364,39 @@ describe("ChatModelMenu", () => {
 		expect(remove).toHaveBeenCalledWith("pointerdown", expect.any(Function));
 		add.mockRestore();
 		remove.mockRestore();
+	});
+
+	it("renders provider, model, and settings query errors instead of empty states", async () => {
+		mocks.providers.error = new Error("provider transport failed");
+		mocks.models.error = new Error("model transport failed");
+		mocks.settings.error = new Error("settings transport failed");
+		await renderMenu();
+		await openMenu();
+
+		expect(container.textContent).toContain(
+			"Providers could not be loaded: provider transport failed",
+		);
+		expect(container.textContent).toContain(
+			"Models could not be loaded: model transport failed",
+		);
+		expect(container.textContent).toContain(
+			"Settings could not be loaded: settings transport failed",
+		);
+		expect(container.textContent).not.toContain("No configured providers");
+		expect(container.textContent).not.toContain("No favourite models");
+	});
+
+	it("renders distinct provider, model, and favourites loading states", async () => {
+		mocks.providers.isLoading = true;
+		mocks.models.isLoading = true;
+		mocks.settings.isLoading = true;
+		await renderMenu();
+		await openMenu();
+
+		expect(container.textContent).toContain("Loading providers…");
+		expect(container.textContent).toContain("Loading models…");
+		expect(container.textContent).toContain("Loading favourites…");
+		expect(container.textContent).not.toContain("No configured providers");
 	});
 
 	it("renders explicit empty favourites, no-provider, and no-results states", async () => {
