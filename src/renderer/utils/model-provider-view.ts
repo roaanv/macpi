@@ -16,6 +16,41 @@ export interface ProviderView extends ProviderSummary {
 	models: ModelSummary[];
 }
 
+export interface ProviderModelGroup {
+	provider: ProviderView;
+	models: ModelSummary[];
+}
+
+export function configuredProviderViews(
+	providers: readonly ProviderView[],
+): ProviderView[] {
+	return providers.filter((provider) => provider.authStatus.configured);
+}
+
+export function filterModels(
+	models: readonly ModelSummary[],
+	query: string,
+): ModelSummary[] {
+	const normalized = query.trim().toLowerCase();
+	if (!normalized) return [...models];
+
+	return models.filter((model) =>
+		[model.name, model.id, model.providerName]
+			.join(" ")
+			.toLowerCase()
+			.includes(normalized),
+	);
+}
+
+export function groupModelsByProvider(
+	providers: readonly ProviderView[],
+): ProviderModelGroup[] {
+	return configuredProviderViews(providers).map((provider) => ({
+		provider,
+		models: provider.models,
+	}));
+}
+
 export function buildProviderViews(
 	providers: readonly ProviderSummary[],
 	models: readonly ModelSummary[],
