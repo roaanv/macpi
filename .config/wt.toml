@@ -1,0 +1,12 @@
+# Worktrunk project hooks for ThoughtBoard.
+# Project hooks require approval the first time Worktrunk runs them.
+# See: https://worktrunk.dev/hook/
+
+# Runs once for every newly created worktree before Worktrunk continues with
+# post-start hooks or --execute commands. This keeps new worktrees ready for use
+# and initializes the local code graph for agent/code intelligence tooling.
+[[pre-start]]
+setup = "make setup"
+
+[[pre-start]]
+codegraph = "codegraph init"
