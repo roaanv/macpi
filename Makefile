@@ -1,15 +1,19 @@
 # macpi — top-level Makefile.
 # Canonical commands per project conventions: `make build`, `make run`.
 
-.PHONY: setup build run run-packaged test test-all lint format typecheck clean deploy dmg release release-minor gh-secrets
+.PHONY: setup ensure-electron build run run-packaged test test-all lint format typecheck clean deploy dmg release release-minor gh-secrets
 
 setup:
 	npm install
+	npx install-electron
+
+ensure-electron:
+	@test -d node_modules/electron/dist/Electron.app || npx install-electron
 
 build:
 	npm run package
 
-run:
+run: ensure-electron
 	npm start
 
 # Build and run the packaged .app. This is the closest local approximation of
