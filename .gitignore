@@ -23,6 +23,7 @@ build/icon.iconset/
 .nyc_output
 .serverless/
 .superpowers/
+.worktrees/
 .vite/
 .dev-electron/
 .vuepress/dist
