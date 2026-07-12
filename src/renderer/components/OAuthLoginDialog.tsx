@@ -6,6 +6,7 @@ import {
 	useRespondOAuthPrompt,
 	useStartOAuthLogin,
 } from "../queries";
+import { getOAuthLoginResult } from "../utils/oauth-login-result";
 
 interface OAuthLoginDialogProps {
 	provider: string | null;
@@ -19,36 +20,80 @@ export function OAuthLoginDialog({ provider, onClose }: OAuthLoginDialogProps) {
 	const [loginId, setLoginId] = React.useState<string | null>(null);
 	const [events, setEvents] = React.useState<OAuthEvent[]>([]);
 	const [promptValue, setPromptValue] = React.useState("");
+	const [detailsOpen, setDetailsOpen] = React.useState(false);
+	const loginIdRef = React.useRef<string | null>(null);
+	const bufferedEventsRef = React.useRef<OAuthEvent[]>([]);
+	const attemptGenerationRef = React.useRef(0);
+	const attemptInFlightRef = React.useRef(false);
+
+	const startAttempt = React.useCallback(async () => {
+		if (!provider || attemptInFlightRef.current) return;
+
+		attemptInFlightRef.current = true;
+		const generation = ++attemptGenerationRef.current;
+		loginIdRef.current = null;
+		bufferedEventsRef.current = [];
+		setLoginId(null);
+		setEvents([]);
+		setPromptValue("");
+		setDetailsOpen(false);
+		start.reset();
+
+		try {
+			const result = await start.mutateAsync({ provider });
+			if (generation !== attemptGenerationRef.current) return;
+
+			const bufferedEvents = bufferedEventsRef.current.filter(
+				(event) => event.loginId === result.loginId,
+			);
+			bufferedEventsRef.current = [];
+			loginIdRef.current = result.loginId;
+			setLoginId(result.loginId);
+			setEvents(bufferedEvents.reduce(appendOAuthEvent, result.events));
+		} catch {
+			// The mutation exposes its error state for the retryable result card.
+		} finally {
+			if (generation === attemptGenerationRef.current) {
+				attemptInFlightRef.current = false;
+			}
+		}
+	}, [provider, start.mutateAsync, start.reset]);
 
 	React.useEffect(() => {
 		if (!provider) return;
-		return onOAuthEvent((event) => {
+		const unsubscribe = onOAuthEvent((event) => {
 			if (event.provider !== provider) return;
-			setLoginId((current) => current ?? event.loginId);
-			setEvents((prev) => {
-				if (prev.length > 0 && prev[0].loginId !== event.loginId) return prev;
-				return appendOAuthEvent(prev, event);
-			});
+
+			const currentLoginId = loginIdRef.current;
+			if (!currentLoginId) {
+				bufferedEventsRef.current = appendOAuthEvent(
+					bufferedEventsRef.current,
+					event,
+				);
+				return;
+			}
+			if (currentLoginId !== event.loginId) return;
+			setEvents((previous) => appendOAuthEvent(previous, event));
 		});
+		return () => {
+			bufferedEventsRef.current = [];
+			unsubscribe();
+		};
 	}, [provider]);
 
 	React.useEffect(() => {
 		if (!provider) return;
-		setLoginId(null);
-		setEvents([]);
-		setPromptValue("");
-		let cancelled = false;
-		void start.mutateAsync({ provider }).then((result) => {
-			if (cancelled) return;
-			setLoginId((current) => current ?? result.loginId);
-			setEvents((prev) => result.events.reduce(appendOAuthEvent, prev));
-		});
+		void startAttempt();
 		return () => {
-			cancelled = true;
+			attemptGenerationRef.current += 1;
+			attemptInFlightRef.current = false;
+			loginIdRef.current = null;
+			bufferedEventsRef.current = [];
 		};
-	}, [provider, start.mutateAsync]);
+	}, [provider, startAttempt]);
 
 	if (!provider) return null;
+	const result = getOAuthLoginResult(events, loginId, start.error);
 	const latestPrompt = [...events]
 		.reverse()
 		.find(
@@ -57,12 +102,6 @@ export function OAuthLoginDialog({ provider, onClose }: OAuthLoginDialogProps) {
 	const latestUrl = [...events]
 		.reverse()
 		.find((event) => event.type === "oauth.authUrl");
-	const done = events.some(
-		(event) =>
-			event.type === "oauth.success" ||
-			event.type === "oauth.error" ||
-			event.type === "oauth.cancelled",
-	);
 
 	return (
 		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
@@ -81,10 +120,35 @@ export function OAuthLoginDialog({ provider, onClose }: OAuthLoginDialogProps) {
 					</button>
 				</div>
 
-				{start.error ? (
-					<div className="text-sm text-err">{start.error.message}</div>
+				{result ? (
+					<div
+						className={`flex items-start gap-3 rounded border p-4 ${
+							result.kind === "success"
+								? "border-ok surface-ok-soft text-ok"
+								: "border-err surface-err-soft text-err"
+						}`}
+						role="status"
+						aria-live="polite"
+					>
+						<div className="text-xl" aria-hidden="true">
+							{result.kind === "success" ? "✓" : "✕"}
+						</div>
+						<div>
+							<div className="font-semibold">
+								{result.kind === "success"
+									? "Login successful"
+									: "Login failed"}
+							</div>
+							<div className="text-sm">
+								{result.kind === "success"
+									? "Your OAuth token was saved."
+									: result.message}
+							</div>
+						</div>
+					</div>
 				) : null}
-				{latestUrl?.type === "oauth.authUrl" ? (
+
+				{!result && latestUrl?.type === "oauth.authUrl" ? (
 					<div className="rounded border border-border/40 p-2 text-sm">
 						{latestUrl.instructions ? (
 							<div className="mb-2 text-muted">{latestUrl.instructions}</div>
@@ -102,7 +166,7 @@ export function OAuthLoginDialog({ provider, onClose }: OAuthLoginDialogProps) {
 					</div>
 				) : null}
 
-				{latestPrompt?.type === "oauth.prompt" && !done ? (
+				{latestPrompt?.type === "oauth.prompt" && !result ? (
 					<div className="flex flex-col gap-2 rounded border border-border/40 p-2 text-sm">
 						<label htmlFor="oauth-prompt-input">{latestPrompt.message}</label>
 						<input
@@ -129,7 +193,7 @@ export function OAuthLoginDialog({ provider, onClose }: OAuthLoginDialogProps) {
 					</div>
 				) : null}
 
-				{latestPrompt?.type === "oauth.select" && !done ? (
+				{latestPrompt?.type === "oauth.select" && !result ? (
 					<div className="flex flex-col gap-2 rounded border border-border/40 p-2 text-sm">
 						<div>{latestPrompt.message}</div>
 						{latestPrompt.options.map((option) => (
@@ -151,30 +215,77 @@ export function OAuthLoginDialog({ provider, onClose }: OAuthLoginDialogProps) {
 					</div>
 				) : null}
 
-				<div className="rounded bg-black/20 p-2 text-xs text-muted">
-					{events.length === 0 ? <div>Starting login…</div> : null}
-					{events.map((event) => (
-						<div key={oauthEventKey(event)}>
-							{event.type === "oauth.progress" ? event.message : event.type}
-							{event.type === "oauth.error" ? `: ${event.message}` : ""}
-						</div>
-					))}
-				</div>
+				{result ? (
+					<div>
+						<button
+							type="button"
+							className="rounded px-2 py-1 text-sm hover:opacity-80"
+							aria-expanded={detailsOpen}
+							onClick={() => setDetailsOpen((open) => !open)}
+						>
+							Authentication details
+						</button>
+						{detailsOpen ? <OAuthEventHistory events={events} /> : null}
+					</div>
+				) : (
+					<OAuthEventHistory events={events} />
+				)}
 
-				<div className="flex justify-end gap-2">
-					<button
-						type="button"
-						className="rounded px-2 py-1 text-sm hover:opacity-80"
-						onClick={() => {
-							if (loginId && !done) cancel.mutate({ loginId });
-
-							onClose();
-						}}
-					>
-						{done ? "Close" : "Cancel"}
-					</button>
+				<div className="flex justify-end gap-2 border-t border-border/40 pt-3">
+					{result?.kind === "success" ? (
+						<button
+							type="button"
+							className="rounded surface-accent px-3 py-1 text-sm hover:opacity-90"
+							onClick={onClose}
+						>
+							Done
+						</button>
+					) : result?.kind === "error" ? (
+						<>
+							<button
+								type="button"
+								className="rounded px-3 py-1 text-sm hover:opacity-80"
+								onClick={onClose}
+							>
+								Close
+							</button>
+							<button
+								type="button"
+								className="rounded surface-accent px-3 py-1 text-sm hover:opacity-90 disabled:opacity-50"
+								disabled={start.isPending}
+								onClick={() => void startAttempt()}
+							>
+								Try again
+							</button>
+						</>
+					) : (
+						<button
+							type="button"
+							className="rounded px-2 py-1 text-sm hover:opacity-80"
+							onClick={() => {
+								if (loginId) cancel.mutate({ loginId });
+								onClose();
+							}}
+						>
+							Cancel
+						</button>
+					)}
 				</div>
 			</div>
+		</div>
+	);
+}
+
+function OAuthEventHistory({ events }: { events: OAuthEvent[] }) {
+	return (
+		<div className="rounded bg-black/20 p-2 text-xs text-muted">
+			{events.length === 0 ? <div>Starting login…</div> : null}
+			{events.map((event) => (
+				<div key={oauthEventKey(event)}>
+					{event.type === "oauth.progress" ? event.message : event.type}
+					{event.type === "oauth.error" ? `: ${event.message}` : ""}
+				</div>
+			))}
 		</div>
 	);
 }

@@ -44,6 +44,22 @@ describe("getOAuthLoginResult", () => {
 		});
 	});
 
+	it("uses the latest conflicting terminal event for the current login", () => {
+		const events: OAuthEvent[] = [
+			{
+				type: "oauth.error",
+				loginId: "current-login",
+				provider,
+				message: "Earlier failure",
+			},
+			{ type: "oauth.success", loginId: "current-login", provider },
+		];
+
+		expect(getOAuthLoginResult(events, "current-login", null)).toEqual({
+			kind: "success",
+		});
+	});
+
 	it("prefers the current terminal event over a start error", () => {
 		const events: OAuthEvent[] = [
 			{

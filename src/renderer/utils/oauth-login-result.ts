@@ -9,7 +9,8 @@ export function getOAuthLoginResult(
 	loginId: string | null,
 	startError: Error | null,
 ): OAuthLoginResult | null {
-	for (const event of events) {
+	for (let index = events.length - 1; index >= 0; index -= 1) {
+		const event = events[index];
 		if (event.loginId !== loginId) continue;
 		if (event.type === "oauth.success") return { kind: "success" };
 		if (event.type === "oauth.error") {
