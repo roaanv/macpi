@@ -1,9 +1,4 @@
 import React from "react";
-import {
-	type FavouriteModelSetting,
-	getFavouriteModels,
-	modelRefKey,
-} from "../../shared/app-settings-keys";
 import type {
 	LocalOpenAIModelCandidate,
 	ModelSummary,
@@ -15,10 +10,6 @@ import {
 	useModelAuthProviders,
 	useSaveApiKey,
 	useSaveLocalOpenAIProvider,
-	useSelectedModel,
-	useSetSelectedModel,
-	useSetSetting,
-	useSettings,
 } from "../queries";
 import {
 	buildProviderViews,
@@ -32,20 +23,15 @@ import { OAuthLoginDialog } from "./OAuthLoginDialog";
 
 const FILTERS: Array<{ id: ProviderFilter; label: string }> = [
 	{ id: "all", label: "All" },
-	{ id: "favourites", label: "Favourites" },
 	{ id: "configured", label: "Configured" },
 	{ id: "cloud", label: "Cloud" },
 	{ id: "local", label: "Local" },
 ];
 
-export function ModelsAuthSettings() {
+export function ProvidersSettings() {
 	const providers = useModelAuthProviders();
 	const models = useModelAuthModels();
-	const selected = useSelectedModel();
-	const settings = useSettings();
-	const setSelected = useSetSelectedModel();
 	const saveApiKey = useSaveApiKey();
-	const setSetting = useSetSetting();
 	const logout = useLogoutProvider();
 	const [oauthProvider, setOAuthProvider] = React.useState<string | null>(null);
 	const [selectedProviderId, setSelectedProviderId] = React.useState<
@@ -60,14 +46,6 @@ export function ModelsAuthSettings() {
 	const [showAdvanced, setShowAdvanced] = React.useState(false);
 	const [showImport, setShowImport] = React.useState(false);
 	const [addingLocal, setAddingLocal] = React.useState(false);
-	const favouriteModels = React.useMemo(
-		() => getFavouriteModels(settings.data?.settings ?? {}),
-		[settings.data?.settings],
-	);
-	const favouriteModelKeys = React.useMemo(
-		() => new Set(favouriteModels.map(modelRefKey)),
-		[favouriteModels],
-	);
 
 	const providerViews = React.useMemo(
 		() =>
@@ -78,14 +56,11 @@ export function ModelsAuthSettings() {
 		[providers.data?.providers, models.data?.models],
 	);
 	const filteredProviders = React.useMemo(
-		() => filterProviderViews(providerViews, filter, query, favouriteModelKeys),
-		[providerViews, filter, query, favouriteModelKeys],
+		() => filterProviderViews(providerViews, filter, query),
+		[providerViews, filter, query],
 	);
 	const activeProvider =
 		filteredProviders.find((provider) => provider.id === selectedProviderId) ??
-		filteredProviders.find(
-			(provider) => provider.id === selected.data?.model?.provider,
-		) ??
 		filteredProviders[0] ??
 		null;
 
@@ -94,21 +69,6 @@ export function ModelsAuthSettings() {
 		if (selectedProviderId === activeProvider.id) return;
 		setSelectedProviderId(activeProvider.id);
 	}, [activeProvider, selectedProviderId]);
-
-	const toggleFavouriteModel = React.useCallback(
-		(model: FavouriteModelSetting) => {
-			const key = modelRefKey(model);
-			const next = favouriteModelKeys.has(key)
-				? favouriteModels.filter((item) => modelRefKey(item) !== key)
-				: [...favouriteModels, model];
-			setSetting.mutate({ key: "modelFavourites", value: next });
-		},
-		[favouriteModelKeys, favouriteModels, setSetting],
-	);
-
-	const selectedLabel = selected.data?.model
-		? `${selected.data.model.provider} / ${selected.data.model.modelId}`
-		: "No model selected";
 
 	return (
 		<div className="-m-6 flex h-full flex-col overflow-hidden text-primary">
@@ -131,11 +91,11 @@ export function ModelsAuthSettings() {
 				<ImportPiAuthModels />
 			</SettingsOverlay>
 
-			<header className="flex items-start justify-between gap-4 border-b border-divider px-6 py-5">
+			<header className="flex items-start justify-between gap-4 border-b border-divider px-5 py-4">
 				<div>
-					<h2 className="text-xl font-semibold">Models &amp; Auth</h2>
+					<h2 className="text-xl font-semibold">Providers</h2>
 					<div className="mt-1 text-sm text-muted">
-						Configure where MacPi sends your messages.
+						Configure provider authentication and local endpoints.
 					</div>
 				</div>
 				<div className="flex items-center gap-2 text-sm">
@@ -156,32 +116,33 @@ export function ModelsAuthSettings() {
 				</div>
 			</header>
 
-			<div className="grid min-h-0 flex-1 grid-cols-[minmax(260px,360px)_1fr] overflow-hidden">
+			<div className="grid min-h-0 flex-1 grid-cols-[minmax(240px,320px)_1fr] overflow-hidden">
 				<aside className="flex min-h-0 flex-col border-r border-divider">
-					<div className="border-b border-divider p-4">
+					<div className="flex gap-2 border-b border-divider p-3">
 						<input
 							type="search"
 							value={query}
 							onChange={(e) => setQuery(e.target.value)}
 							placeholder="Search providers…"
-							className="surface-row w-full rounded px-3 py-2 text-sm outline-none"
+							className="surface-row min-w-0 flex-1 rounded px-3 py-2 text-sm outline-none"
 						/>
-					</div>
-					<div className="flex gap-1 border-b border-divider px-4 py-3 text-sm">
-						{FILTERS.map((item) => (
-							<button
-								key={item.id}
-								type="button"
-								onClick={() => setFilter(item.id)}
-								className={`rounded-full px-3 py-1 ${
-									filter === item.id
-										? "surface-accent-soft text-accent"
-										: "text-muted hover:surface-row"
-								}`}
-							>
-								{item.label}
-							</button>
-						))}
+						<label className="sr-only" htmlFor="provider-filter">
+							Filter providers
+						</label>
+						<select
+							id="provider-filter"
+							value={filter}
+							onChange={(event) =>
+								setFilter(event.target.value as ProviderFilter)
+							}
+							className="surface-row rounded px-2 py-2 text-sm outline-none"
+						>
+							{FILTERS.map((item) => (
+								<option key={item.id} value={item.id}>
+									{item.label}
+								</option>
+							))}
+						</select>
 					</div>
 					<div className="min-h-0 flex-1 overflow-y-auto p-3">
 						<button
@@ -228,11 +189,6 @@ export function ModelsAuthSettings() {
 							{models.data.registryError}
 						</div>
 					) : null}
-					{selected.error ? (
-						<div className="mb-4 rounded surface-err-soft p-3 text-sm text-err">
-							{selected.error.message}
-						</div>
-					) : null}
 					{addingLocal ? (
 						<LocalOpenAIProviderForm
 							onCancel={() => setAddingLocal(false)}
@@ -244,13 +200,6 @@ export function ModelsAuthSettings() {
 					) : activeProvider ? (
 						<ProviderDetail
 							provider={activeProvider}
-							selectedModel={selected.data?.model ?? null}
-							selectedValid={selected.data?.valid ?? true}
-							selectedError={selected.data?.error}
-							favouriteModelKeys={favouriteModelKeys}
-							showFavouritesOnly={filter === "favourites"}
-							onToggleFavouriteModel={toggleFavouriteModel}
-							onSelectModel={(model) => setSelected.mutate({ model })}
 							onStartOAuth={setOAuthProvider}
 							onStartApiKey={() => {
 								setEditingProvider(activeProvider.id);
@@ -284,16 +233,6 @@ export function ModelsAuthSettings() {
 					)}
 				</main>
 			</div>
-
-			<footer className="flex items-center justify-between border-t border-divider px-6 py-4 text-sm">
-				<div className="text-muted">
-					Active:{" "}
-					<span className="font-mono text-primary">{selectedLabel}</span>
-					{selected.data && !selected.data.valid ? (
-						<span className="ml-2 text-err">{selected.data.error}</span>
-					) : null}
-				</div>
-			</footer>
 		</div>
 	);
 }
@@ -312,23 +251,25 @@ function LocalOpenAIProviderForm({
 	const [baseUrl, setBaseUrl] = React.useState("http://localhost:11434/v1");
 	const [apiKey, setApiKey] = React.useState("ollama");
 	const [models, setModels] = React.useState<LocalOpenAIModelCandidate[]>([]);
-	const [selectedModelId, setSelectedModelId] = React.useState("");
 
 	function discoverModels() {
 		listModels.mutate(
 			{ baseUrl, apiKey },
 			{
-				onSuccess: (data) => {
-					setModels(data.models);
-					setSelectedModelId(data.models[0]?.id ?? "");
-				},
+				onSuccess: (data) => setModels(data.models),
 			},
 		);
 	}
 
 	function save() {
 		saveProvider.mutate(
-			{ providerId, name, baseUrl, apiKey, models, selectedModelId },
+			{
+				providerId,
+				name,
+				baseUrl,
+				apiKey,
+				models,
+			},
 			{
 				onSuccess: (data) => onSaved(data.provider),
 			},
@@ -415,30 +356,18 @@ function LocalOpenAIProviderForm({
 				</div>
 				{models.length === 0 ? (
 					<div className="rounded-xl border border-divider p-4 text-sm text-muted">
-						Fetch models from the provider, then choose the model MacPi should
-						use.
+						Fetch models from the provider before saving it.
 					</div>
 				) : (
 					<div className="overflow-hidden rounded-xl border border-divider">
 						{models.map((model) => (
-							<button
-								type="button"
+							<div
 								key={model.id}
-								onClick={() => setSelectedModelId(model.id)}
-								className="flex w-full items-center gap-4 border-b border-divider p-4 text-left last:border-b-0 hover:surface-row"
+								className="border-b border-divider px-3 py-2 last:border-b-0"
 							>
-								<span
-									className={`flex h-7 w-7 items-center justify-center rounded ${selectedModelId === model.id ? "surface-accent" : "surface-row text-muted"}`}
-								>
-									{selectedModelId === model.id ? "✓" : ""}
-								</span>
-								<span>
-									<span className="font-medium">{model.name}</span>
-									<span className="block font-mono text-xs text-muted">
-										{model.id}
-									</span>
-								</span>
-							</button>
+								<div className="text-sm font-medium">{model.name}</div>
+								<div className="font-mono text-xs text-muted">{model.id}</div>
+							</div>
 						))}
 					</div>
 				)}
@@ -446,12 +375,10 @@ function LocalOpenAIProviderForm({
 					<button
 						type="button"
 						className="rounded surface-accent px-4 py-2 text-sm hover:opacity-90 disabled:opacity-50"
-						disabled={!selectedModelId || saveProvider.isPending}
+						disabled={models.length === 0 || saveProvider.isPending}
 						onClick={save}
 					>
-						{saveProvider.isPending
-							? "Saving…"
-							: "Save provider and set default"}
+						{saveProvider.isPending ? "Saving…" : "Save provider"}
 					</button>
 				</div>
 				{saveProvider.error ? (
@@ -477,7 +404,7 @@ function ProviderRow({
 		<button
 			type="button"
 			onClick={onClick}
-			className={`flex w-full items-center gap-3 rounded p-3 text-left ${
+			className={`flex w-full items-center gap-2 rounded px-2 py-2 text-left ${
 				selected
 					? "border border-accent surface-accent-soft"
 					: "hover:surface-row"
@@ -485,10 +412,9 @@ function ProviderRow({
 		>
 			<ProviderBadge provider={provider} />
 			<div className="min-w-0 flex-1">
-				<div className="truncate font-medium">{provider.name}</div>
+				<div className="truncate text-sm font-medium">{provider.name}</div>
 				<div className="truncate font-mono text-xs text-muted">
-					{provider.id} · {provider.kind} · {provider.modelCount} model
-					{provider.modelCount === 1 ? "" : "s"}
+					{provider.id} · {provider.kind}
 				</div>
 			</div>
 			<span
@@ -504,7 +430,7 @@ function ProviderRow({
 
 function ProviderBadge({ provider }: { provider: ProviderView }) {
 	return (
-		<div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl surface-row font-mono text-sm font-semibold">
+		<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded surface-row font-mono text-xs font-semibold">
 			{provider.initials}
 		</div>
 	);
@@ -512,13 +438,6 @@ function ProviderBadge({ provider }: { provider: ProviderView }) {
 
 function ProviderDetail({
 	provider,
-	selectedModel,
-	selectedValid,
-	selectedError,
-	favouriteModelKeys,
-	showFavouritesOnly,
-	onToggleFavouriteModel,
-	onSelectModel,
 	onStartOAuth,
 	onStartApiKey,
 	onLogout,
@@ -530,13 +449,6 @@ function ProviderDetail({
 	authError,
 }: {
 	provider: ProviderView;
-	selectedModel: { provider: string; modelId: string } | null;
-	selectedValid: boolean;
-	selectedError?: string;
-	favouriteModelKeys: ReadonlySet<string>;
-	showFavouritesOnly: boolean;
-	onToggleFavouriteModel: (model: FavouriteModelSetting) => void;
-	onSelectModel: (model: { provider: string; modelId: string }) => void;
 	onStartOAuth: (provider: string) => void;
 	onStartApiKey: () => void;
 	onLogout: () => void;
@@ -547,20 +459,9 @@ function ProviderDetail({
 	onSaveApiKey: () => void;
 	authError?: string;
 }) {
-	const visibleModels = showFavouritesOnly
-		? provider.models.filter((model) =>
-				favouriteModelKeys.has(
-					modelRefKey({ provider: model.provider, modelId: model.id }),
-				),
-			)
-		: provider.models;
-	const modelCountLabel = showFavouritesOnly
-		? `Favourite models · ${visibleModels.length} / ${provider.models.length}`
-		: `Models · ${provider.models.length}`;
-
 	return (
-		<div className="mx-auto flex max-w-4xl flex-col gap-6">
-			<section className="flex items-start gap-4">
+		<div className="mx-auto flex max-w-4xl flex-col gap-5">
+			<section className="flex items-start gap-3">
 				<ProviderBadge provider={provider} />
 				<div className="min-w-0 flex-1">
 					<div className="flex flex-wrap items-center gap-2">
@@ -572,10 +473,10 @@ function ProviderDetail({
 					<div className="mt-2 font-mono text-sm text-muted">
 						{provider.id} · {provider.kind}
 					</div>
-					<p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
+					<p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
 						{provider.kind === "cloud"
-							? "Built-in MacPi provider. Configure authentication, then choose which model sessions should use."
-							: "OpenAI-compatible local provider. Configure the endpoint and choose an available model."}
+							? "Built-in MacPi provider. Configure authentication to make its models available."
+							: "OpenAI-compatible local provider endpoint."}
 					</p>
 				</div>
 			</section>
@@ -648,108 +549,38 @@ function ProviderDetail({
 			</section>
 
 			<section>
-				<div className="mb-3 text-xs uppercase tracking-widest text-muted">
-					{modelCountLabel}
-				</div>
-				{selectedError && !selectedValid ? (
-					<div className="mb-3 rounded surface-err-soft p-3 text-sm text-err">
-						{selectedError}
-					</div>
-				) : null}
-				<ModelList
-					models={visibleModels}
-					selectedModel={selectedModel}
-					favouriteModelKeys={favouriteModelKeys}
-					onToggleFavouriteModel={onToggleFavouriteModel}
-					onSelectModel={onSelectModel}
-				/>
+				<details className="rounded border border-divider">
+					<summary className="cursor-pointer px-3 py-2 text-sm text-muted">
+						{provider.models.length} models available
+					</summary>
+					<ReadOnlyModelInventory models={provider.models} />
+				</details>
 			</section>
 		</div>
 	);
 }
 
-function ModelList({
-	models,
-	selectedModel,
-	favouriteModelKeys,
-	onToggleFavouriteModel,
-	onSelectModel,
-}: {
-	models: ModelSummary[];
-	selectedModel: { provider: string; modelId: string } | null;
-	favouriteModelKeys: ReadonlySet<string>;
-	onToggleFavouriteModel: (model: FavouriteModelSetting) => void;
-	onSelectModel: (model: { provider: string; modelId: string }) => void;
-}) {
+function ReadOnlyModelInventory({ models }: { models: ModelSummary[] }) {
 	if (models.length === 0) {
 		return (
-			<div className="rounded-xl border border-divider p-4 text-sm text-muted">
+			<div className="border-t border-divider px-3 py-2 text-sm text-muted">
 				No models discovered for this provider.
 			</div>
 		);
 	}
 	return (
-		<div className="overflow-hidden rounded-xl border border-divider">
-			{models.map((model) => {
-				const isSelected =
-					selectedModel?.provider === model.provider &&
-					selectedModel.modelId === model.id;
-				const favouriteRef = { provider: model.provider, modelId: model.id };
-				const isFavourite = favouriteModelKeys.has(modelRefKey(favouriteRef));
-				return (
-					<div
-						key={`${model.provider}/${model.id}`}
-						className="flex w-full items-center gap-3 border-b border-divider p-4 last:border-b-0 hover:surface-row"
-					>
-						<button
-							type="button"
-							onClick={() => onToggleFavouriteModel(favouriteRef)}
-							className={`flex h-7 w-7 shrink-0 items-center justify-center rounded text-lg ${isFavourite ? "text-warn" : "text-muted hover:text-primary"}`}
-							aria-label={
-								isFavourite
-									? `Remove ${model.name} from favourites`
-									: `Add ${model.name} to favourites`
-							}
-							title={isFavourite ? "Remove favourite" : "Add favourite"}
-						>
-							{isFavourite ? "★" : "☆"}
-						</button>
-						<button
-							type="button"
-							disabled={!model.authConfigured}
-							onClick={() =>
-								onSelectModel({ provider: model.provider, modelId: model.id })
-							}
-							className="flex min-w-0 flex-1 items-center gap-4 text-left disabled:opacity-60"
-						>
-							<span
-								className={`flex h-7 w-7 shrink-0 items-center justify-center rounded ${isSelected ? "surface-accent" : "surface-row text-muted"}`}
-							>
-								{isSelected ? "✓" : ""}
-							</span>
-							<span className="min-w-0 flex-1">
-								<span className="flex flex-wrap items-center gap-2 font-medium">
-									{model.name}
-									{model.reasoning ? (
-										<span className="rounded-full surface-accent-soft px-2 py-0.5 text-xs text-accent">
-											reasoning
-										</span>
-									) : null}
-								</span>
-								<span className="block truncate font-mono text-xs text-muted">
-									{model.id}
-								</span>
-							</span>
-							<span className="font-mono text-sm text-muted">
-								{formatContext(model.contextWindow)}
-							</span>
-							<span className="text-sm text-muted">
-								{model.authConfigured ? "Set default" : "Configure auth first"}
-							</span>
-						</button>
+		<div className="border-t border-divider">
+			{models.map((model) => (
+				<div
+					key={`${model.provider}/${model.id}`}
+					className="border-b border-divider px-3 py-2 last:border-b-0"
+				>
+					<div className="truncate text-sm font-medium">{model.name}</div>
+					<div className="truncate font-mono text-xs text-muted">
+						{model.id}
 					</div>
-				);
-			})}
+				</div>
+			))}
 		</div>
 	);
 }
@@ -810,10 +641,4 @@ function authHelp(provider: ProviderView): string {
 		return `Store an API key for ${provider.name}. MacPi stores secrets in auth.json, not in chat history.`;
 	}
 	return "This provider does not expose a configurable auth flow.";
-}
-
-function formatContext(contextWindow: number): string {
-	if (!contextWindow) return "—";
-	if (contextWindow >= 1000) return `${Math.round(contextWindow / 1000)}K`;
-	return String(contextWindow);
 }

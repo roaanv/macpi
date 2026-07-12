@@ -307,7 +307,7 @@ export interface IpcMethods {
 	};
 	"modelsAuth.saveLocalOpenAIProvider": {
 		req: LocalOpenAIProviderInput;
-		res: { provider: string; selectedModel: SelectedModelRef };
+		res: { provider: string };
 	};
 	"dialog.openFolder": {
 		req: { defaultPath?: string };

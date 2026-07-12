@@ -134,10 +134,7 @@ export class IpcRouter {
 					msg.toLowerCase().includes("selected model") &&
 					msg.toLowerCase().includes("not found")
 				) {
-					return err(
-						"model",
-						`${msg}. Open Models & Auth to choose a replacement.`,
-					);
+					return err("model", `${msg}. Open Defaults to choose a replacement.`);
 				}
 				throw e;
 			}

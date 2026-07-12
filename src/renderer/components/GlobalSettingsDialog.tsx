@@ -2,12 +2,12 @@
 // redesign:
 //   Appearance  — Theme, Font
 //   Capabilities — Skills, Extensions, Prompts (moved out of the mode rail)
-//   Workspace   — Models & Auth, Defaults
+//   Workspace   — Providers, Defaults
 
 import { CapabilitySettings } from "./CapabilitySettings";
 import { DefaultsSettings } from "./DefaultsSettings";
 import { FontSettings } from "./FontSettings";
-import { ModelsAuthSettings } from "./ModelsAuthSettings";
+import { ProvidersSettings } from "./ProvidersSettings";
 import { SettingsDialog } from "./SettingsDialog";
 import { ThemeSettings } from "./ThemeSettings";
 
@@ -57,10 +57,10 @@ export function GlobalSettingsDialog({
 					render: () => <CapabilitySettings kind="prompts" />,
 				},
 				{
-					id: "models-auth",
-					label: "Models & Auth",
+					id: "providers",
+					label: "Providers",
 					group: "Workspace",
-					render: () => <ModelsAuthSettings />,
+					render: () => <ProvidersSettings />,
 				},
 				{
 					id: "defaults",

@@ -367,10 +367,7 @@ export class ModelAuthService {
 
 	async saveLocalOpenAIProvider(
 		input: LocalOpenAIProviderInput,
-	): Promise<{ provider: string; selectedModel: SelectedModelRef }> {
-		if (!this.deps.appSettings) {
-			throw new Error("ModelAuthService requires appSettings to set model");
-		}
+	): Promise<{ provider: string }> {
 		const provider = this.validateProviderId(input.providerId);
 		if (!provider.startsWith("local-")) {
 			throw new Error("Local provider id must start with local-");
@@ -380,8 +377,8 @@ export class ModelAuthService {
 		const apiKey = input.apiKey.trim();
 		if (!apiKey) throw new Error("API key cannot be empty");
 		const baseUrl = this.normalizeBaseUrl(input.baseUrl);
-		if (!input.models.some((model) => model.id === input.selectedModelId)) {
-			throw new Error("Selected local model is not in the model list");
+		if (input.models.length === 0) {
+			throw new Error("At least one local model is required");
 		}
 
 		const config = this.readModelsConfig();
@@ -403,9 +400,7 @@ export class ModelAuthService {
 		auth.set(provider, { type: "api_key", key: apiKey });
 		await this.refresh();
 
-		const selectedModel = { provider, modelId: input.selectedModelId };
-		this.deps.appSettings.set("selectedModel", selectedModel);
-		return { provider, selectedModel };
+		return { provider };
 	}
 
 	async importFromPi(input: {

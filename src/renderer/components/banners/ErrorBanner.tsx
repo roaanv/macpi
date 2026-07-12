@@ -1,6 +1,6 @@
 // ErrorBanner — red banner rendered above the composer when pi has surfaced
 // a non-retryable error (auth/model/transient/unknown). Auth/model get an
-// "Open Models & Auth" action; everything else just shows the code + message.
+// "Open Providers" action; everything else just shows the code + message.
 // Dismissing hides the banner until the next session.error event arrives.
 
 import React from "react";
@@ -42,7 +42,7 @@ export function ErrorBanner({ state, onOpenSettings }: ErrorBannerProps) {
 					onClick={onOpenSettings}
 					className="rounded border border-err px-2 py-0.5 text-xs hover:surface-err-soft"
 				>
-					Open Models & Auth
+					Open Providers
 				</button>
 			)}
 			<button

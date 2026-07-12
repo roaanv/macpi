@@ -257,9 +257,10 @@ describe("ModelAuthService local OpenAI providers", () => {
 		]);
 	});
 
-	it("saves a local OpenAI-compatible provider and selected model", async () => {
+	it("saves a local OpenAI-compatible provider without changing the selected model", async () => {
 		const root = tempRoot();
-		const settings = fakeSettings({});
+		const selectedModel = { provider: "anthropic", modelId: "claude-sonnet-4" };
+		const settings = fakeSettings({ selectedModel });
 		const authCalls: unknown[] = [];
 		let refreshed = false;
 		const service = new ModelAuthService({
@@ -284,14 +285,15 @@ describe("ModelAuthService local OpenAI providers", () => {
 			}),
 		});
 
-		await service.saveLocalOpenAIProvider({
-			providerId: "local-ollama",
-			name: "Local Ollama",
-			baseUrl: "http://localhost:11434/v1/",
-			apiKey: "ollama",
-			models: [{ id: "llama3", name: "Llama 3" }],
-			selectedModelId: "llama3",
-		});
+		await expect(
+			service.saveLocalOpenAIProvider({
+				providerId: "local-ollama",
+				name: "Local Ollama",
+				baseUrl: "http://localhost:11434/v1/",
+				apiKey: "ollama",
+				models: [{ id: "llama3", name: "Llama 3" }],
+			}),
+		).resolves.toEqual({ provider: "local-ollama" });
 
 		const saved = JSON.parse(
 			fs.readFileSync(path.join(root, "models.json"), "utf8"),
@@ -306,10 +308,22 @@ describe("ModelAuthService local OpenAI providers", () => {
 		expect(authCalls).toEqual([
 			["local-ollama", { type: "api_key", key: "ollama" }],
 		]);
-		expect(settings.getAll()).toEqual({
-			selectedModel: { provider: "local-ollama", modelId: "llama3" },
-		});
+		expect(settings.getAll()).toEqual({ selectedModel });
 		expect(refreshed).toBe(true);
+	});
+
+	it("requires discovered models before saving a local provider", async () => {
+		const service = new ModelAuthService({ macpiRoot: tempRoot() });
+
+		await expect(
+			service.saveLocalOpenAIProvider({
+				providerId: "local-ollama",
+				name: "Local Ollama",
+				baseUrl: "http://localhost:11434/v1",
+				apiKey: "ollama",
+				models: [],
+			}),
+		).rejects.toThrow("At least one local model is required");
 	});
 });
 

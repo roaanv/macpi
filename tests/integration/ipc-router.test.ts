@@ -184,7 +184,6 @@ beforeEach(() => {
 			.mockResolvedValue([{ id: "llama3", name: "llama3" }]),
 		saveLocalOpenAIProvider: vi.fn().mockResolvedValue({
 			provider: "local-ollama",
-			selectedModel: { provider: "local-ollama", modelId: "llama3" },
 		}),
 	};
 	router = new IpcRouter({
@@ -264,7 +263,7 @@ describe("IpcRouter", () => {
 			error: {
 				code: "model",
 				message:
-					"Selected model anthropic/missing not found. Open Models & Auth to choose a replacement.",
+					"Selected model anthropic/missing not found. Open Defaults to choose a replacement.",
 			},
 		});
 	});
@@ -921,22 +920,25 @@ describe("IpcRouter", () => {
 		});
 	});
 
-	it("modelsAuth.saveLocalOpenAIProvider returns selected model", async () => {
-		const r = await router.dispatch("modelsAuth.saveLocalOpenAIProvider", {
+	it("modelsAuth.saveLocalOpenAIProvider saves without a selected model", async () => {
+		const input = {
 			providerId: "local-ollama",
 			name: "Local Ollama",
 			baseUrl: "http://localhost:11434/v1",
 			apiKey: "ollama",
 			models: [{ id: "llama3", name: "llama3" }],
-			selectedModelId: "llama3",
-		});
+		};
+		const r = await router.dispatch(
+			"modelsAuth.saveLocalOpenAIProvider",
+			input,
+		);
 
+		expect(modelAuthServiceMock.saveLocalOpenAIProvider).toHaveBeenCalledWith(
+			input,
+		);
 		expect(r).toEqual({
 			ok: true,
-			data: {
-				provider: "local-ollama",
-				selectedModel: { provider: "local-ollama", modelId: "llama3" },
-			},
+			data: { provider: "local-ollama" },
 		});
 	});
 

@@ -111,14 +111,6 @@ describe("model provider view helpers", () => {
 		]);
 	});
 
-	it("filters by favourite models", () => {
-		const views = buildProviderViews(providers, models);
-		const favourites = new Set(["anthropic\u0000claude-sonnet-4"]);
-		expect(
-			filterProviderViews(views, "favourites", "", favourites).map((p) => p.id),
-		).toEqual(["anthropic"]);
-	});
-
 	it("returns configured provider views in their original order", () => {
 		const views = buildProviderViews(
 			[providers[1], providers[2], providers[0]],

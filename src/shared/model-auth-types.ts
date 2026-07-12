@@ -122,5 +122,4 @@ export interface LocalOpenAIProviderInput {
 	baseUrl: string;
 	apiKey: string;
 	models: LocalOpenAIModelCandidate[];
-	selectedModelId: string;
 }

@@ -3,12 +3,7 @@ import type {
 	ProviderSummary,
 } from "../../shared/model-auth-types";
 
-export type ProviderFilter =
-	| "all"
-	| "favourites"
-	| "configured"
-	| "cloud"
-	| "local";
+export type ProviderFilter = "all" | "configured" | "cloud" | "local";
 
 export interface ProviderView extends ProviderSummary {
 	kind: "cloud" | "local";
@@ -67,18 +62,9 @@ export function filterProviderViews(
 	providers: readonly ProviderView[],
 	filter: ProviderFilter,
 	query: string,
-	favouriteModelKeys: ReadonlySet<string> = new Set(),
 ): ProviderView[] {
 	const normalized = query.trim().toLowerCase();
 	return providers.filter((provider) => {
-		if (
-			filter === "favourites" &&
-			!provider.models.some((model) =>
-				favouriteModelKeys.has(`${model.provider}\u0000${model.id}`),
-			)
-		) {
-			return false;
-		}
 		if (filter === "configured" && !provider.authStatus.configured)
 			return false;
 		if (filter === "cloud" && provider.kind !== "cloud") return false;
