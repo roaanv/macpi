@@ -10,6 +10,7 @@ import {
 	useSetSetting,
 	useSettings,
 } from "../queries";
+import { DefaultModelSelector } from "./DefaultModelSelector";
 
 export function DefaultsSettings() {
 	const { data } = useSettings();
@@ -68,6 +69,8 @@ export function DefaultsSettings() {
 					</button>
 				</div>
 			</div>
+
+			<DefaultModelSelector />
 
 			<div>
 				<div className="mb-1 text-sm font-medium">Pi environment</div>
