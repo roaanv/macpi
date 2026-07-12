@@ -191,6 +191,20 @@ export function useSessionFooterStats(piSessionId: string | null) {
 	});
 }
 
+export function useSetSessionModel() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (input: {
+			piSessionId: string;
+			model: { provider: string; modelId: string };
+		}) => invoke("session.setModel", input),
+		onSuccess: (_data, input) =>
+			qc.invalidateQueries({
+				queryKey: ["session.footerStats", input.piSessionId],
+			}),
+	});
+}
+
 /**
  * Per-segment context breakdown + cumulative usage. Sibling of
  * useSessionFooterStats; invalidate together on turn_end / compaction_end.

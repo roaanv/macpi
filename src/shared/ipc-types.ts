@@ -129,6 +129,10 @@ export interface IpcMethods {
 		};
 		res: Record<string, never>;
 	};
+	"session.setModel": {
+		req: { piSessionId: string; model: SelectedModelRef };
+		res: Record<string, never>;
+	};
 	"session.clearQueue": {
 		req: { piSessionId: string };
 		/** Returns the cleared messages so the renderer can stash them as drafts if it wants. */

@@ -159,6 +159,57 @@ export class IpcRouter {
 			);
 			return ok({});
 		});
+		this.register("session.setModel", async (args) => {
+			const session = this.deps.piSessionManager.getAgentSession(
+				args.piSessionId,
+			);
+			if (!session) {
+				return err("not_found", `session ${args.piSessionId} not attached`);
+			}
+			if (session.isStreaming) {
+				return err(
+					"busy",
+					`Cannot switch models while session ${args.piSessionId} is streaming`,
+				);
+			}
+			try {
+				const model = await this.deps.modelAuthService.resolveConfiguredModel(
+					args.model,
+				);
+				if (session.isStreaming) {
+					return err(
+						"busy",
+						`Cannot switch models while session ${args.piSessionId} is streaming`,
+					);
+				}
+				await this.deps.piSessionManager.setSessionModel(
+					args.piSessionId,
+					model,
+				);
+				return ok({});
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				const normalized = msg.toLowerCase();
+				if (
+					normalized.includes("while session") &&
+					(normalized.includes("streaming") ||
+						normalized.includes("already switching models"))
+				) {
+					return err("busy", msg);
+				}
+				if (normalized.includes("not found")) {
+					return err("model_not_found", msg);
+				}
+				if (
+					normalized.includes("not configured") ||
+					normalized.includes("api key") ||
+					normalized.includes("auth")
+				) {
+					return err("auth_failed", msg);
+				}
+				return err("model_switch_failed", msg);
+			}
+		});
 		this.register("session.clearQueue", async (args) => {
 			const cleared = await this.deps.piSessionManager.clearQueue(
 				args.piSessionId,

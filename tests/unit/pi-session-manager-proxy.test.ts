@@ -50,6 +50,7 @@ function installActiveSession(
 		session,
 		unsubscribe: () => undefined,
 		proxySettings,
+		modelSwitching: false,
 	});
 }
 
@@ -317,11 +318,12 @@ describe("PiSessionManager active session proxy env", () => {
 			appSettings: { getAll: () => currentSettings } as any,
 			agentDir: "/tmp/pi-agent",
 		});
+		const settingsManager = {};
 		manager.__testOverrides = {
 			authStorage: {},
 			modelRegistry: {},
 			resourceLoader: { reload: vi.fn(async () => undefined) },
-			settingsManager: {},
+			settingsManager,
 			model: {},
 			// biome-ignore lint/suspicious/noExplicitAny: test-only pi dependency stubs
 		} as any;
@@ -335,6 +337,10 @@ describe("PiSessionManager active session proxy env", () => {
 			sessionFilePath: "/tmp/created-1.jsonl",
 		});
 		expect(seenAtCreate).toBe("http://captured.example.com:8080");
+		// biome-ignore lint/suspicious/noExplicitAny: verifies test override identity retained internally
+		expect((manager as any).active.get("created-1").settingsManager).toBe(
+			settingsManager,
+		);
 		expect(seenAtPrompt).toBe("http://captured.example.com:8080");
 		expect(process.env.HTTP_PROXY).toBeUndefined();
 	});

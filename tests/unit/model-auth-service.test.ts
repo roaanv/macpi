@@ -179,6 +179,85 @@ describe("ModelAuthService selected model", () => {
 	});
 });
 
+describe("ModelAuthService configured model resolution", () => {
+	it("rejects unknown models without mutating settings", async () => {
+		const settings = {
+			getAll: vi.fn(() => ({})),
+			set: vi.fn(),
+		};
+		const service = new ModelAuthService({
+			macpiRoot: tempRoot(),
+			appSettings: settings,
+			loadPi: async () => ({
+				AuthStorage: { create: () => fakeAuthStorage() },
+				ModelRegistry: { create: () => fakeModelRegistry() },
+			}),
+		});
+
+		await expect(
+			service.resolveConfiguredModel({
+				provider: "anthropic",
+				modelId: "missing",
+			}),
+		).rejects.toThrow("Selected model anthropic/missing not found");
+		expect(settings.set).not.toHaveBeenCalled();
+	});
+
+	it("rejects models whose provider auth is not configured", async () => {
+		const model = fakeModel("anthropic", "claude-sonnet");
+		const service = new ModelAuthService({
+			macpiRoot: tempRoot(),
+			loadPi: async () => ({
+				AuthStorage: { create: () => fakeAuthStorage() },
+				ModelRegistry: {
+					create: () =>
+						fakeModelRegistry({
+							findModel: model,
+							authStatuses: { anthropic: { configured: false } },
+						}),
+				},
+			}),
+		});
+
+		await expect(
+			service.resolveConfiguredModel({
+				provider: "anthropic",
+				modelId: "claude-sonnet",
+			}),
+		).rejects.toThrow("Provider anthropic is not configured");
+	});
+
+	it("returns the configured SDK model without mutating settings", async () => {
+		const settings = {
+			getAll: vi.fn(() => ({})),
+			set: vi.fn(),
+		};
+		const model = fakeModel("anthropic", "claude-sonnet");
+		const service = new ModelAuthService({
+			macpiRoot: tempRoot(),
+			appSettings: settings,
+			loadPi: async () => ({
+				AuthStorage: { create: () => fakeAuthStorage() },
+				ModelRegistry: {
+					create: () =>
+						fakeModelRegistry({
+							findModel: model,
+							authStatuses: { anthropic: { configured: true } },
+						}),
+				},
+			}),
+		});
+
+		await expect(
+			service.resolveConfiguredModel({
+				provider: "anthropic",
+				modelId: "claude-sonnet",
+			}),
+		).resolves.toBe(model);
+		expect(settings.set).not.toHaveBeenCalled();
+	});
+});
+
 describe("ModelAuthService models.json editor", () => {
 	it("reads missing models.json as empty text", async () => {
 		const root = tempRoot();

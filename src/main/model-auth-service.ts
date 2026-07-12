@@ -284,6 +284,16 @@ export class ModelAuthService {
 		return resolved;
 	}
 
+	async resolveConfiguredModel(ref: SelectedModelRef): Promise<Model<Api>> {
+		const registry = await this.getModelRegistry();
+		const model = registry.find(ref.provider, ref.modelId);
+		if (!model) throw new Error(this.selectedModelMissingMessage(ref));
+		if (!registry.getProviderAuthStatus(ref.provider).configured) {
+			throw new Error(`Provider ${ref.provider} is not configured`);
+		}
+		return model;
+	}
+
 	async readModelsJson(): Promise<{
 		path: string;
 		text: string;

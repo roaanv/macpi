@@ -117,7 +117,8 @@ describe("PiSessionManager SDK construction", () => {
 			};
 		});
 
-		await makeManager(agentDir).createSession({
+		const manager = makeManager(agentDir);
+		await manager.createSession({
 			cwd: path.join(dir, "project"),
 		});
 
@@ -142,8 +143,38 @@ describe("PiSessionManager SDK construction", () => {
 				settingsManager: piMock.settingsManagers[1],
 			}),
 		);
+		// biome-ignore lint/suspicious/noExplicitAny: verifies production SDK manager identity retained internally
+		expect((manager as any).active.get("created-1").settingsManager).toBe(
+			piMock.settingsManagers[1],
+		);
 		expect(seenPath?.split(path.delimiter)[0]).toBe(
 			path.join(agentDir, "npm", "bin"),
+		);
+	});
+
+	it("retains the SDK settings manager for both attach paths", async () => {
+		const filePath = path.join(agentDir, "sessions", "created-1.jsonl");
+
+		const byId = makeManager(agentDir);
+		byId.setPathStore({
+			getSessionFilePath: vi.fn(() => filePath),
+			setSessionFilePath: vi.fn(),
+		});
+		await byId.attachSession({ piSessionId: "created-1" });
+		// biome-ignore lint/suspicious/noExplicitAny: verifies production SDK manager identity retained internally
+		expect((byId as any).active.get("created-1").settingsManager).toBe(
+			piMock.settingsManagers.at(-1),
+		);
+
+		const byFile = makeManager(agentDir);
+		byFile.setPathStore({
+			getSessionFilePath: vi.fn(() => null),
+			setSessionFilePath: vi.fn(),
+		});
+		await byFile.attachSessionByFile(filePath);
+		// biome-ignore lint/suspicious/noExplicitAny: verifies production SDK manager identity retained internally
+		expect((byFile as any).active.get("created-1").settingsManager).toBe(
+			piMock.settingsManagers.at(-1),
 		);
 	});
 

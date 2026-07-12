@@ -43,6 +43,9 @@ function makeStubLogger(): Logger {
 let dir: string;
 let db: DbHandle;
 let router: IpcRouter;
+let agentSessionMock: {
+	isStreaming: boolean;
+};
 let piSessionManagerMock: {
 	createSession: ReturnType<typeof vi.fn>;
 	prompt: ReturnType<typeof vi.fn>;
@@ -51,6 +54,8 @@ let piSessionManagerMock: {
 	abort: ReturnType<typeof vi.fn>;
 	attachSession: ReturnType<typeof vi.fn>;
 	getHistory: ReturnType<typeof vi.fn>;
+	getAgentSession: ReturnType<typeof vi.fn>;
+	setSessionModel: ReturnType<typeof vi.fn>;
 	disposeSession: ReturnType<typeof vi.fn>;
 };
 let modelAuthServiceMock: {
@@ -58,6 +63,7 @@ let modelAuthServiceMock: {
 	listModels: ReturnType<typeof vi.fn>;
 	getSelectedModel: ReturnType<typeof vi.fn>;
 	setSelectedModel: ReturnType<typeof vi.fn>;
+	resolveConfiguredModel: ReturnType<typeof vi.fn>;
 	startOAuthLogin: ReturnType<typeof vi.fn>;
 	respondOAuthPrompt: ReturnType<typeof vi.fn>;
 	cancelOAuthLogin: ReturnType<typeof vi.fn>;
@@ -80,6 +86,9 @@ beforeEach(() => {
 	db = openDb({ filename: path.join(dir, "test.db") });
 	runMigrations(db);
 	dialogShowOpenDialog.mockReset();
+	agentSessionMock = {
+		isStreaming: false,
+	};
 	piSessionManagerMock = {
 		createSession: vi.fn(),
 		prompt: vi.fn(),
@@ -88,6 +97,8 @@ beforeEach(() => {
 		abort: vi.fn(),
 		attachSession: vi.fn(),
 		getHistory: vi.fn(),
+		getAgentSession: vi.fn().mockReturnValue(agentSessionMock),
+		setSessionModel: vi.fn().mockResolvedValue(undefined),
 		disposeSession: vi.fn(),
 	};
 	const skillsServiceStub = {
@@ -157,6 +168,7 @@ beforeEach(() => {
 		listModels: vi.fn().mockResolvedValue({ models: [] }),
 		getSelectedModel: vi.fn().mockResolvedValue({ model: null, valid: true }),
 		setSelectedModel: vi.fn().mockResolvedValue(undefined),
+		resolveConfiguredModel: vi.fn(),
 		startOAuthLogin: vi.fn().mockResolvedValue({ loginId: "login-1" }),
 		respondOAuthPrompt: vi.fn(),
 		cancelOAuthLogin: vi.fn(),
@@ -315,6 +327,178 @@ describe("IpcRouter", () => {
 		});
 		expect(r.ok).toBe(false);
 		if (!r.ok) expect(r.error.code).toBe("exception");
+	});
+
+	it("session.setModel returns not_found when the session is not attached", async () => {
+		piSessionManagerMock.getAgentSession.mockReturnValue(undefined);
+
+		const result = await router.dispatch("session.setModel", {
+			piSessionId: "missing",
+			model: { provider: "anthropic", modelId: "claude" },
+		});
+
+		expect(result).toEqual({
+			ok: false,
+			error: { code: "not_found", message: "session missing not attached" },
+		});
+		expect(modelAuthServiceMock.resolveConfiguredModel).not.toHaveBeenCalled();
+		expect(modelAuthServiceMock.setSelectedModel).not.toHaveBeenCalled();
+	});
+
+	it("session.setModel rejects a streaming session as busy", async () => {
+		agentSessionMock.isStreaming = true;
+
+		const result = await router.dispatch("session.setModel", {
+			piSessionId: "s1",
+			model: { provider: "anthropic", modelId: "claude" },
+		});
+
+		expect(result).toEqual({
+			ok: false,
+			error: {
+				code: "busy",
+				message: "Cannot switch models while session s1 is streaming",
+			},
+		});
+		expect(modelAuthServiceMock.resolveConfiguredModel).not.toHaveBeenCalled();
+		expect(modelAuthServiceMock.setSelectedModel).not.toHaveBeenCalled();
+	});
+
+	it("session.setModel rechecks streaming after async model resolution", async () => {
+		let resolveModel!: (model: { provider: string; id: string }) => void;
+		const resolution = new Promise<{ provider: string; id: string }>(
+			(resolve) => {
+				resolveModel = resolve;
+			},
+		);
+		modelAuthServiceMock.resolveConfiguredModel.mockReturnValue(resolution);
+
+		const operation = router.dispatch("session.setModel", {
+			piSessionId: "s1",
+			model: { provider: "anthropic", modelId: "claude" },
+		});
+		await vi.waitFor(() => {
+			expect(modelAuthServiceMock.resolveConfiguredModel).toHaveBeenCalled();
+		});
+		agentSessionMock.isStreaming = true;
+		resolveModel({ provider: "anthropic", id: "claude" });
+
+		await expect(operation).resolves.toEqual({
+			ok: false,
+			error: {
+				code: "busy",
+				message: "Cannot switch models while session s1 is streaming",
+			},
+		});
+		expect(piSessionManagerMock.setSessionModel).not.toHaveBeenCalled();
+	});
+
+	it("session.setModel maps an unknown model to model_not_found", async () => {
+		modelAuthServiceMock.resolveConfiguredModel.mockRejectedValue(
+			new Error("Selected model anthropic/missing not found"),
+		);
+
+		const result = await router.dispatch("session.setModel", {
+			piSessionId: "s1",
+			model: { provider: "anthropic", modelId: "missing" },
+		});
+
+		expect(result).toEqual({
+			ok: false,
+			error: {
+				code: "model_not_found",
+				message: "Selected model anthropic/missing not found",
+			},
+		});
+		expect(piSessionManagerMock.setSessionModel).not.toHaveBeenCalled();
+		expect(modelAuthServiceMock.setSelectedModel).not.toHaveBeenCalled();
+	});
+
+	it("session.setModel maps unconfigured provider auth to auth_failed", async () => {
+		modelAuthServiceMock.resolveConfiguredModel.mockRejectedValue(
+			new Error("Provider anthropic is not configured"),
+		);
+
+		const result = await router.dispatch("session.setModel", {
+			piSessionId: "s1",
+			model: { provider: "anthropic", modelId: "claude" },
+		});
+
+		expect(result).toEqual({
+			ok: false,
+			error: {
+				code: "auth_failed",
+				message: "Provider anthropic is not configured",
+			},
+		});
+		expect(piSessionManagerMock.setSessionModel).not.toHaveBeenCalled();
+		expect(modelAuthServiceMock.setSelectedModel).not.toHaveBeenCalled();
+	});
+
+	it("session.setModel delegates the current-chat switch to PiSessionManager", async () => {
+		const resolvedModel = { provider: "anthropic", id: "claude" };
+		modelAuthServiceMock.resolveConfiguredModel.mockResolvedValue(
+			resolvedModel,
+		);
+
+		const result = await router.dispatch("session.setModel", {
+			piSessionId: "s1",
+			model: { provider: "anthropic", modelId: "claude" },
+		});
+
+		expect(result).toEqual({ ok: true, data: {} });
+		expect(piSessionManagerMock.setSessionModel).toHaveBeenCalledWith(
+			"s1",
+			resolvedModel,
+		);
+		expect(modelAuthServiceMock.setSelectedModel).not.toHaveBeenCalled();
+	});
+
+	it("session.setModel maps PiSessionManager switch rejection", async () => {
+		const resolvedModel = { provider: "anthropic", id: "claude" };
+		modelAuthServiceMock.resolveConfiguredModel.mockResolvedValue(
+			resolvedModel,
+		);
+		piSessionManagerMock.setSessionModel.mockRejectedValue(
+			new Error("SDK switch failed"),
+		);
+
+		const result = await router.dispatch("session.setModel", {
+			piSessionId: "s1",
+			model: { provider: "anthropic", modelId: "claude" },
+		});
+
+		expect(result).toEqual({
+			ok: false,
+			error: { code: "model_switch_failed", message: "SDK switch failed" },
+		});
+		expect(modelAuthServiceMock.setSelectedModel).not.toHaveBeenCalled();
+	});
+
+	it("session.setModel maps an overlapping switch to busy", async () => {
+		modelAuthServiceMock.resolveConfiguredModel.mockResolvedValue({
+			provider: "anthropic",
+			id: "claude",
+		});
+		piSessionManagerMock.setSessionModel.mockRejectedValue(
+			new Error(
+				"Cannot switch models while session s1 is already switching models",
+			),
+		);
+
+		const result = await router.dispatch("session.setModel", {
+			piSessionId: "s1",
+			model: { provider: "anthropic", modelId: "claude" },
+		});
+
+		expect(result).toEqual({
+			ok: false,
+			error: {
+				code: "busy",
+				message:
+					"Cannot switch models while session s1 is already switching models",
+			},
+		});
 	});
 
 	it("session.prompt forwards streamingBehavior to the manager", async () => {

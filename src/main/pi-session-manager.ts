@@ -58,8 +58,10 @@ export type PiEventListener = (event: PiEvent) => void;
 interface ActiveSession {
 	piSessionId: string;
 	session: AgentSession;
+	settingsManager: SettingsManager | undefined;
 	unsubscribe: () => void;
 	proxySettings: Record<string, unknown>;
+	modelSwitching: boolean;
 }
 
 /**
@@ -494,8 +496,10 @@ export class PiSessionManager {
 		this.active.set(piSessionId, {
 			piSessionId,
 			session,
+			settingsManager,
 			unsubscribe,
 			proxySettings,
+			modelSwitching: false,
 		});
 		return { piSessionId, sessionFilePath };
 	}
@@ -552,13 +556,77 @@ export class PiSessionManager {
 		this.active.set(piSessionId, {
 			piSessionId,
 			session,
+			settingsManager,
 			unsubscribe,
 			proxySettings,
+			modelSwitching: false,
 		});
 	}
 
 	getAgentSession(piSessionId: string): AgentSession | undefined {
 		return this.active.get(piSessionId)?.session;
+	}
+
+	async setSessionModel(piSessionId: string, model: Model<Api>): Promise<void> {
+		const active = this.active.get(piSessionId);
+		if (!active) throw new Error(`unknown session ${piSessionId}`);
+		if (active.modelSwitching) {
+			throw new Error(
+				`Cannot switch models while session ${piSessionId} is already switching models`,
+			);
+		}
+		if (active.session.isStreaming) {
+			throw new Error(
+				`Cannot switch models while session ${piSessionId} is streaming`,
+			);
+		}
+		if (!active.settingsManager) {
+			throw new Error(`session ${piSessionId} has no settings manager`);
+		}
+
+		active.modelSwitching = true;
+		try {
+			const globalDefaults = active.settingsManager.getGlobalSettings();
+			const previousProvider = globalDefaults.defaultProvider;
+			const previousModel = globalDefaults.defaultModel;
+			try {
+				// Keep the guard adjacent to setModel so callers cannot pass an earlier
+				// non-streaming check and switch after async model resolution.
+				if (active.session.isStreaming) {
+					throw new Error(
+						`Cannot switch models while session ${piSessionId} is streaming`,
+					);
+				}
+				await active.session.setModel(model);
+			} finally {
+				this.restoreGlobalDefaultModel(
+					active.settingsManager,
+					previousProvider,
+					previousModel,
+				);
+				await active.settingsManager.flush();
+			}
+		} finally {
+			active.modelSwitching = false;
+		}
+	}
+
+	private restoreGlobalDefaultModel(
+		settingsManager: SettingsManager,
+		provider: string | undefined,
+		modelId: string | undefined,
+	): void {
+		// AgentSession.setModel writes only the global defaults. Restore that exact
+		// scope so project overrides are neither copied into global settings nor
+		// changed. Pi accepts undefined at runtime to clear previously unset fields,
+		// although its public declaration is narrower; isolate that cast here.
+		const runtimeSettings = settingsManager as SettingsManager & {
+			setDefaultModelAndProvider(
+				provider: string | undefined,
+				modelId: string | undefined,
+			): void;
+		};
+		runtimeSettings.setDefaultModelAndProvider(provider, modelId);
 	}
 
 	/**
@@ -608,8 +676,10 @@ export class PiSessionManager {
 		this.active.set(piSessionId, {
 			piSessionId,
 			session,
+			settingsManager,
 			unsubscribe,
 			proxySettings,
+			modelSwitching: false,
 		});
 		return { piSessionId };
 	}
