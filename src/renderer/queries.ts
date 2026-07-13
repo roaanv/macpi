@@ -393,8 +393,20 @@ export function useCancelOAuthLogin() {
 export function useSaveApiKey() {
 	const qc = useQueryClient();
 	return useMutation({
-		mutationFn: (input: { provider: string; apiKey: string }) =>
-			invoke("modelsAuth.saveApiKey", input),
+		mutationFn: (input: {
+			provider: string;
+			credential?:
+				| { mode: "apiKey"; apiKey: string }
+				| { mode: "keychainService"; service: string };
+			apiKey?: string;
+		}) =>
+			invoke("modelsAuth.saveApiKey", {
+				provider: input.provider,
+				credential: input.credential ?? {
+					mode: "apiKey",
+					apiKey: input.apiKey ?? "",
+				},
+			}),
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ["modelsAuth.providers"] });
 			qc.invalidateQueries({ queryKey: ["modelsAuth.models"] });
@@ -458,29 +470,65 @@ export function useImportPiAuthModels() {
 	});
 }
 
-export function useListLocalOpenAIModels() {
+export function useListCustomOpenAIModels() {
 	return useMutation({
 		mutationFn: (input: { baseUrl: string; apiKey: string }) =>
-			invoke("modelsAuth.listLocalOpenAIModels", input),
+			invoke("modelsAuth.listCustomOpenAIModels", input),
 	});
 }
 
-export function useSaveLocalOpenAIProvider() {
+export function useSaveCustomOpenAIProvider() {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: (input: {
 			providerId: string;
 			name: string;
 			baseUrl: string;
-			apiKey: string;
+			credential:
+				| { mode: "apiKey"; apiKey: string }
+				| { mode: "keychainService"; service: string };
 			models: Array<{ id: string; name: string }>;
-		}) => invoke("modelsAuth.saveLocalOpenAIProvider", input),
+		}) => invoke("modelsAuth.saveCustomOpenAIProvider", input),
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ["modelsAuth.providers"] });
 			qc.invalidateQueries({ queryKey: ["modelsAuth.models"] });
 			qc.invalidateQueries({ queryKey: ["modelsAuth.modelsJson"] });
 		},
 	});
+}
+
+function useInvalidateCustomModelsMutation<T>(
+	mutationFn: (input: T) => Promise<unknown>,
+) {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn,
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["modelsAuth.providers"] });
+			qc.invalidateQueries({ queryKey: ["modelsAuth.models"] });
+			qc.invalidateQueries({ queryKey: ["settings"] });
+		},
+	});
+}
+
+export function useFetchCustomProviderModels() {
+	return useInvalidateCustomModelsMutation((input: { provider: string }) =>
+		invoke("modelsAuth.fetchCustomProviderModels", input),
+	);
+}
+
+export function useSaveCustomModel() {
+	return useInvalidateCustomModelsMutation(
+		(input: { provider: string; model: { id: string; name: string } }) =>
+			invoke("modelsAuth.saveCustomModel", input),
+	);
+}
+
+export function useRemoveCustomModel() {
+	return useInvalidateCustomModelsMutation(
+		(input: { provider: string; modelId: string }) =>
+			invoke("modelsAuth.removeCustomModel", input),
+	);
 }
 
 export function useSkills() {

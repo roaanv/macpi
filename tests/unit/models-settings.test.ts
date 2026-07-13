@@ -110,6 +110,12 @@ const mocks = vi.hoisted(() => ({
 		error: null as Error | null,
 	},
 	setSetting: { mutateAsync: vi.fn(), error: null as Error | null },
+	customMutation: {
+		mutate: vi.fn(),
+		isPending: false,
+		data: null,
+		error: null as Error | null,
+	},
 }));
 
 vi.mock("../../src/renderer/queries", () => ({
@@ -117,6 +123,9 @@ vi.mock("../../src/renderer/queries", () => ({
 	useModelAuthProviders: () => mocks.providers,
 	useSettings: () => mocks.settings,
 	useSetSetting: () => mocks.setSetting,
+	useFetchCustomProviderModels: () => mocks.customMutation,
+	useSaveCustomModel: () => mocks.customMutation,
+	useRemoveCustomModel: () => mocks.customMutation,
 }));
 
 import { GlobalSettingsDialog } from "../../src/renderer/components/GlobalSettingsDialog";

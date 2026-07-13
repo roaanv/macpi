@@ -113,6 +113,7 @@ const mocks = vi.hoisted(() => ({
 	},
 	setSelected: {
 		mutate: vi.fn(),
+		mutateAsync: vi.fn(),
 		isPending: false,
 		error: null as Error | null,
 	},
@@ -136,7 +137,6 @@ vi.mock("../../src/renderer/queries", () => ({
 vi.mock("../../src/renderer/ipc", () => ({ invoke: vi.fn() }));
 
 import {
-	AUTOMATIC_DEFAULT_MODEL_VALUE,
 	DefaultModelSelector,
 	decodeDefaultModelValue,
 	encodeDefaultModelValue,
@@ -164,6 +164,8 @@ beforeEach(async () => {
 	mocks.selected.isLoading = false;
 	mocks.selected.error = null;
 	mocks.setSelected.mutate.mockReset();
+	mocks.setSelected.mutateAsync.mockReset();
+	mocks.setSelected.mutateAsync.mockResolvedValue(undefined);
 	mocks.setSelected.isPending = false;
 	mocks.setSelected.error = null;
 	await renderSelector();
@@ -178,24 +180,21 @@ async function renderSelector() {
 	await act(async () => root.render(React.createElement(DefaultModelSelector)));
 }
 
-function selector(): HTMLSelectElement {
-	const element = container.querySelector<HTMLSelectElement>(
-		"select#default-model",
+async function openMenu() {
+	const trigger = container.querySelector<HTMLButtonElement>(
+		'button[aria-haspopup="dialog"]',
 	);
-	if (!element) throw new Error("Default model selector not found");
-	return element;
+	if (!trigger) throw new Error("Default model menu trigger not found");
+	await act(async () => trigger.click());
+	return trigger;
 }
 
-async function changeSelect(value: string) {
-	const element = selector();
-	element.value = value;
-	await act(async () => {
-		element.dispatchEvent(new Event("change", { bubbles: true }));
-	});
-}
-
-function optionTexts() {
-	return [...selector().options].map((option) => option.text);
+function menuOption(text: string) {
+	const option = [
+		...container.querySelectorAll<HTMLButtonElement>('button[role="option"]'),
+	].find((button) => button.textContent?.includes(text));
+	if (!option) throw new Error(`Default model option not found: ${text}`);
+	return option;
 }
 
 describe("DefaultModelSelector codec", () => {
@@ -211,37 +210,70 @@ describe("DefaultModelSelector codec", () => {
 });
 
 describe("DefaultModelSelector", () => {
-	it("groups only configured models by configured provider", () => {
-		expect(
-			[...selector().querySelectorAll("optgroup")].map((group) => group.label),
-		).toEqual(["Anthropic", "Google"]);
-		expect(optionTexts()).toEqual([
-			"Automatic fallback",
-			"Claude Sonnet 4",
-			"Claude Opus 4",
-			"Gemini Pro",
-		]);
-		expect(container.textContent).not.toContain("GPT-5");
-		expect(container.querySelector("h3")?.textContent).toBe(
-			"Default model for new chats",
+	it("groups only configured models by configured provider", async () => {
+		await openMenu();
+		const text = container.textContent ?? "";
+		expect(text).toContain("Anthropic");
+		expect(text).toContain("Google");
+		expect(text).toContain("Automatic fallback");
+		expect(text).toContain("Claude Sonnet 4");
+		expect(text).toContain("Claude Opus 4");
+		expect(text).toContain("Gemini Pro");
+		expect(text).not.toContain("GPT-5");
+		expect(container.querySelector('input[type="search"]')).not.toBeNull();
+	});
+
+	it("opens a searchable grouped popup and saves a model", async () => {
+		mocks.settings.data.settings = {
+			modelFavourites: [{ provider: "anthropic", modelId: "claude-opus-4" }],
+		};
+		await renderSelector();
+		const trigger = container.querySelector<HTMLButtonElement>(
+			'button[aria-haspopup="dialog"]',
 		);
-		expect(container.querySelector('input[type="search"]')).toBeNull();
-		expect(container.textContent).not.toContain("Search configured models");
+		if (!trigger) throw new Error("Default model menu trigger not found");
+		await act(async () => trigger.click());
+		expect(trigger.getAttribute("aria-expanded")).toBe("true");
+		expect(trigger.getAttribute("aria-controls")).toBe(
+			"default-model-menu-dialog",
+		);
+		expect(container.textContent).toContain("Favourites");
+		expect(container.textContent?.match(/Claude Opus 4/g)?.length).toBe(2);
+		const search = container.querySelector<HTMLInputElement>(
+			"#default-model-menu-search",
+		);
+		if (!search) throw new Error("Default model search not found");
+		await act(async () => {
+			const setter = Object.getOwnPropertyDescriptor(
+				HTMLInputElement.prototype,
+				"value",
+			)?.set;
+			setter?.call(search, "gemini");
+			search.dispatchEvent(new Event("input", { bubbles: true }));
+		});
+		expect(container.textContent).toContain("Gemini Pro");
+		expect(container.textContent).not.toContain("Claude Sonnet 4");
+		const gemini = [
+			...container.querySelectorAll<HTMLButtonElement>('button[role="option"]'),
+		].find((button) => button.textContent?.includes("Gemini Pro"));
+		if (!gemini) throw new Error("Gemini option not found");
+		await act(async () => gemini.click());
+		expect(mocks.setSelected.mutateAsync).toHaveBeenCalledWith({
+			model: { provider: "google", modelId: "gemini-2.5-pro" },
+		});
 	});
 
 	it("sets a model and clears to Automatic with the expected payloads", async () => {
-		await changeSelect(
-			encodeDefaultModelValue({
-				provider: "anthropic",
-				modelId: "claude-opus-4",
-			}),
-		);
-		expect(mocks.setSelected.mutate).toHaveBeenLastCalledWith({
+		await openMenu();
+		await act(async () => menuOption("Claude Opus 4").click());
+		expect(mocks.setSelected.mutateAsync).toHaveBeenLastCalledWith({
 			model: { provider: "anthropic", modelId: "claude-opus-4" },
 		});
-
-		await changeSelect(AUTOMATIC_DEFAULT_MODEL_VALUE);
-		expect(mocks.setSelected.mutate).toHaveBeenLastCalledWith({ model: null });
+		await openMenu();
+		await act(async () => menuOption("Automatic fallback").click());
+		expect(mocks.setSelected.mutateAsync).toHaveBeenLastCalledWith({
+			model: null,
+		});
 		expect(container.textContent).toContain(
 			"Existing chats keep their current model",
 		);
@@ -253,12 +285,9 @@ describe("DefaultModelSelector", () => {
 			valid: true,
 		};
 		await renderSelector();
-		expect(selector().value).toBe(
-			encodeDefaultModelValue({
-				provider: "anthropic",
-				modelId: "claude-sonnet-4",
-			}),
-		);
+		expect(
+			container.querySelector('button[aria-haspopup="dialog"]')?.textContent,
+		).toContain("Claude Sonnet 4");
 		expect(container.textContent).toContain(
 			"Current saved default: Claude Sonnet 4",
 		);
@@ -277,13 +306,10 @@ describe("DefaultModelSelector", () => {
 		expect(container.textContent).toContain(
 			"Selected model legacy/removed-model is unavailable",
 		);
-		expect(selector().value).toBe(
-			encodeDefaultModelValue({ provider: "legacy", modelId: "removed-model" }),
-		);
-		expect(optionTexts()).toContain("Unavailable: legacy / removed-model");
-		expect(optionTexts()).toContain("Automatic fallback");
-		expect(optionTexts()).toContain("Claude Sonnet 4");
-		expect(mocks.setSelected.mutate).not.toHaveBeenCalled();
+		await openMenu();
+		expect(container.textContent).toContain("Automatic fallback");
+		expect(container.textContent).toContain("Claude Sonnet 4");
+		expect(mocks.setSelected.mutateAsync).not.toHaveBeenCalled();
 	});
 
 	it("distinguishes loading, query errors, and no configured models", async () => {
@@ -316,29 +342,20 @@ describe("DefaultModelSelector", () => {
 	});
 
 	it("shows save pending and errors and prevents duplicate changes while pending", async () => {
+		await openMenu();
 		mocks.setSelected.isPending = true;
 		await renderSelector();
-		expect(selector().disabled).toBe(true);
 		expect(container.textContent).toContain("Saving default model");
-		await changeSelect(
-			encodeDefaultModelValue({
-				provider: "anthropic",
-				modelId: "claude-opus-4",
-			}),
-		);
-		expect(mocks.setSelected.mutate).not.toHaveBeenCalled();
+		await act(async () => menuOption("Claude Opus 4").click());
+		expect(mocks.setSelected.mutateAsync).not.toHaveBeenCalled();
 
 		mocks.setSelected.isPending = false;
-		mocks.setSelected.error = new Error("save failed");
-		await renderSelector();
-		expect(container.textContent).toContain(
-			"Default model could not be saved: save failed",
+		mocks.setSelected.mutateAsync.mockRejectedValueOnce(
+			new Error("save failed"),
 		);
-	});
-
-	it("does not clear the saved default for a malformed select value", async () => {
-		await changeSelect("model:%not-json");
-		expect(mocks.setSelected.mutate).not.toHaveBeenCalled();
+		await renderSelector();
+		await act(async () => menuOption("Claude Opus 4").click());
+		expect(container.textContent).toContain("save failed");
 	});
 });
 

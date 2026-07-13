@@ -10,16 +10,39 @@ import {
 	getHttpProxy,
 	getHttpsProxy,
 	getNoProxy,
+	getProviderKeychainReferences,
 	getResourceEnabled,
 	getResourceRoot,
 	getSelectedModel,
 	getTheme,
 	getThemeFamily,
 	modelRefKey,
+	removeProviderKeychainReference,
+	setProviderKeychainReference,
 	validateProxyUrl,
 } from "../../src/shared/app-settings-keys";
 
 describe("app-settings-keys", () => {
+	it("validates and immutably updates Keychain references", () => {
+		const parsed = getProviderKeychainReferences({
+			providerKeychainReferences: {
+				anthropic: { service: " anthropic-service ", managed: false },
+				broken: { service: "", managed: true },
+				"bad/provider": { service: "secret", managed: true },
+			},
+		});
+		expect(parsed).toEqual({
+			anthropic: { service: "anthropic-service", managed: false },
+		});
+		const withCustom = setProviderKeychainReference(parsed, "custom-demo", {
+			service: "managed-service",
+			managed: true,
+		});
+		expect(parsed).not.toHaveProperty("custom-demo");
+		expect(removeProviderKeychainReference(withCustom, "anthropic")).toEqual({
+			"custom-demo": { service: "managed-service", managed: true },
+		});
+	});
 	it("getTheme returns default 'auto' when unset", () => {
 		expect(getTheme({})).toBe("auto");
 	});

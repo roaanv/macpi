@@ -111,15 +111,19 @@ export interface ImportPiAuthModelsStatus {
 	destModelsPath: string;
 }
 
-export interface LocalOpenAIModelCandidate {
+export interface CustomOpenAIModelCandidate {
 	id: string;
 	name: string;
 }
 
-export interface LocalOpenAIProviderInput {
+export type ApiKeyCredentialInput =
+	| { mode: "apiKey"; apiKey: string }
+	| { mode: "keychainService"; service: string };
+
+export interface CustomOpenAIProviderInput {
 	providerId: string;
 	name: string;
 	baseUrl: string;
-	apiKey: string;
-	models: LocalOpenAIModelCandidate[];
+	credential: ApiKeyCredentialInput;
+	models: CustomOpenAIModelCandidate[];
 }

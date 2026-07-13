@@ -1,14 +1,11 @@
 import React from "react";
-import type {
-	ModelSummary,
-	SelectedModelRef,
-} from "../../shared/model-auth-types";
+import type { SelectedModelRef } from "../../shared/model-auth-types";
 import {
 	useModelAuthModels,
 	useModelAuthProviders,
 	useSelectedModel,
-	useSetSelectedModel,
 } from "../queries";
+import { DefaultModelMenu } from "./DefaultModelMenu";
 
 export const AUTOMATIC_DEFAULT_MODEL_VALUE = "automatic";
 const MODEL_VALUE_PREFIX = "model:";
@@ -47,17 +44,10 @@ function errorMessage(error: unknown): string {
 	return error instanceof Error ? error.message : "Unknown error";
 }
 
-interface ModelGroup {
-	provider: string;
-	providerName: string;
-	models: ModelSummary[];
-}
-
 export function DefaultModelSelector() {
 	const providersQuery = useModelAuthProviders();
 	const modelsQuery = useModelAuthModels();
 	const selectedQuery = useSelectedModel();
-	const setSelected = useSetSelectedModel();
 
 	const configuredProviders = React.useMemo(
 		() =>
@@ -77,9 +67,6 @@ export function DefaultModelSelector() {
 		[configuredProviders, modelsQuery.data?.models],
 	);
 	const savedModel = selectedQuery.data?.model ?? null;
-	const savedValue = savedModel
-		? encodeDefaultModelValue(savedModel)
-		: AUTOMATIC_DEFAULT_MODEL_VALUE;
 	const savedModelSummary = savedModel
 		? configuredModels.find(
 				(model) =>
@@ -87,16 +74,6 @@ export function DefaultModelSelector() {
 					model.id === savedModel.modelId,
 			)
 		: undefined;
-	const groups = React.useMemo(() => {
-		const byProvider = new Map<string, ModelGroup>();
-		for (const [provider, providerName] of configuredProviders) {
-			byProvider.set(provider, { provider, providerName, models: [] });
-		}
-		for (const model of configuredModels) {
-			byProvider.get(model.provider)?.models.push(model);
-		}
-		return [...byProvider.values()].filter((group) => group.models.length > 0);
-	}, [configuredModels, configuredProviders]);
 	const savedModelAvailable =
 		!savedModel || (selectedQuery.data?.valid === true && !!savedModelSummary);
 	const inventoryReady =
@@ -112,17 +89,7 @@ export function DefaultModelSelector() {
 		selectedQuery.isLoading;
 	const hasQueryError =
 		!!providersQuery.error || !!modelsQuery.error || !!selectedQuery.error;
-	const disabled = loading || hasQueryError || setSelected.isPending;
-
-	function handleChange(event: React.ChangeEvent<HTMLSelectElement>) {
-		if (setSelected.isPending) return;
-		if (event.target.value === AUTOMATIC_DEFAULT_MODEL_VALUE) {
-			setSelected.mutate({ model: null });
-			return;
-		}
-		const model = decodeDefaultModelValue(event.target.value);
-		if (model) setSelected.mutate({ model });
-	}
+	const disabled = loading || hasQueryError;
 
 	return (
 		<section aria-labelledby="default-model-heading">
@@ -186,56 +153,17 @@ export function DefaultModelSelector() {
 				</div>
 			) : null}
 
-			<label htmlFor="default-model" className="mb-1 block text-xs">
-				Choose default model
-			</label>
-			<select
-				id="default-model"
-				value={savedValue}
-				onChange={handleChange}
+			<div className="mb-1 text-xs">Choose default model</div>
+			<DefaultModelMenu
+				currentModel={savedModel}
+				currentLabel={
+					savedModel
+						? (savedModelSummary?.name ??
+							`${savedModel.provider} / ${savedModel.modelId}`)
+						: "Automatic fallback"
+				}
 				disabled={disabled}
-				className="w-full surface-row rounded px-2 py-1 text-sm"
-			>
-				<option value={AUTOMATIC_DEFAULT_MODEL_VALUE}>
-					Automatic fallback
-				</option>
-				{unavailableSavedModel ? (
-					<optgroup label="Unavailable saved default">
-						<option value={savedValue} disabled>
-							Unavailable: {savedModel.provider} / {savedModel.modelId}
-						</option>
-					</optgroup>
-				) : null}
-				{groups.map((group) => (
-					<optgroup key={group.provider} label={group.providerName}>
-						{group.models.map((model) => (
-							<option
-								key={encodeDefaultModelValue({
-									provider: model.provider,
-									modelId: model.id,
-								})}
-								value={encodeDefaultModelValue({
-									provider: model.provider,
-									modelId: model.id,
-								})}
-							>
-								{model.name}
-							</option>
-						))}
-					</optgroup>
-				))}
-			</select>
-
-			{setSelected.isPending ? (
-				<div role="status" className="mt-1 text-xs text-muted">
-					Saving default model…
-				</div>
-			) : null}
-			{setSelected.error ? (
-				<div role="alert" className="mt-1 text-xs text-err">
-					Default model could not be saved: {errorMessage(setSelected.error)}
-				</div>
-			) : null}
+			/>
 		</section>
 	);
 }

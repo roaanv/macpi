@@ -12,6 +12,7 @@ import { electronDialogHandlers } from "./dialog-handlers";
 import { ExtensionsService } from "./extensions-service";
 import { FilesService } from "./files-service";
 import { IpcRouter } from "./ipc-router";
+import { KeychainCredentialStore } from "./keychain-credential-store";
 import { createLogger, type Logger } from "./logger";
 import { ModelAuthService } from "./model-auth-service";
 import { NotesService } from "./notes-service";
@@ -138,6 +139,7 @@ app.whenReady().then(async () => {
 	const modelAuthService = new ModelAuthService({
 		macpiRoot,
 		appSettings,
+		keychain: new KeychainCredentialStore(),
 	});
 	await modelAuthService.ready();
 	modelAuthService.onOAuthEvent((event) => {

@@ -6,8 +6,11 @@ import {
 } from "../../shared/app-settings-keys";
 import type { ModelSummary } from "../../shared/model-auth-types";
 import {
+	useFetchCustomProviderModels,
 	useModelAuthModels,
 	useModelAuthProviders,
+	useRemoveCustomModel,
+	useSaveCustomModel,
 	useSetSetting,
 	useSettings,
 } from "../queries";
@@ -23,12 +26,17 @@ export function ModelsSettings() {
 	const models = useModelAuthModels();
 	const settings = useSettings();
 	const setSetting = useSetSetting();
+	const fetchCustomModels = useFetchCustomProviderModels();
+	const saveCustomModel = useSaveCustomModel();
+	const removeCustomModel = useRemoveCustomModel();
 	const [selectedProviderId, setSelectedProviderId] = React.useState<
 		string | null
 	>(null);
 	const [query, setQuery] = React.useState("");
 	const [favouritesOpen, setFavouritesOpen] = React.useState(true);
 	const [allModelsOpen, setAllModelsOpen] = React.useState(true);
+	const [customModelId, setCustomModelId] = React.useState("");
+	const [customModelName, setCustomModelName] = React.useState("");
 	const settingsSnapshot = settings.data?.settings;
 	const [favouritesDraft, setFavouritesDraft] = React.useState(() =>
 		getFavouriteModels(settingsSnapshot ?? {}),
@@ -231,6 +239,91 @@ export function ModelsSettings() {
 							/>
 						</div>
 						<div className="min-h-0 flex-1 overflow-y-auto p-4">
+							{activeProvider?.id.startsWith("custom-") ? (
+								<div className="mb-4 rounded border border-divider p-3">
+									<div className="flex flex-wrap gap-2">
+										<input
+											aria-label="Custom model ID"
+											value={customModelId}
+											onChange={(event) => setCustomModelId(event.target.value)}
+											placeholder="Model ID"
+											className="surface-row min-w-48 flex-1 rounded px-2 py-1 text-sm"
+										/>
+										<input
+											aria-label="Custom model display name"
+											value={customModelName}
+											onChange={(event) =>
+												setCustomModelName(event.target.value)
+											}
+											placeholder="Display name (optional)"
+											className="surface-row min-w-48 flex-1 rounded px-2 py-1 text-sm"
+										/>
+										<button
+											type="button"
+											className="rounded surface-accent-soft px-3 py-1 text-sm disabled:opacity-50"
+											disabled={
+												!customModelId.trim() || saveCustomModel.isPending
+											}
+											onClick={() =>
+												saveCustomModel.mutate(
+													{
+														provider: activeProvider.id,
+														model: { id: customModelId, name: customModelName },
+													},
+													{
+														onSuccess: () => {
+															setCustomModelId("");
+															setCustomModelName("");
+														},
+													},
+												)
+											}
+										>
+											Add model
+										</button>
+										<button
+											type="button"
+											className="rounded surface-accent-soft px-3 py-1 text-sm disabled:opacity-50"
+											disabled={fetchCustomModels.isPending}
+											onClick={() =>
+												fetchCustomModels.mutate({
+													provider: activeProvider.id,
+												})
+											}
+										>
+											{fetchCustomModels.isPending
+												? "Fetching…"
+												: "Fetch Models"}
+										</button>
+									</div>
+									{fetchCustomModels.data ? (
+										<div role="status" className="mt-2 text-xs text-ok">
+											Models refreshed.
+										</div>
+									) : saveCustomModel.isSuccess ? (
+										<div role="status" className="mt-2 text-xs text-ok">
+											Model saved.
+										</div>
+									) : removeCustomModel.isSuccess ? (
+										<div role="status" className="mt-2 text-xs text-ok">
+											Model removed.
+										</div>
+									) : null}
+									{fetchCustomModels.error ||
+									saveCustomModel.error ||
+									removeCustomModel.error ? (
+										<div role="alert" className="mt-2 text-xs text-err">
+											{
+												(
+													fetchCustomModels.error ??
+													saveCustomModel.error ??
+													removeCustomModel.error
+												)?.message
+											}
+										</div>
+									) : null}
+								</div>
+							) : null}
 							{activeProvider?.models.length === 0 ? (
 								<div className="text-sm text-muted">
 									{activeProvider.name} has no models available.
@@ -249,6 +342,15 @@ export function ModelsSettings() {
 										emptyMessage="No favourite models match this search."
 										isFavourite
 										onToggleFavourite={toggleFavourite}
+										onRemove={
+											activeProvider.id.startsWith("custom-")
+												? (model) =>
+														removeCustomModel.mutate({
+															provider: activeProvider.id,
+															modelId: model.id,
+														})
+												: undefined
+										}
 									/>
 									<ModelSection
 										title="All models"
@@ -258,6 +360,15 @@ export function ModelsSettings() {
 										emptyMessage="All matching models are favourites."
 										isFavourite={false}
 										onToggleFavourite={toggleFavourite}
+										onRemove={
+											activeProvider.id.startsWith("custom-")
+												? (model) =>
+														removeCustomModel.mutate({
+															provider: activeProvider.id,
+															modelId: model.id,
+														})
+												: undefined
+										}
 									/>
 								</div>
 							)}
@@ -277,6 +388,7 @@ function ModelSection({
 	emptyMessage,
 	isFavourite,
 	onToggleFavourite,
+	onRemove,
 }: {
 	title: string;
 	models: ModelSummary[];
@@ -285,6 +397,7 @@ function ModelSection({
 	emptyMessage: string;
 	isFavourite: boolean;
 	onToggleFavourite: (model: ModelSummary) => void;
+	onRemove?: (model: ModelSummary) => void;
 }) {
 	const contentId = `model-section-${title.toLowerCase().replaceAll(" ", "-")}`;
 	return (
@@ -317,6 +430,7 @@ function ModelSection({
 								model={model}
 								isFavourite={isFavourite}
 								onToggleFavourite={onToggleFavourite}
+								onRemove={onRemove}
 							/>
 						))
 					)}
@@ -330,10 +444,12 @@ function ModelRow({
 	model,
 	isFavourite,
 	onToggleFavourite,
+	onRemove,
 }: {
 	model: ModelSummary;
 	isFavourite: boolean;
 	onToggleFavourite: (model: ModelSummary) => void;
+	onRemove?: (model: ModelSummary) => void;
 }) {
 	const action = isFavourite ? "Remove" : "Add";
 	return (
@@ -342,19 +458,31 @@ function ModelRow({
 				<div className="truncate text-sm font-medium">{model.name}</div>
 				<div className="truncate font-mono text-muted text-xs">{model.id}</div>
 			</div>
-			<button
-				type="button"
-				aria-pressed={isFavourite}
-				aria-label={`${action} ${model.name} ${isFavourite ? "from" : "to"} favourites`}
-				onClick={() => onToggleFavourite(model)}
-				className={`rounded px-2 py-1 text-lg ${
-					isFavourite
-						? "surface-accent-soft text-accent"
-						: "text-muted hover:surface-row"
-				}`}
-			>
-				<span aria-hidden="true">{isFavourite ? "★" : "☆"}</span>
-			</button>
+			<div className="flex items-center gap-2">
+				<button
+					type="button"
+					aria-pressed={isFavourite}
+					aria-label={`${action} ${model.name} ${isFavourite ? "from" : "to"} favourites`}
+					onClick={() => onToggleFavourite(model)}
+					className={`rounded px-2 py-1 text-lg ${
+						isFavourite
+							? "surface-accent-soft text-accent"
+							: "text-muted hover:surface-row"
+					}`}
+				>
+					<span aria-hidden="true">{isFavourite ? "★" : "☆"}</span>
+				</button>
+				{onRemove ? (
+					<button
+						type="button"
+						aria-label={`Remove custom model ${model.name}`}
+						onClick={() => onRemove(model)}
+						className="rounded px-2 py-1 text-xs text-err hover:surface-err-soft"
+					>
+						Remove
+					</button>
+				) : null}
+			</div>
 		</div>
 	);
 }

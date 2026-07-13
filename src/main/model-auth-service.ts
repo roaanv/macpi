@@ -6,12 +6,18 @@ import type {
 	AuthStorage,
 	ModelRegistry,
 } from "@earendil-works/pi-coding-agent";
-import { getSelectedModel as getSelectedModelSetting } from "../shared/app-settings-keys";
+import {
+	getFavouriteModels,
+	getProviderKeychainReferences,
+	getSelectedModel as getSelectedModelSetting,
+	removeProviderKeychainReference,
+	setProviderKeychainReference,
+} from "../shared/app-settings-keys";
 import type {
 	AuthSource,
+	CustomOpenAIModelCandidate,
+	CustomOpenAIProviderInput,
 	ImportPiAuthModelsStatus,
-	LocalOpenAIModelCandidate,
-	LocalOpenAIProviderInput,
 	ModelSummary,
 	OAuthEvent,
 	OAuthLoginStart,
@@ -19,6 +25,10 @@ import type {
 	ProviderSummary,
 	SelectedModelRef,
 } from "../shared/model-auth-types";
+import {
+	generatedProviderKeychainService,
+	type KeychainCredentialStore,
+} from "./keychain-credential-store";
 
 interface ModelAuthPiModule {
 	AuthStorage: { create(authPath?: string): unknown };
@@ -47,6 +57,7 @@ export interface ModelAuthServiceDeps {
 	};
 	loadPi?: () => Promise<ModelAuthPiModule>;
 	fetch?: typeof fetch;
+	keychain?: KeychainCredentialStore;
 }
 
 export class ModelAuthService {
@@ -59,6 +70,7 @@ export class ModelAuthService {
 	private readonly fetchImpl: typeof fetch;
 	private readonly oauthListeners = new Set<(event: OAuthEvent) => void>();
 	private readonly logins = new Map<string, LoginState>();
+	private readonly credentialDiagnostics = new Map<string, string>();
 
 	constructor(private readonly deps: ModelAuthServiceDeps) {
 		this.authPath = path.join(deps.macpiRoot, "auth.json");
@@ -79,6 +91,19 @@ export class ModelAuthService {
 		fs.mkdirSync(path.dirname(this.authPath), { recursive: true });
 		const mod = await this.loadPi();
 		this.auth = mod.AuthStorage.create(this.authPath) as AuthStorage;
+		try {
+			await this.migrateLocalProviders(this.auth);
+		} catch {
+			for (const provider of Object.keys(this.readModelsConfig().providers)) {
+				if (provider.startsWith("local-")) {
+					this.credentialDiagnostics.set(
+						provider,
+						"Could not migrate this provider to the custom-provider format.",
+					);
+				}
+			}
+		}
+		await this.migrateAndHydrateApiKeys(this.auth);
 		this.registry = mod.ModelRegistry.create(
 			this.auth,
 			this.modelsPath,
@@ -105,6 +130,7 @@ export class ModelAuthService {
 		const auth = await this.getAuthStorage();
 		const registry = await this.getModelRegistry();
 		auth.reload();
+		await this.migrateAndHydrateApiKeys(auth);
 		registry.refresh();
 	}
 
@@ -224,19 +250,78 @@ export class ModelAuthService {
 		});
 	}
 
-	async saveApiKey(provider: string, apiKey: string): Promise<void> {
+	async saveApiKey(
+		provider: string,
+		credential:
+			| string
+			| { mode: "apiKey"; apiKey: string }
+			| { mode: "keychainService"; service: string },
+	): Promise<void> {
 		const normalizedProvider = this.validateProviderId(provider);
-		const trimmedKey = apiKey.trim();
-		if (!trimmedKey) throw new Error("API key cannot be empty");
+		if (!this.deps.keychain) {
+			const key =
+				typeof credential === "string"
+					? credential.trim()
+					: credential.mode === "apiKey"
+						? credential.apiKey.trim()
+						: "";
+			if (!key) throw new Error("API key cannot be empty");
+			const auth = await this.getAuthStorage();
+			auth.set(normalizedProvider, { type: "api_key", key });
+			await this.refresh();
+			return;
+		}
+		const keychain = this.requireKeychain();
+		const previousReferences = this.getKeychainReferences();
+		const previous = previousReferences[normalizedProvider];
+		let service: string;
+		let managed: boolean;
+		let key: string;
+		if (typeof credential === "string" || credential.mode === "apiKey") {
+			key = (
+				typeof credential === "string" ? credential : credential.apiKey
+			).trim();
+			if (!key) throw new Error("API key cannot be empty");
+			service = generatedProviderKeychainService(normalizedProvider);
+			managed = true;
+			await keychain.writeManaged(service, key);
+			if ((await keychain.read(service)) !== key)
+				throw new Error("Could not verify Keychain credential");
+		} else {
+			service = credential.service.trim();
+			await keychain.validateExternal(service);
+			key = await keychain.read(service);
+			managed = false;
+		}
+		this.saveKeychainReferences(
+			setProviderKeychainReference(previousReferences, normalizedProvider, {
+				service,
+				managed,
+			}),
+		);
 		const auth = await this.getAuthStorage();
-		auth.set(normalizedProvider, { type: "api_key", key: trimmedKey });
+		auth.setRuntimeApiKey(normalizedProvider, key);
+		if (previous?.managed && previous.service !== service) {
+			await keychain.removeManaged(previous.service);
+		}
 		await this.refresh();
 	}
 
 	async logoutProvider(provider: string): Promise<void> {
 		const normalizedProvider = this.validateProviderId(provider);
 		const auth = await this.getAuthStorage();
+		const references = this.getKeychainReferences();
+		const reference = references[normalizedProvider];
+		auth.removeRuntimeApiKey?.(normalizedProvider);
+		if (reference) {
+			if (reference.managed)
+				await this.requireKeychain().removeManaged(reference.service);
+			this.saveKeychainReferences(
+				removeProviderKeychainReference(references, normalizedProvider),
+			);
+		}
 		auth.logout(normalizedProvider);
+		this.credentialDiagnostics.delete(normalizedProvider);
 		await this.refresh();
 	}
 
@@ -343,10 +428,10 @@ export class ModelAuthService {
 		};
 	}
 
-	async listLocalOpenAIModels(input: {
+	async listCustomOpenAIModels(input: {
 		baseUrl: string;
 		apiKey: string;
-	}): Promise<LocalOpenAIModelCandidate[]> {
+	}): Promise<CustomOpenAIModelCandidate[]> {
 		const baseUrl = this.normalizeBaseUrl(input.baseUrl);
 		const apiKey = input.apiKey.trim();
 		const headers: Record<string, string> = { Accept: "application/json" };
@@ -375,20 +460,24 @@ export class ModelAuthService {
 		return models;
 	}
 
-	async saveLocalOpenAIProvider(
-		input: LocalOpenAIProviderInput,
+	async saveCustomOpenAIProvider(
+		input: CustomOpenAIProviderInput,
 	): Promise<{ provider: string }> {
 		const provider = this.validateProviderId(input.providerId);
-		if (!provider.startsWith("local-")) {
-			throw new Error("Local provider id must start with local-");
+		if (!provider.startsWith("custom-")) {
+			throw new Error("Custom provider id must start with custom-");
 		}
 		const name = input.name.trim();
 		if (!name) throw new Error("Provider name cannot be empty");
-		const apiKey = input.apiKey.trim();
-		if (!apiKey) throw new Error("API key cannot be empty");
 		const baseUrl = this.normalizeBaseUrl(input.baseUrl);
-		if (input.models.length === 0) {
-			throw new Error("At least one local model is required");
+		const credential = input.credential;
+		if (
+			typeof credential !== "string" &&
+			credential.mode === "keychainService"
+		) {
+			const service = credential.service.trim();
+			if (!service) throw new Error("Keychain service cannot be empty");
+			await this.requireKeychain().validateExternal(service);
 		}
 
 		const config = this.readModelsConfig();
@@ -406,11 +495,84 @@ export class ModelAuthService {
 		fs.mkdirSync(path.dirname(this.modelsPath), { recursive: true });
 		fs.writeFileSync(this.modelsPath, `${JSON.stringify(config, null, 2)}\n`);
 
-		const auth = await this.getAuthStorage();
-		auth.set(provider, { type: "api_key", key: apiKey });
-		await this.refresh();
+		await this.saveApiKey(provider, credential);
 
 		return { provider };
+	}
+
+	async fetchCustomProviderModels(
+		providerId: string,
+	): Promise<{ added: number; total: number }> {
+		const provider = this.requireCustomProvider(providerId);
+		const config = this.readModelsConfig();
+		const providerConfig = config.providers[provider];
+		if (!providerConfig)
+			throw new Error(`Custom provider ${provider} not found`);
+		const baseUrl =
+			typeof providerConfig.baseUrl === "string" ? providerConfig.baseUrl : "";
+		const reference = this.getKeychainReferences()[provider];
+		if (!reference)
+			throw new Error(`No Keychain credential configured for ${provider}`);
+		const apiKey = await this.requireKeychain().read(reference.service);
+		const fetched = await this.listCustomOpenAIModels({ baseUrl, apiKey });
+		const existing = Array.isArray(providerConfig.models)
+			? (providerConfig.models as Array<{ id?: unknown; name?: unknown }>)
+			: [];
+		const byId = new Map(
+			existing
+				.filter((model) => typeof model.id === "string")
+				.map((model) => [model.id as string, model]),
+		);
+		let added = 0;
+		for (const model of fetched) {
+			if (!byId.has(model.id)) {
+				byId.set(model.id, { id: model.id, name: model.name || model.id });
+				added++;
+			}
+		}
+		providerConfig.models = [...byId.values()];
+		await this.writeCustomModelsConfig(config);
+		return { added, total: byId.size };
+	}
+
+	async saveCustomModel(
+		providerId: string,
+		model: CustomOpenAIModelCandidate,
+	): Promise<void> {
+		const provider = this.requireCustomProvider(providerId);
+		const id = model.id.trim();
+		if (!id) throw new Error("Model id cannot be empty");
+		const config = this.readModelsConfig();
+		const providerConfig = config.providers[provider];
+		if (!providerConfig)
+			throw new Error(`Custom provider ${provider} not found`);
+		const models = Array.isArray(providerConfig.models)
+			? (providerConfig.models as Array<{ id?: unknown; name?: unknown }>)
+			: [];
+		const next = models.filter((item) => item.id !== id);
+		next.push({ id, name: model.name.trim() || id });
+		providerConfig.models = next;
+		await this.writeCustomModelsConfig(config);
+	}
+
+	async removeCustomModel(providerId: string, modelId: string): Promise<void> {
+		const provider = this.requireCustomProvider(providerId);
+		const id = modelId.trim();
+		const config = this.readModelsConfig();
+		const providerConfig = config.providers[provider];
+		if (!providerConfig)
+			throw new Error(`Custom provider ${provider} not found`);
+		const models = Array.isArray(providerConfig.models)
+			? (providerConfig.models as Array<{ id?: unknown }>)
+			: [];
+		providerConfig.models = models.filter((item) => item.id !== id);
+		await this.writeCustomModelsConfig(config);
+		if (this.deps.appSettings) {
+			const favourites = getFavouriteModels(
+				this.deps.appSettings.getAll(),
+			).filter((item) => !(item.provider === provider && item.modelId === id));
+			this.deps.appSettings.set("modelFavourites", favourites);
+		}
 	}
 
 	async importFromPi(input: {
@@ -464,6 +626,13 @@ export class ModelAuthService {
 		for (const provider of availableModels) providerIds.add(provider.provider);
 		for (const provider of oauthProviders) providerIds.add(provider.id);
 		for (const provider of auth.list()) providerIds.add(provider);
+		for (const provider of Object.keys(this.getKeychainReferences()))
+			providerIds.add(provider);
+		const configuredProviders = this.readModelsConfig().providers;
+		for (const provider of Object.keys(configuredProviders))
+			providerIds.add(provider);
+		for (const provider of this.credentialDiagnostics.keys())
+			providerIds.add(provider);
 
 		return [...providerIds]
 			.sort((a, b) => a.localeCompare(b))
@@ -475,18 +644,25 @@ export class ModelAuthService {
 					(model) => model.provider === provider,
 				).length;
 				const authStatus = registry.getProviderAuthStatus(provider);
+				const credentialDiagnostic = this.credentialDiagnostics.get(provider);
+				const configName = configuredProviders[provider]?.name;
 				return {
 					id: provider,
-					name: registry.getProviderDisplayName(provider),
+					name:
+						typeof configName === "string"
+							? configName
+							: registry.getProviderDisplayName(provider),
 					authType: this.authTypeForProvider({
 						provider,
 						modelCount,
 						supportsOAuth: oauthProviderIds.has(provider),
 					}),
 					authStatus: {
-						configured: authStatus.configured,
+						configured:
+							authStatus.configured ||
+							(typeof auth.get === "function" && !!auth.get(provider)),
 						source: authStatus.source as AuthSource | undefined,
-						label: authStatus.label,
+						label: credentialDiagnostic ?? authStatus.label,
 					},
 					modelCount,
 					availableModelCount,
@@ -566,8 +742,232 @@ export class ModelAuthService {
 		return url.toString().replace(/\/+$/, "");
 	}
 
+	private async migrateLocalProviders(auth: AuthStorage): Promise<void> {
+		const config = this.readModelsConfig();
+		const localIds = Object.keys(config.providers).filter((id) =>
+			id.startsWith("local-"),
+		);
+		if (localIds.length === 0) return;
+		const originalModelsText = fs.existsSync(this.modelsPath)
+			? fs.readFileSync(this.modelsPath, "utf8")
+			: null;
+		const originalReferences = this.getKeychainReferences();
+		let references = originalReferences;
+		const settings = this.deps.appSettings?.getAll() ?? {};
+		const originalFavourites = getFavouriteModels(settings);
+		const originalSelected = getSelectedModelSetting(settings);
+		let favourites = originalFavourites;
+		let selected = originalSelected;
+		const authMoves: Array<{
+			localId: string;
+			customId: string;
+			credential: NonNullable<ReturnType<AuthStorage["get"]>>;
+			customCredential: ReturnType<AuthStorage["get"]>;
+		}> = [];
+		const managedServicesToDelete: string[] = [];
+		for (const localId of localIds) {
+			const customId = `custom-${localId.slice("local-".length)}`;
+			const localConfig = config.providers[localId];
+			const customConfig = config.providers[customId];
+			const localModels = Array.isArray(localConfig.models)
+				? localConfig.models
+				: [];
+			const customModels = Array.isArray(customConfig?.models)
+				? customConfig.models
+				: [];
+			const modelIds = new Set(
+				customModels.map((model) => (model as { id?: unknown }).id),
+			);
+			config.providers[customId] = {
+				...localConfig,
+				...customConfig,
+				models: [
+					...customModels,
+					...localModels.filter(
+						(model) => !modelIds.has((model as { id?: unknown }).id),
+					),
+				],
+			};
+			const localCredential = auth.get(localId);
+			if (localCredential) {
+				authMoves.push({
+					localId,
+					customId,
+					credential: localCredential,
+					customCredential: auth.get(customId),
+				});
+			}
+			const localReference = references[localId];
+			if (localReference && !references[customId]) {
+				if (localReference.managed && this.deps.keychain) {
+					const key = await this.deps.keychain.read(localReference.service);
+					const service = generatedProviderKeychainService(customId);
+					await this.deps.keychain.writeManaged(service, key);
+					if ((await this.deps.keychain.read(service)) !== key)
+						throw new Error(
+							`Could not migrate Keychain service for ${localId}`,
+						);
+					references = setProviderKeychainReference(references, customId, {
+						service,
+						managed: true,
+					});
+					managedServicesToDelete.push(localReference.service);
+				} else {
+					references = setProviderKeychainReference(
+						references,
+						customId,
+						localReference,
+					);
+				}
+			} else if (localReference?.managed && this.deps.keychain) {
+				managedServicesToDelete.push(localReference.service);
+			}
+			references = removeProviderKeychainReference(references, localId);
+			favourites = favourites.map((item) =>
+				item.provider === localId ? { ...item, provider: customId } : item,
+			);
+			if (selected?.provider === localId)
+				selected = { ...selected, provider: customId };
+			delete config.providers[localId];
+		}
+		try {
+			fs.mkdirSync(path.dirname(this.modelsPath), { recursive: true });
+			fs.writeFileSync(this.modelsPath, `${JSON.stringify(config, null, 2)}\n`);
+			if (this.deps.appSettings) {
+				this.saveKeychainReferences(references);
+				this.deps.appSettings.set("modelFavourites", favourites);
+				this.deps.appSettings.set("selectedModel", selected);
+			}
+			for (const move of authMoves) {
+				if (!auth.get(move.customId) && move.credential) {
+					auth.set(move.customId, move.credential);
+				}
+				auth.remove(move.localId);
+			}
+		} catch (error) {
+			if (originalModelsText === null)
+				fs.rmSync(this.modelsPath, { force: true });
+			else fs.writeFileSync(this.modelsPath, originalModelsText);
+			if (this.deps.appSettings) {
+				this.saveKeychainReferences(originalReferences);
+				this.deps.appSettings.set("modelFavourites", originalFavourites);
+				this.deps.appSettings.set("selectedModel", originalSelected);
+			}
+			for (const move of authMoves) {
+				auth.set(move.localId, move.credential);
+				if (move.customCredential)
+					auth.set(move.customId, move.customCredential);
+				else auth.remove(move.customId);
+			}
+			throw error;
+		}
+		if (this.deps.keychain) {
+			for (const service of managedServicesToDelete) {
+				try {
+					await this.deps.keychain.removeManaged(service);
+				} catch {
+					// The migration is already committed; retaining an obsolete item is safer
+					// than rolling back references to a service that may have been deleted.
+				}
+			}
+		}
+	}
+
+	private requireCustomProvider(providerId: string): string {
+		const provider = this.validateProviderId(providerId);
+		if (!provider.startsWith("custom-"))
+			throw new Error(`Provider ${provider} is not custom`);
+		return provider;
+	}
+
+	private async writeCustomModelsConfig(config: {
+		providers: Record<string, Record<string, unknown>>;
+	}): Promise<void> {
+		const previous = fs.existsSync(this.modelsPath)
+			? fs.readFileSync(this.modelsPath, "utf8")
+			: null;
+		fs.mkdirSync(path.dirname(this.modelsPath), { recursive: true });
+		fs.writeFileSync(this.modelsPath, `${JSON.stringify(config, null, 2)}\n`);
+		try {
+			await this.refresh();
+		} catch (error) {
+			if (previous === null) fs.rmSync(this.modelsPath, { force: true });
+			else fs.writeFileSync(this.modelsPath, previous);
+			throw error;
+		}
+	}
+
+	private requireKeychain(): KeychainCredentialStore {
+		if (!this.deps.keychain)
+			throw new Error("Keychain credential store is unavailable");
+		return this.deps.keychain;
+	}
+
+	private getKeychainReferences() {
+		return getProviderKeychainReferences(this.deps.appSettings?.getAll() ?? {});
+	}
+
+	private saveKeychainReferences(
+		references: ReturnType<typeof getProviderKeychainReferences>,
+	): void {
+		if (!this.deps.appSettings)
+			throw new Error("App settings are required for Keychain credentials");
+		this.deps.appSettings.set("providerKeychainReferences", references);
+	}
+
+	private async migrateAndHydrateApiKeys(auth: AuthStorage): Promise<void> {
+		if (!this.deps.keychain || !this.deps.appSettings) return;
+		let references = this.getKeychainReferences();
+		for (const provider of auth.list()) {
+			const credential = auth.get(provider);
+			if (!credential || credential.type !== "api_key") continue;
+			const service = generatedProviderKeychainService(provider);
+			try {
+				await this.deps.keychain.writeManaged(service, credential.key);
+				if ((await this.deps.keychain.read(service)) !== credential.key) {
+					throw new Error("Keychain verification failed");
+				}
+				references = setProviderKeychainReference(references, provider, {
+					service,
+					managed: true,
+				});
+				this.saveKeychainReferences(references);
+				auth.setRuntimeApiKey(provider, credential.key);
+				auth.remove(provider);
+				this.credentialDiagnostics.delete(provider);
+			} catch {
+				this.credentialDiagnostics.set(
+					provider,
+					`Could not migrate credentials to Keychain service “${service}”.`,
+				);
+			}
+		}
+		await this.hydrateKeychainReferences(auth);
+	}
+
+	private async hydrateKeychainReferences(auth: AuthStorage): Promise<void> {
+		if (!this.deps.keychain) return;
+		for (const [provider, reference] of Object.entries(
+			this.getKeychainReferences(),
+		)) {
+			try {
+				auth.setRuntimeApiKey(
+					provider,
+					await this.deps.keychain.read(reference.service),
+				);
+				this.credentialDiagnostics.delete(provider);
+			} catch {
+				auth.removeRuntimeApiKey(provider);
+				this.credentialDiagnostics.set(
+					provider,
+					`Keychain service “${reference.service}” is unavailable.`,
+				);
+			}
+		}
+	}
+
 	private localProviderEnvName(provider: string): string {
-		return `MACPI_LOCAL_OPENAI_${provider.replace(/[^a-zA-Z0-9]/g, "_").toUpperCase()}_API_KEY`;
+		return `MACPI_CUSTOM_OPENAI_${provider.replace(/[^a-zA-Z0-9]/g, "_").toUpperCase()}_API_KEY`;
 	}
 
 	private readModelsConfig(): {
@@ -582,12 +982,12 @@ export class ModelAuthService {
 		} catch (e) {
 			const msg = e instanceof Error ? e.message : String(e);
 			throw new Error(
-				`Cannot update local provider: models.json is invalid: ${msg}`,
+				`Cannot update custom provider: models.json is invalid: ${msg}`,
 			);
 		}
 		if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
 			throw new Error(
-				"Cannot update local provider: models.json root must be an object",
+				"Cannot update custom provider: models.json root must be an object",
 			);
 		}
 		const root = parsed as { providers?: unknown };

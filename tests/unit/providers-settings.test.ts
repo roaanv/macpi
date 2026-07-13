@@ -19,7 +19,7 @@ const mocks = vi.hoisted(() => ({
 					supportsStoredApiKey: true,
 				},
 				{
-					id: "local-ollama",
+					id: "custom-ollama",
 					name: "Ollama",
 					authType: "api_key",
 					authStatus: { configured: false },
@@ -59,12 +59,12 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("../../src/renderer/queries", () => ({
-	useListLocalOpenAIModels: () => mocks.mutation,
+	useListCustomOpenAIModels: () => mocks.mutation,
 	useLogoutProvider: () => mocks.mutation,
 	useModelAuthModels: () => mocks.models,
 	useModelAuthProviders: () => mocks.providers,
 	useSaveApiKey: () => mocks.mutation,
-	useSaveLocalOpenAIProvider: () => mocks.mutation,
+	useSaveCustomOpenAIProvider: () => mocks.mutation,
 }));
 
 vi.mock("../../src/renderer/components/ModelsJsonEditor", () => ({
@@ -126,7 +126,7 @@ describe("ProvidersSettings", () => {
 		expect(container.textContent?.toLowerCase()).not.toContain("favourite");
 		expect(button("Advanced")).toBeTruthy();
 		expect(button("Import from pi")).toBeTruthy();
-		expect(button("Add local OpenAI-compatible provider")).toBeTruthy();
+		expect(button("Add custom OpenAI-compatible provider")).toBeTruthy();
 		expect(button("Add / replace API key")).toBeTruthy();
 		expect(button("Remove auth")).toBeTruthy();
 
@@ -139,36 +139,36 @@ describe("ProvidersSettings", () => {
 		expect(container.textContent).toContain("pi import controls");
 		await click(button("Close"));
 
-		await click(button("Add local OpenAI-compatible provider"));
+		await click(button("Add custom OpenAI-compatible provider"));
 		expect(container.textContent).toContain(
-			"Connect Ollama, LM Studio, vLLM, or a local proxy",
+			"Connect an OpenAI-compatible custom endpoint",
 		);
 		expect(button("Fetch models")).toBeTruthy();
 	});
 
-	it("saves a discovered local provider without selecting a model", async () => {
-		await click(button("Add local OpenAI-compatible provider"));
-		await click(button("Fetch models"));
-
-		const discoveryOptions = mocks.mutation.mutate.mock.calls[0]?.[1] as {
-			onSuccess: (data: {
-				models: Array<{ id: string; name: string }>;
-			}) => void;
-		};
-		await act(async () => {
-			discoveryOptions.onSuccess({
-				models: [{ id: "llama3", name: "Llama 3" }],
-			});
-		});
+	it("saves a custom provider without fetching models", async () => {
+		await click(button("Add custom OpenAI-compatible provider"));
+		const apiKey = container.querySelector<HTMLInputElement>(
+			'input[aria-label="API key"]',
+		);
+		if (!apiKey) throw new Error("API key input missing");
+		const setter = Object.getOwnPropertyDescriptor(
+			HTMLInputElement.prototype,
+			"value",
+		)?.set;
+		setter?.call(apiKey, "secret-key");
+		await act(async () =>
+			apiKey.dispatchEvent(new Event("input", { bubbles: true })),
+		);
 		await click(button("Save provider"));
 
-		const savePayload = mocks.mutation.mutate.mock.calls[1]?.[0];
+		const savePayload = mocks.mutation.mutate.mock.calls[0]?.[0];
 		expect(savePayload).toEqual({
-			providerId: "local-openai",
-			name: "Local OpenAI",
+			providerId: "custom-openai",
+			name: "Custom OpenAI",
 			baseUrl: "http://localhost:11434/v1",
-			apiKey: "ollama",
-			models: [{ id: "llama3", name: "Llama 3" }],
+			credential: { mode: "apiKey", apiKey: "secret-key" },
+			models: [],
 		});
 		expect(savePayload).not.toHaveProperty("selectedModelId");
 	});
@@ -189,11 +189,11 @@ describe("ProvidersSettings", () => {
 			["all", "All"],
 			["configured", "Configured"],
 			["cloud", "Cloud"],
-			["local", "Local"],
+			["custom", "Custom"],
 		]);
 
 		if (!select) throw new Error("Provider filter not found");
-		select.value = "local";
+		select.value = "custom";
 		await act(async () => {
 			select.dispatchEvent(new Event("change", { bubbles: true }));
 		});

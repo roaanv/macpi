@@ -1,15 +1,15 @@
 import React from "react";
 import type {
-	LocalOpenAIModelCandidate,
+	CustomOpenAIModelCandidate,
 	ModelSummary,
 } from "../../shared/model-auth-types";
 import {
-	useListLocalOpenAIModels,
+	useListCustomOpenAIModels,
 	useLogoutProvider,
 	useModelAuthModels,
 	useModelAuthProviders,
 	useSaveApiKey,
-	useSaveLocalOpenAIProvider,
+	useSaveCustomOpenAIProvider,
 } from "../queries";
 import {
 	buildProviderViews,
@@ -25,7 +25,7 @@ const FILTERS: Array<{ id: ProviderFilter; label: string }> = [
 	{ id: "all", label: "All" },
 	{ id: "configured", label: "Configured" },
 	{ id: "cloud", label: "Cloud" },
-	{ id: "local", label: "Local" },
+	{ id: "custom", label: "Custom" },
 ];
 
 export function ProvidersSettings() {
@@ -43,9 +43,13 @@ export function ProvidersSettings() {
 		null,
 	);
 	const [apiKey, setApiKey] = React.useState("");
+	const [keychainService, setKeychainService] = React.useState("");
+	const [credentialMode, setCredentialMode] = React.useState<
+		"apiKey" | "keychainService"
+	>("apiKey");
 	const [showAdvanced, setShowAdvanced] = React.useState(false);
 	const [showImport, setShowImport] = React.useState(false);
-	const [addingLocal, setAddingLocal] = React.useState(false);
+	const [addingCustom, setAddingCustom] = React.useState(false);
 
 	const providerViews = React.useMemo(
 		() =>
@@ -95,7 +99,7 @@ export function ProvidersSettings() {
 				<div>
 					<h2 className="text-xl font-semibold">Providers</h2>
 					<div className="mt-1 text-sm text-muted">
-						Configure provider authentication and local endpoints.
+						Configure provider authentication and custom endpoints.
 					</div>
 				</div>
 				<div className="flex items-center gap-2 text-sm">
@@ -149,17 +153,17 @@ export function ProvidersSettings() {
 						<button
 							type="button"
 							onClick={() => {
-								setAddingLocal(true);
-								setFilter("local");
+								setAddingCustom(true);
+								setFilter("custom");
 							}}
 							className={`mb-3 flex w-full items-center gap-3 rounded border border-dashed border-divider p-3 text-left text-sm ${
-								addingLocal
+								addingCustom
 									? "surface-accent-soft text-primary"
 									: "text-muted hover:surface-row"
 							}`}
 						>
 							<span className="surface-row rounded px-3 py-2 text-xl">+</span>
-							<span>Add local OpenAI-compatible provider</span>
+							<span>Add custom OpenAI-compatible provider</span>
 						</button>
 						{providers.error ? (
 							<div className="rounded surface-err-soft p-2 text-sm text-err">
@@ -198,11 +202,11 @@ export function ProvidersSettings() {
 							Model registry warning: {models.data.registryError}
 						</div>
 					) : null}
-					{addingLocal ? (
-						<LocalOpenAIProviderForm
-							onCancel={() => setAddingLocal(false)}
+					{addingCustom ? (
+						<CustomOpenAIProviderForm
+							onCancel={() => setAddingCustom(false)}
 							onSaved={(provider) => {
-								setAddingLocal(false);
+								setAddingCustom(false);
 								setSelectedProviderId(provider);
 							}}
 						/>
@@ -214,18 +218,34 @@ export function ProvidersSettings() {
 							onStartApiKey={() => {
 								setEditingProvider(activeProvider.id);
 								setApiKey("");
+								setKeychainService("");
+								setCredentialMode("apiKey");
 							}}
 							onLogout={() => logout.mutate({ provider: activeProvider.id })}
 							editingApiKey={editingProvider === activeProvider.id}
 							apiKey={apiKey}
+							keychainService={keychainService}
+							credentialMode={credentialMode}
 							onApiKeyChange={setApiKey}
+							onKeychainServiceChange={setKeychainService}
+							onCredentialModeChange={setCredentialMode}
 							onCancelApiKey={() => {
 								setEditingProvider(null);
 								setApiKey("");
+								setKeychainService("");
 							}}
 							onSaveApiKey={() =>
 								saveApiKey.mutate(
-									{ provider: activeProvider.id, apiKey },
+									{
+										provider: activeProvider.id,
+										credential:
+											credentialMode === "apiKey"
+												? { mode: "apiKey", apiKey }
+												: {
+														mode: "keychainService",
+														service: keychainService,
+													},
+									},
 									{
 										onSuccess: () => {
 											setEditingProvider(null);
@@ -247,20 +267,24 @@ export function ProvidersSettings() {
 	);
 }
 
-function LocalOpenAIProviderForm({
+function CustomOpenAIProviderForm({
 	onCancel,
 	onSaved,
 }: {
 	onCancel: () => void;
 	onSaved: (provider: string) => void;
 }) {
-	const listModels = useListLocalOpenAIModels();
-	const saveProvider = useSaveLocalOpenAIProvider();
-	const [name, setName] = React.useState("Local OpenAI");
-	const [providerId, setProviderId] = React.useState("local-openai");
+	const listModels = useListCustomOpenAIModels();
+	const saveProvider = useSaveCustomOpenAIProvider();
+	const [name, setName] = React.useState("Custom OpenAI");
+	const [providerId, setProviderId] = React.useState("custom-openai");
 	const [baseUrl, setBaseUrl] = React.useState("http://localhost:11434/v1");
-	const [apiKey, setApiKey] = React.useState("ollama");
-	const [models, setModels] = React.useState<LocalOpenAIModelCandidate[]>([]);
+	const [apiKey, setApiKey] = React.useState("");
+	const [keychainService, setKeychainService] = React.useState("");
+	const [credentialMode, setCredentialMode] = React.useState<
+		"apiKey" | "keychainService"
+	>("apiKey");
+	const [models, setModels] = React.useState<CustomOpenAIModelCandidate[]>([]);
 
 	function discoverModels() {
 		listModels.mutate(
@@ -277,7 +301,10 @@ function LocalOpenAIProviderForm({
 				providerId,
 				name,
 				baseUrl,
-				apiKey,
+				credential:
+					credentialMode === "apiKey"
+						? { mode: "apiKey", apiKey }
+						: { mode: "keychainService", service: keychainService },
 				models,
 			},
 			{
@@ -290,11 +317,11 @@ function LocalOpenAIProviderForm({
 		<div className="mx-auto flex max-w-4xl flex-col gap-6">
 			<section>
 				<h3 className="text-xl font-semibold">
-					Add local OpenAI-compatible provider
+					Add custom OpenAI-compatible provider
 				</h3>
 				<p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-					Connect Ollama, LM Studio, vLLM, or a local proxy that exposes the
-					OpenAI-compatible <span className="font-mono">/models</span> endpoint.
+					Connect an OpenAI-compatible custom endpoint. Model discovery is
+					optional; models can be fetched or added later under Models.
 				</p>
 			</section>
 
@@ -325,22 +352,57 @@ function LocalOpenAIProviderForm({
 							placeholder="http://localhost:11434/v1"
 						/>
 					</label>
-					<label className="flex flex-col gap-1 text-sm sm:col-span-2">
-						<span className="text-muted">API key</span>
-						<input
-							type="password"
-							className="surface-row rounded px-3 py-2 outline-none"
-							value={apiKey}
-							onChange={(e) => setApiKey(e.target.value)}
-							placeholder="ollama"
-						/>
-					</label>
+					<fieldset className="flex flex-col gap-2 text-sm sm:col-span-2">
+						<legend className="text-muted">Credential source</legend>
+						<div className="flex gap-4">
+							<label>
+								<input
+									type="radio"
+									name="custom-provider-credential-source"
+									checked={credentialMode === "apiKey"}
+									onChange={() => setCredentialMode("apiKey")}
+								/>{" "}
+								Enter API key
+							</label>
+							<label>
+								<input
+									type="radio"
+									name="custom-provider-credential-source"
+									checked={credentialMode === "keychainService"}
+									onChange={() => setCredentialMode("keychainService")}
+								/>{" "}
+								Use Keychain service
+							</label>
+						</div>
+						{credentialMode === "apiKey" ? (
+							<input
+								aria-label="API key"
+								type="password"
+								autoComplete="off"
+								className="surface-row rounded px-3 py-2 outline-none"
+								value={apiKey}
+								onChange={(e) => setApiKey(e.target.value)}
+							/>
+						) : (
+							<input
+								aria-label="Keychain service name"
+								autoComplete="off"
+								className="surface-row rounded px-3 py-2 outline-none"
+								value={keychainService}
+								onChange={(e) => setKeychainService(e.target.value)}
+							/>
+						)}
+					</fieldset>
 				</div>
 				<div className="mt-4 flex flex-wrap gap-2">
 					<button
 						type="button"
 						className="rounded surface-accent-soft px-3 py-2 text-sm hover:opacity-80 disabled:opacity-50"
-						disabled={listModels.isPending}
+						disabled={
+							listModels.isPending ||
+							credentialMode !== "apiKey" ||
+							!apiKey.trim()
+						}
 						onClick={discoverModels}
 					>
 						{listModels.isPending ? "Fetching models…" : "Fetch models"}
@@ -366,7 +428,7 @@ function LocalOpenAIProviderForm({
 				</div>
 				{models.length === 0 ? (
 					<div className="rounded-xl border border-divider p-4 text-sm text-muted">
-						Fetch models from the provider before saving it.
+						No models yet. Save now, then fetch or add models under Models.
 					</div>
 				) : (
 					<div className="overflow-hidden rounded-xl border border-divider">
@@ -385,7 +447,12 @@ function LocalOpenAIProviderForm({
 					<button
 						type="button"
 						className="rounded surface-accent px-4 py-2 text-sm hover:opacity-90 disabled:opacity-50"
-						disabled={models.length === 0 || saveProvider.isPending}
+						disabled={
+							saveProvider.isPending ||
+							(credentialMode === "apiKey"
+								? !apiKey.trim()
+								: !keychainService.trim())
+						}
 						onClick={save}
 					>
 						{saveProvider.isPending ? "Saving…" : "Save provider"}
@@ -454,7 +521,11 @@ function ProviderDetail({
 	onLogout,
 	editingApiKey,
 	apiKey,
+	keychainService,
+	credentialMode,
 	onApiKeyChange,
+	onKeychainServiceChange,
+	onCredentialModeChange,
 	onCancelApiKey,
 	onSaveApiKey,
 	authError,
@@ -466,7 +537,11 @@ function ProviderDetail({
 	onLogout: () => void;
 	editingApiKey: boolean;
 	apiKey: string;
+	keychainService: string;
+	credentialMode: "apiKey" | "keychainService";
 	onApiKeyChange: (value: string) => void;
+	onKeychainServiceChange: (value: string) => void;
+	onCredentialModeChange: (value: "apiKey" | "keychainService") => void;
 	onCancelApiKey: () => void;
 	onSaveApiKey: () => void;
 	authError?: string;
@@ -488,7 +563,7 @@ function ProviderDetail({
 					<p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
 						{provider.kind === "cloud"
 							? "Built-in MacPi provider. Configure authentication to make its models available."
-							: "OpenAI-compatible local provider endpoint."}
+							: "OpenAI-compatible custom provider endpoint."}
 					</p>
 				</div>
 			</section>
@@ -530,15 +605,51 @@ function ProviderDetail({
 						) : null}
 					</div>
 					{editingApiKey ? (
-						<div className="mt-4 flex gap-2">
-							<input
-								type="password"
-								aria-label={`API key for ${provider.name}`}
-								value={apiKey}
-								onChange={(e) => onApiKeyChange(e.target.value)}
-								placeholder="API key"
-								className="surface-row flex-1 rounded px-3 py-2 text-sm outline-none"
-							/>
+						<div className="mt-4 flex flex-wrap gap-2">
+							<div
+								role="radiogroup"
+								aria-label={`Credential source for ${provider.name}`}
+								className="flex w-full gap-4 text-sm"
+							>
+								<label>
+									<input
+										type="radio"
+										name={`provider-credential-source-${provider.id}`}
+										checked={credentialMode === "apiKey"}
+										onChange={() => onCredentialModeChange("apiKey")}
+									/>{" "}
+									Enter API key
+								</label>
+								<label>
+									<input
+										type="radio"
+										name={`provider-credential-source-${provider.id}`}
+										checked={credentialMode === "keychainService"}
+										onChange={() => onCredentialModeChange("keychainService")}
+									/>{" "}
+									Use Keychain service
+								</label>
+							</div>
+							{credentialMode === "apiKey" ? (
+								<input
+									type="password"
+									autoComplete="off"
+									aria-label={`API key for ${provider.name}`}
+									value={apiKey}
+									onChange={(e) => onApiKeyChange(e.target.value)}
+									placeholder="API key"
+									className="surface-row min-w-64 flex-1 rounded px-3 py-2 text-sm outline-none"
+								/>
+							) : (
+								<input
+									aria-label={`Keychain service for ${provider.name}`}
+									autoComplete="off"
+									value={keychainService}
+									onChange={(e) => onKeychainServiceChange(e.target.value)}
+									placeholder="Keychain service name"
+									className="surface-row min-w-64 flex-1 rounded px-3 py-2 text-sm outline-none"
+								/>
+							)}
 							<button
 								type="button"
 								className="rounded surface-accent-soft px-3 py-2 text-sm"
@@ -657,7 +768,7 @@ function authHelp(provider: ProviderView): string {
 		return `Sign in with the account that has access to ${provider.name}. Your subscription quota may be used.`;
 	}
 	if (provider.supportsStoredApiKey) {
-		return `Store an API key for ${provider.name}. MacPi stores secrets in auth.json, not in chat history.`;
+		return `Store an API key for ${provider.name} in macOS Keychain, or reference an existing Keychain service.`;
 	}
 	return "This provider does not expose a configurable auth flow.";
 }

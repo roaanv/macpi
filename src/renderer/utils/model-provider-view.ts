@@ -3,10 +3,10 @@ import type {
 	ProviderSummary,
 } from "../../shared/model-auth-types";
 
-export type ProviderFilter = "all" | "configured" | "cloud" | "local";
+export type ProviderFilter = "all" | "configured" | "cloud" | "custom";
 
 export interface ProviderView extends ProviderSummary {
-	kind: "cloud" | "local";
+	kind: "cloud" | "custom";
 	initials: string;
 	models: ModelSummary[];
 }
@@ -52,7 +52,7 @@ export function buildProviderViews(
 ): ProviderView[] {
 	return providers.map((provider) => ({
 		...provider,
-		kind: isLocalProvider(provider.id) ? "local" : "cloud",
+		kind: isCustomProvider(provider.id) ? "custom" : "cloud",
 		initials: providerInitials(provider.name || provider.id),
 		models: models.filter((model) => model.provider === provider.id),
 	}));
@@ -68,7 +68,7 @@ export function filterProviderViews(
 		if (filter === "configured" && !provider.authStatus.configured)
 			return false;
 		if (filter === "cloud" && provider.kind !== "cloud") return false;
-		if (filter === "local" && provider.kind !== "local") return false;
+		if (filter === "custom" && provider.kind !== "custom") return false;
 		if (!normalized) return true;
 		return [provider.name, provider.id, provider.authType]
 			.join(" ")
@@ -87,10 +87,6 @@ export function providerInitials(name: string): string {
 	return `${words[0][0]}${words[1][0]}`.toUpperCase();
 }
 
-function isLocalProvider(providerId: string): boolean {
-	return (
-		providerId.startsWith("local-") ||
-		providerId.includes("ollama") ||
-		providerId.includes("lmstudio")
-	);
+function isCustomProvider(providerId: string): boolean {
+	return providerId.startsWith("custom-");
 }

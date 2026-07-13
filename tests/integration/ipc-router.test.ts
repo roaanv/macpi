@@ -76,8 +76,8 @@ let modelAuthServiceMock: {
 	writeModelsJson: ReturnType<typeof vi.fn>;
 	getImportStatus: ReturnType<typeof vi.fn>;
 	importFromPi: ReturnType<typeof vi.fn>;
-	listLocalOpenAIModels: ReturnType<typeof vi.fn>;
-	saveLocalOpenAIProvider: ReturnType<typeof vi.fn>;
+	listCustomOpenAIModels: ReturnType<typeof vi.fn>;
+	saveCustomOpenAIProvider: ReturnType<typeof vi.fn>;
 };
 
 beforeEach(() => {
@@ -199,11 +199,11 @@ beforeEach(() => {
 		importFromPi: vi
 			.fn()
 			.mockResolvedValue({ copiedAuth: false, copiedModels: false }),
-		listLocalOpenAIModels: vi
+		listCustomOpenAIModels: vi
 			.fn()
 			.mockResolvedValue([{ id: "llama3", name: "llama3" }]),
-		saveLocalOpenAIProvider: vi.fn().mockResolvedValue({
-			provider: "local-ollama",
+		saveCustomOpenAIProvider: vi.fn().mockResolvedValue({
+			provider: "custom-ollama",
 		}),
 	};
 	router = new IpcRouter({
@@ -1215,8 +1215,8 @@ describe("IpcRouter", () => {
 		});
 	});
 
-	it("modelsAuth.listLocalOpenAIModels returns discovered local models", async () => {
-		const r = await router.dispatch("modelsAuth.listLocalOpenAIModels", {
+	it("modelsAuth.listCustomOpenAIModels returns discovered custom models", async () => {
+		const r = await router.dispatch("modelsAuth.listCustomOpenAIModels", {
 			baseUrl: "http://localhost:11434/v1",
 			apiKey: "ollama",
 		});
@@ -1227,25 +1227,25 @@ describe("IpcRouter", () => {
 		});
 	});
 
-	it("modelsAuth.saveLocalOpenAIProvider saves without a selected model", async () => {
+	it("modelsAuth.saveCustomOpenAIProvider saves without a selected model", async () => {
 		const input = {
-			providerId: "local-ollama",
-			name: "Local Ollama",
+			providerId: "custom-ollama",
+			name: "Custom Ollama",
 			baseUrl: "http://localhost:11434/v1",
-			apiKey: "ollama",
+			credential: { mode: "apiKey" as const, apiKey: "ollama" },
 			models: [{ id: "llama3", name: "llama3" }],
 		};
 		const r = await router.dispatch(
-			"modelsAuth.saveLocalOpenAIProvider",
+			"modelsAuth.saveCustomOpenAIProvider",
 			input,
 		);
 
-		expect(modelAuthServiceMock.saveLocalOpenAIProvider).toHaveBeenCalledWith(
+		expect(modelAuthServiceMock.saveCustomOpenAIProvider).toHaveBeenCalledWith(
 			input,
 		);
 		expect(r).toEqual({
 			ok: true,
-			data: { provider: "local-ollama" },
+			data: { provider: "custom-ollama" },
 		});
 	});
 

@@ -325,7 +325,7 @@ describe("ModelAuthService local OpenAI providers", () => {
 			}),
 		});
 
-		const models = await service.listLocalOpenAIModels({
+		const models = await service.listCustomOpenAIModels({
 			baseUrl: "http://localhost:11434/v1/",
 			apiKey: "ollama",
 		});
@@ -365,44 +365,44 @@ describe("ModelAuthService local OpenAI providers", () => {
 		});
 
 		await expect(
-			service.saveLocalOpenAIProvider({
-				providerId: "local-ollama",
-				name: "Local Ollama",
+			service.saveCustomOpenAIProvider({
+				providerId: "custom-ollama",
+				name: "Custom Ollama",
 				baseUrl: "http://localhost:11434/v1/",
-				apiKey: "ollama",
+				credential: { mode: "apiKey", apiKey: "ollama" },
 				models: [{ id: "llama3", name: "Llama 3" }],
 			}),
-		).resolves.toEqual({ provider: "local-ollama" });
+		).resolves.toEqual({ provider: "custom-ollama" });
 
 		const saved = JSON.parse(
 			fs.readFileSync(path.join(root, "models.json"), "utf8"),
 		);
-		expect(saved.providers["local-ollama"]).toMatchObject({
-			name: "Local Ollama",
+		expect(saved.providers["custom-ollama"]).toMatchObject({
+			name: "Custom Ollama",
 			baseUrl: "http://localhost:11434/v1",
 			api: "openai-completions",
-			apiKey: "MACPI_LOCAL_OPENAI_LOCAL_OLLAMA_API_KEY",
+			apiKey: "MACPI_CUSTOM_OPENAI_CUSTOM_OLLAMA_API_KEY",
 			models: [{ id: "llama3", name: "Llama 3" }],
 		});
 		expect(authCalls).toEqual([
-			["local-ollama", { type: "api_key", key: "ollama" }],
+			["custom-ollama", { type: "api_key", key: "ollama" }],
 		]);
 		expect(settings.getAll()).toEqual({ selectedModel });
 		expect(refreshed).toBe(true);
 	});
 
-	it("requires discovered models before saving a local provider", async () => {
+	it("allows saving a custom provider without models", async () => {
 		const service = new ModelAuthService({ macpiRoot: tempRoot() });
 
 		await expect(
-			service.saveLocalOpenAIProvider({
-				providerId: "local-ollama",
-				name: "Local Ollama",
+			service.saveCustomOpenAIProvider({
+				providerId: "custom-empty",
+				name: "Custom Empty",
 				baseUrl: "http://localhost:11434/v1",
-				apiKey: "ollama",
+				credential: { mode: "apiKey", apiKey: "key" },
 				models: [],
 			}),
-		).rejects.toThrow("At least one local model is required");
+		).resolves.toEqual({ provider: "custom-empty" });
 	});
 });
 

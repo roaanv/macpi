@@ -462,7 +462,10 @@ export class IpcRouter {
 		});
 		this.register("modelsAuth.saveApiKey", async (args) => {
 			try {
-				await this.deps.modelAuthService.saveApiKey(args.provider, args.apiKey);
+				await this.deps.modelAuthService.saveApiKey(
+					args.provider,
+					args.credential ?? args.apiKey ?? "",
+				);
 				return ok({});
 			} catch (e) {
 				const msg = e instanceof Error ? e.message : String(e);
@@ -505,24 +508,66 @@ export class IpcRouter {
 				return err("import_failed", msg);
 			}
 		});
-		this.register("modelsAuth.listLocalOpenAIModels", async (args) => {
+		this.register("modelsAuth.listCustomOpenAIModels", async (args) => {
 			try {
 				return ok({
-					models: await this.deps.modelAuthService.listLocalOpenAIModels(args),
+					models: await this.deps.modelAuthService.listCustomOpenAIModels(args),
 				});
 			} catch (e) {
 				const msg = e instanceof Error ? e.message : String(e);
-				return err("local_provider_failed", msg);
+				return err("custom_provider_failed", msg);
 			}
 		});
-		this.register("modelsAuth.saveLocalOpenAIProvider", async (args) => {
+		this.register("modelsAuth.saveCustomOpenAIProvider", async (args) => {
 			try {
 				return ok(
-					await this.deps.modelAuthService.saveLocalOpenAIProvider(args),
+					await this.deps.modelAuthService.saveCustomOpenAIProvider(args),
 				);
 			} catch (e) {
 				const msg = e instanceof Error ? e.message : String(e);
-				return err("local_provider_failed", msg);
+				return err("custom_provider_failed", msg);
+			}
+		});
+		this.register("modelsAuth.fetchCustomProviderModels", async (args) => {
+			try {
+				return ok(
+					await this.deps.modelAuthService.fetchCustomProviderModels(
+						args.provider,
+					),
+				);
+			} catch (e) {
+				return err(
+					"custom_provider_failed",
+					e instanceof Error ? e.message : String(e),
+				);
+			}
+		});
+		this.register("modelsAuth.saveCustomModel", async (args) => {
+			try {
+				await this.deps.modelAuthService.saveCustomModel(
+					args.provider,
+					args.model,
+				);
+				return ok({});
+			} catch (e) {
+				return err(
+					"custom_provider_failed",
+					e instanceof Error ? e.message : String(e),
+				);
+			}
+		});
+		this.register("modelsAuth.removeCustomModel", async (args) => {
+			try {
+				await this.deps.modelAuthService.removeCustomModel(
+					args.provider,
+					args.modelId,
+				);
+				return ok({});
+			} catch (e) {
+				return err(
+					"custom_provider_failed",
+					e instanceof Error ? e.message : String(e),
+				);
 			}
 		});
 		this.register("skills.list", async () => {

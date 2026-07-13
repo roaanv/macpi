@@ -37,9 +37,10 @@ import type {
 	ExtensionSummary,
 } from "./extensions-types";
 import type {
+	ApiKeyCredentialInput,
+	CustomOpenAIModelCandidate,
+	CustomOpenAIProviderInput,
 	ImportPiAuthModelsStatus,
-	LocalOpenAIModelCandidate,
-	LocalOpenAIProviderInput,
 	ModelSummary,
 	ModelsJsonReadResult,
 	OAuthLoginStart,
@@ -276,7 +277,12 @@ export interface IpcMethods {
 		res: Record<string, never>;
 	};
 	"modelsAuth.saveApiKey": {
-		req: { provider: string; apiKey: string };
+		req: {
+			provider: string;
+			credential?: ApiKeyCredentialInput;
+			/** @deprecated Migrated to credential. */
+			apiKey?: string;
+		};
 		res: Record<string, never>;
 	};
 	"modelsAuth.logoutProvider": {
@@ -311,13 +317,25 @@ export interface IpcMethods {
 		req: { auth: boolean; models: boolean; replaceExisting: boolean };
 		res: { copiedAuth: boolean; copiedModels: boolean };
 	};
-	"modelsAuth.listLocalOpenAIModels": {
+	"modelsAuth.listCustomOpenAIModels": {
 		req: { baseUrl: string; apiKey: string };
-		res: { models: LocalOpenAIModelCandidate[] };
+		res: { models: CustomOpenAIModelCandidate[] };
 	};
-	"modelsAuth.saveLocalOpenAIProvider": {
-		req: LocalOpenAIProviderInput;
+	"modelsAuth.saveCustomOpenAIProvider": {
+		req: CustomOpenAIProviderInput;
 		res: { provider: string };
+	};
+	"modelsAuth.fetchCustomProviderModels": {
+		req: { provider: string };
+		res: { added: number; total: number };
+	};
+	"modelsAuth.saveCustomModel": {
+		req: { provider: string; model: CustomOpenAIModelCandidate };
+		res: Record<string, never>;
+	};
+	"modelsAuth.removeCustomModel": {
+		req: { provider: string; modelId: string };
+		res: Record<string, never>;
 	};
 	"dialog.openFolder": {
 		req: { defaultPath?: string };

@@ -38,6 +38,58 @@ export const APP_SETTINGS_DEFAULTS = {
 
 export type AppSettingsKey = keyof typeof APP_SETTINGS_DEFAULTS;
 
+export interface ProviderKeychainReference {
+	service: string;
+	managed: boolean;
+}
+
+export type ProviderKeychainReferences = Record<
+	string,
+	ProviderKeychainReference
+>;
+
+export function getProviderKeychainReferences(
+	settings: Record<string, unknown>,
+): ProviderKeychainReferences {
+	const value = settings.providerKeychainReferences;
+	if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+	const references: ProviderKeychainReferences = {};
+	for (const [provider, candidate] of Object.entries(value)) {
+		if (
+			!/^[-a-zA-Z0-9._]+$/.test(provider) ||
+			!candidate ||
+			typeof candidate !== "object"
+		)
+			continue;
+		const service = (candidate as Record<string, unknown>).service;
+		const managed = (candidate as Record<string, unknown>).managed;
+		if (typeof service !== "string" || !service.trim()) continue;
+		if (typeof managed !== "boolean") continue;
+		references[provider] = { service: service.trim(), managed };
+	}
+	return references;
+}
+
+export function setProviderKeychainReference(
+	references: ProviderKeychainReferences,
+	provider: string,
+	reference: ProviderKeychainReference,
+): ProviderKeychainReferences {
+	return {
+		...references,
+		[provider]: { ...reference },
+	};
+}
+
+export function removeProviderKeychainReference(
+	references: ProviderKeychainReferences,
+	provider: string,
+): ProviderKeychainReferences {
+	const next = { ...references };
+	delete next[provider];
+	return next;
+}
+
 const THEME_VALUES: ReadonlySet<ThemeMode> = new Set<ThemeMode>([
 	"light",
 	"dark",
