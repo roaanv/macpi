@@ -210,6 +210,30 @@ export class IpcRouter {
 				return err("model_switch_failed", msg);
 			}
 		});
+		this.register("session.setThinkingLevel", async (args) => {
+			const session = this.deps.piSessionManager.getAgentSession(
+				args.piSessionId,
+			);
+			if (!session) {
+				return err("not_found", `session ${args.piSessionId} not attached`);
+			}
+			const busy = () =>
+				err(
+					"busy",
+					`Cannot change thinking level while session ${args.piSessionId} is streaming`,
+				);
+			if (session.isStreaming) return busy();
+			const available = session.getAvailableThinkingLevels();
+			if (!available.includes(args.level)) {
+				return err(
+					"invalid_thinking_level",
+					`Thinking level ${args.level} is not supported by the current model`,
+				);
+			}
+			if (session.isStreaming) return busy();
+			session.setThinkingLevel(args.level);
+			return ok({});
+		});
 		this.register("session.clearQueue", async (args) => {
 			const cleared = await this.deps.piSessionManager.clearQueue(
 				args.piSessionId,
@@ -358,6 +382,9 @@ export class IpcRouter {
 						}
 					: null,
 				thinkingLevel: coerceThinkingLevel(session.thinkingLevel),
+				availableThinkingLevels: session
+					.getAvailableThinkingLevels()
+					.map(coerceThinkingLevel),
 				contextUsage: usage
 					? {
 							tokens: usage.tokens,

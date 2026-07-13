@@ -45,6 +45,9 @@ let db: DbHandle;
 let router: IpcRouter;
 let agentSessionMock: {
 	isStreaming: boolean;
+	thinkingLevel: "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
+	getAvailableThinkingLevels: ReturnType<typeof vi.fn>;
+	setThinkingLevel: ReturnType<typeof vi.fn>;
 };
 let piSessionManagerMock: {
 	createSession: ReturnType<typeof vi.fn>;
@@ -88,6 +91,11 @@ beforeEach(() => {
 	dialogShowOpenDialog.mockReset();
 	agentSessionMock = {
 		isStreaming: false,
+		thinkingLevel: "medium",
+		getAvailableThinkingLevels: vi
+			.fn()
+			.mockReturnValue(["off", "low", "medium", "high"]),
+		setThinkingLevel: vi.fn(),
 	};
 	piSessionManagerMock = {
 		createSession: vi.fn(),
@@ -339,6 +347,7 @@ describe("IpcRouter", () => {
 				contextWindow: 200000,
 			},
 			thinkingLevel: "high",
+			getAvailableThinkingLevels: () => ["off", "low", "high"],
 			getContextUsage: () => ({
 				tokens: 100000,
 				contextWindow: 200000,
@@ -360,6 +369,7 @@ describe("IpcRouter", () => {
 					contextWindow: 200000,
 				},
 				thinkingLevel: "high",
+				availableThinkingLevels: ["off", "low", "high"],
 				contextUsage: {
 					tokens: 100000,
 					contextWindow: 200000,
@@ -367,6 +377,79 @@ describe("IpcRouter", () => {
 				},
 			},
 		});
+	});
+
+	it("session.setThinkingLevel returns not_found when the session is not attached", async () => {
+		piSessionManagerMock.getAgentSession.mockReturnValue(undefined);
+
+		const result = await router.dispatch("session.setThinkingLevel", {
+			piSessionId: "missing",
+			level: "high",
+		});
+
+		expect(result).toEqual({
+			ok: false,
+			error: { code: "not_found", message: "session missing not attached" },
+		});
+	});
+
+	it("session.setThinkingLevel rejects streaming and unsupported levels", async () => {
+		agentSessionMock.isStreaming = true;
+		await expect(
+			router.dispatch("session.setThinkingLevel", {
+				piSessionId: "s1",
+				level: "high",
+			}),
+		).resolves.toEqual({
+			ok: false,
+			error: {
+				code: "busy",
+				message: "Cannot change thinking level while session s1 is streaming",
+			},
+		});
+		agentSessionMock.isStreaming = false;
+		await expect(
+			router.dispatch("session.setThinkingLevel", {
+				piSessionId: "s1",
+				level: "xhigh",
+			}),
+		).resolves.toEqual({
+			ok: false,
+			error: {
+				code: "invalid_thinking_level",
+				message: "Thinking level xhigh is not supported by the current model",
+			},
+		});
+		expect(agentSessionMock.setThinkingLevel).not.toHaveBeenCalled();
+	});
+
+	it("session.setThinkingLevel applies a supported level and rechecks streaming", async () => {
+		await expect(
+			router.dispatch("session.setThinkingLevel", {
+				piSessionId: "s1",
+				level: "high",
+			}),
+		).resolves.toEqual({ ok: true, data: {} });
+		expect(agentSessionMock.setThinkingLevel).toHaveBeenCalledWith("high");
+
+		agentSessionMock.setThinkingLevel.mockClear();
+		agentSessionMock.getAvailableThinkingLevels.mockImplementationOnce(() => {
+			agentSessionMock.isStreaming = true;
+			return ["off", "high"];
+		});
+		await expect(
+			router.dispatch("session.setThinkingLevel", {
+				piSessionId: "s1",
+				level: "high",
+			}),
+		).resolves.toEqual({
+			ok: false,
+			error: {
+				code: "busy",
+				message: "Cannot change thinking level while session s1 is streaming",
+			},
+		});
+		expect(agentSessionMock.setThinkingLevel).not.toHaveBeenCalled();
 	});
 
 	it("session.setModel returns not_found when the session is not attached", async () => {

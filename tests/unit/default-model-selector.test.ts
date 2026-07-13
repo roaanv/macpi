@@ -194,21 +194,6 @@ async function changeSelect(value: string) {
 	});
 }
 
-async function search(value: string) {
-	const input = container.querySelector<HTMLInputElement>(
-		'input[type="search"]',
-	);
-	if (!input) throw new Error("Search input not found");
-	const setter = Object.getOwnPropertyDescriptor(
-		HTMLInputElement.prototype,
-		"value",
-	)?.set;
-	setter?.call(input, value);
-	await act(async () => {
-		input.dispatchEvent(new Event("input", { bubbles: true }));
-	});
-}
-
 function optionTexts() {
 	return [...selector().options].map((option) => option.text);
 }
@@ -240,45 +225,8 @@ describe("DefaultModelSelector", () => {
 		expect(container.querySelector("h3")?.textContent).toBe(
 			"Default model for new chats",
 		);
-	});
-
-	it("searches across provider, model name, and model ID", async () => {
-		await search("google");
-		expect(optionTexts()).toEqual(["Automatic fallback", "Gemini Pro"]);
-
-		await search("OPUS-4");
-		expect(optionTexts()).toEqual(["Automatic fallback", "Claude Opus 4"]);
-	});
-
-	it("keeps the current valid model selected while hiding other search nonmatches", async () => {
-		const savedModel = {
-			provider: "anthropic",
-			modelId: "claude-sonnet-4",
-		};
-		const savedValue = encodeDefaultModelValue(savedModel);
-		await changeSelect(savedValue);
-		expect(mocks.setSelected.mutate).toHaveBeenLastCalledWith({
-			model: savedModel,
-		});
-
-		mocks.selected.data = { model: savedModel, valid: true };
-		await renderSelector();
-		await search("gemini");
-
-		expect(selector().value).toBe(savedValue);
-		expect(selector().selectedIndex).toBeGreaterThan(0);
-		expect(selector().options[selector().selectedIndex]?.text).toBe(
-			"Claude Sonnet 4",
-		);
-		expect(optionTexts()).toEqual([
-			"Automatic fallback",
-			"Claude Sonnet 4",
-			"Gemini Pro",
-		]);
-		expect(
-			[...selector().options].filter((option) => option.value === savedValue),
-		).toHaveLength(1);
-		expect(optionTexts()).not.toContain("Claude Opus 4");
+		expect(container.querySelector('input[type="search"]')).toBeNull();
+		expect(container.textContent).not.toContain("Search configured models");
 	});
 
 	it("sets a model and clears to Automatic with the expected payloads", async () => {

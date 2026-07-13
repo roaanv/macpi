@@ -245,6 +245,38 @@ describe("ModelsSettings", () => {
 		expect(container.textContent).not.toContain("Claude Opus 4");
 	});
 
+	it("splits favourites from other models, moves rows, and collapses independently", async () => {
+		mocks.settings.data.settings = {
+			modelFavourites: [{ provider: "anthropic", modelId: "claude-opus-4" }],
+		};
+		await render();
+
+		const favourites = button("Favourites (1)");
+		const allModels = button("All models (1)");
+		expect(favourites.getAttribute("aria-expanded")).toBe("true");
+		expect(allModels.getAttribute("aria-expanded")).toBe("true");
+		const favouritesContent = document.getElementById(
+			favourites.getAttribute("aria-controls") ?? "",
+		);
+		const allContent = document.getElementById(
+			allModels.getAttribute("aria-controls") ?? "",
+		);
+		expect(favouritesContent?.textContent).toContain("Claude Opus 4");
+		expect(favouritesContent?.textContent).not.toContain("Claude Sonnet 4");
+		expect(allContent?.textContent).toContain("Claude Sonnet 4");
+		expect(allContent?.textContent).not.toContain("Claude Opus 4");
+
+		await click(button("Add Claude Sonnet 4 to favourites"));
+		expect(button("Favourites (2)")).toBeTruthy();
+		expect(button("All models (0)")).toBeTruthy();
+
+		await click(button("Favourites (2)"));
+		expect(button("Favourites (2)").getAttribute("aria-expanded")).toBe(
+			"false",
+		);
+		expect(button("All models (0)").getAttribute("aria-expanded")).toBe("true");
+	});
+
 	it("shows pressed favourites and adds one while preserving existing favourites", async () => {
 		mocks.settings.data.settings = {
 			modelFavourites: [

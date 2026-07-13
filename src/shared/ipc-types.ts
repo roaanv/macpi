@@ -133,6 +133,10 @@ export interface IpcMethods {
 		req: { piSessionId: string; model: SelectedModelRef };
 		res: Record<string, never>;
 	};
+	"session.setThinkingLevel": {
+		req: { piSessionId: string; level: ThinkingLevel };
+		res: Record<string, never>;
+	};
 	"session.clearQueue": {
 		req: { piSessionId: string };
 		/** Returns the cleared messages so the renderer can stash them as drafts if it wants. */
@@ -239,6 +243,7 @@ export interface IpcMethods {
 				contextWindow: number | null;
 			} | null;
 			thinkingLevel: ThinkingLevel;
+			availableThinkingLevels: ThinkingLevel[];
 			contextUsage: {
 				tokens: number | null;
 				contextWindow: number;

@@ -3,6 +3,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React from "react";
+import type { ThinkingLevel } from "../shared/ipc-types";
 import { invoke, onPiEvent } from "./ipc";
 
 /**
@@ -198,6 +199,18 @@ export function useSetSessionModel() {
 			piSessionId: string;
 			model: { provider: string; modelId: string };
 		}) => invoke("session.setModel", input),
+		onSuccess: (_data, input) =>
+			qc.invalidateQueries({
+				queryKey: ["session.footerStats", input.piSessionId],
+			}),
+	});
+}
+
+export function useSetSessionThinkingLevel() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (input: { piSessionId: string; level: ThinkingLevel }) =>
+			invoke("session.setThinkingLevel", input),
 		onSuccess: (_data, input) =>
 			qc.invalidateQueries({
 				queryKey: ["session.footerStats", input.piSessionId],

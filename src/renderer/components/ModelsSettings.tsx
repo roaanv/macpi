@@ -27,6 +27,8 @@ export function ModelsSettings() {
 		string | null
 	>(null);
 	const [query, setQuery] = React.useState("");
+	const [favouritesOpen, setFavouritesOpen] = React.useState(true);
+	const [allModelsOpen, setAllModelsOpen] = React.useState(true);
 	const settingsSnapshot = settings.data?.settings;
 	const [favouritesDraft, setFavouritesDraft] = React.useState(() =>
 		getFavouriteModels(settingsSnapshot ?? {}),
@@ -63,6 +65,17 @@ export function ModelsSettings() {
 		[activeProvider?.models, query],
 	);
 	const favouriteKeys = new Set(favouritesDraft.map(modelRefKey));
+	const favouriteModels = visibleModels.filter((model) =>
+		favouriteKeys.has(
+			modelRefKey({ provider: model.provider, modelId: model.id }),
+		),
+	);
+	const otherModels = visibleModels.filter(
+		(model) =>
+			!favouriteKeys.has(
+				modelRefKey({ provider: model.provider, modelId: model.id }),
+			),
+	);
 
 	React.useEffect(() => {
 		if (activeProvider?.id === selectedProviderId) return;
@@ -227,52 +240,121 @@ export function ModelsSettings() {
 									No models match “{query.trim()}”.
 								</div>
 							) : (
-								<div className="flex flex-col gap-2">
-									{visibleModels.map((model) => {
-										const isFavourite = favouriteKeys.has(
-											modelRefKey({
-												provider: model.provider,
-												modelId: model.id,
-											}),
-										);
-										const action = isFavourite ? "Remove" : "Add";
-										return (
-											<div
-												key={model.id}
-												className="surface-row flex items-center justify-between gap-3 rounded px-3 py-2"
-											>
-												<div className="min-w-0">
-													<div className="truncate text-sm font-medium">
-														{model.name}
-													</div>
-													<div className="truncate font-mono text-muted text-xs">
-														{model.id}
-													</div>
-												</div>
-												<button
-													type="button"
-													aria-pressed={isFavourite}
-													aria-label={`${action} ${model.name} ${isFavourite ? "from" : "to"} favourites`}
-													onClick={() => toggleFavourite(model)}
-													className={`rounded px-2 py-1 text-lg ${
-														isFavourite
-															? "surface-accent-soft text-accent"
-															: "text-muted hover:surface-row"
-													}`}
-												>
-													<span aria-hidden="true">
-														{isFavourite ? "★" : "☆"}
-													</span>
-												</button>
-											</div>
-										);
-									})}
+								<div className="flex flex-col gap-3">
+									<ModelSection
+										title="Favourites"
+										models={favouriteModels}
+										open={favouritesOpen}
+										onToggle={() => setFavouritesOpen((value) => !value)}
+										emptyMessage="No favourite models match this search."
+										isFavourite
+										onToggleFavourite={toggleFavourite}
+									/>
+									<ModelSection
+										title="All models"
+										models={otherModels}
+										open={allModelsOpen}
+										onToggle={() => setAllModelsOpen((value) => !value)}
+										emptyMessage="All matching models are favourites."
+										isFavourite={false}
+										onToggleFavourite={toggleFavourite}
+									/>
 								</div>
 							)}
 						</div>
 					</main>
 				</div>
 			)}
+		</div>
+	);
+}
+
+function ModelSection({
+	title,
+	models,
+	open,
+	onToggle,
+	emptyMessage,
+	isFavourite,
+	onToggleFavourite,
+}: {
+	title: string;
+	models: ModelSummary[];
+	open: boolean;
+	onToggle: () => void;
+	emptyMessage: string;
+	isFavourite: boolean;
+	onToggleFavourite: (model: ModelSummary) => void;
+}) {
+	const contentId = `model-section-${title.toLowerCase().replaceAll(" ", "-")}`;
+	return (
+		<section className="overflow-hidden rounded border border-divider">
+			<button
+				type="button"
+				aria-expanded={open}
+				aria-controls={contentId}
+				onClick={onToggle}
+				className="flex w-full items-center justify-between px-3 py-2 text-left text-sm font-semibold hover:surface-row"
+			>
+				<span>
+					{title} ({models.length})
+				</span>
+				<span aria-hidden className="text-muted">
+					{open ? "▾" : "▸"}
+				</span>
+			</button>
+			{open ? (
+				<div
+					id={contentId}
+					className="flex flex-col gap-2 border-t border-divider p-2"
+				>
+					{models.length === 0 ? (
+						<div className="px-2 py-1 text-xs text-muted">{emptyMessage}</div>
+					) : (
+						models.map((model) => (
+							<ModelRow
+								key={model.id}
+								model={model}
+								isFavourite={isFavourite}
+								onToggleFavourite={onToggleFavourite}
+							/>
+						))
+					)}
+				</div>
+			) : null}
+		</section>
+	);
+}
+
+function ModelRow({
+	model,
+	isFavourite,
+	onToggleFavourite,
+}: {
+	model: ModelSummary;
+	isFavourite: boolean;
+	onToggleFavourite: (model: ModelSummary) => void;
+}) {
+	const action = isFavourite ? "Remove" : "Add";
+	return (
+		<div className="surface-row flex items-center justify-between gap-3 rounded px-3 py-2">
+			<div className="min-w-0">
+				<div className="truncate text-sm font-medium">{model.name}</div>
+				<div className="truncate font-mono text-muted text-xs">{model.id}</div>
+			</div>
+			<button
+				type="button"
+				aria-pressed={isFavourite}
+				aria-label={`${action} ${model.name} ${isFavourite ? "from" : "to"} favourites`}
+				onClick={() => onToggleFavourite(model)}
+				className={`rounded px-2 py-1 text-lg ${
+					isFavourite
+						? "surface-accent-soft text-accent"
+						: "text-muted hover:surface-row"
+				}`}
+			>
+				<span aria-hidden="true">{isFavourite ? "★" : "☆"}</span>
+			</button>
 		</div>
 	);
 }

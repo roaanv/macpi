@@ -58,7 +58,6 @@ export function DefaultModelSelector() {
 	const modelsQuery = useModelAuthModels();
 	const selectedQuery = useSelectedModel();
 	const setSelected = useSetSelectedModel();
-	const [search, setSearch] = React.useState("");
 
 	const configuredProviders = React.useMemo(
 		() =>
@@ -77,7 +76,6 @@ export function DefaultModelSelector() {
 			),
 		[configuredProviders, modelsQuery.data?.models],
 	);
-	const normalizedSearch = search.trim().toLocaleLowerCase();
 	const savedModel = selectedQuery.data?.model ?? null;
 	const savedValue = savedModel
 		? encodeDefaultModelValue(savedModel)
@@ -95,27 +93,10 @@ export function DefaultModelSelector() {
 			byProvider.set(provider, { provider, providerName, models: [] });
 		}
 		for (const model of configuredModels) {
-			const isSavedModel =
-				selectedQuery.data?.valid === true && model === savedModelSummary;
-			if (
-				normalizedSearch &&
-				!isSavedModel &&
-				!`${model.providerName} ${model.provider} ${model.name} ${model.id}`
-					.toLocaleLowerCase()
-					.includes(normalizedSearch)
-			) {
-				continue;
-			}
 			byProvider.get(model.provider)?.models.push(model);
 		}
 		return [...byProvider.values()].filter((group) => group.models.length > 0);
-	}, [
-		configuredModels,
-		configuredProviders,
-		normalizedSearch,
-		savedModelSummary,
-		selectedQuery.data?.valid,
-	]);
+	}, [configuredModels, configuredProviders]);
 	const savedModelAvailable =
 		!savedModel || (selectedQuery.data?.valid === true && !!savedModelSummary);
 	const inventoryReady =
@@ -204,19 +185,6 @@ export function DefaultModelSelector() {
 					use Automatic.
 				</div>
 			) : null}
-
-			<label htmlFor="default-model-search" className="mb-1 block text-xs">
-				Search configured models
-			</label>
-			<input
-				id="default-model-search"
-				type="search"
-				value={search}
-				onChange={(event) => setSearch(event.target.value)}
-				disabled={disabled}
-				placeholder="Provider, model name, or ID"
-				className="mb-2 w-full surface-row rounded px-2 py-1 text-sm"
-			/>
 
 			<label htmlFor="default-model" className="mb-1 block text-xs">
 				Choose default model

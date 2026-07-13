@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
 				contextWindow: 200000,
 			},
 			thinkingLevel: "high",
+			availableThinkingLevels: ["off", "low", "high"],
 			contextUsage: { tokens: 100000, contextWindow: 200000, percent: 50 },
 		},
 	},
@@ -21,6 +22,7 @@ const mocks = vi.hoisted(() => ({
 	models: { data: { models: [] }, isLoading: false, error: null },
 	settings: { data: { settings: {} }, isLoading: false, error: null },
 	setModel: { mutateAsync: vi.fn(), isPending: false },
+	setThinking: { mutateAsync: vi.fn(), isPending: false },
 }));
 
 vi.mock("../../src/renderer/queries", () => ({
@@ -30,6 +32,7 @@ vi.mock("../../src/renderer/queries", () => ({
 	useModelAuthProviders: () => mocks.providers,
 	useSettings: () => mocks.settings,
 	useSetSessionModel: () => mocks.setModel,
+	useSetSessionThinkingLevel: () => mocks.setThinking,
 }));
 
 import { ChatFooter } from "../../src/renderer/components/ChatFooter";
@@ -79,12 +82,10 @@ describe("ChatFooter", () => {
 		await renderFooter(null);
 		expect(container.textContent).toBe("");
 		await renderFooter("pi-1", true);
-		expect(
-			(
-				container.querySelector(
-					'button[aria-haspopup="dialog"]',
-				) as HTMLButtonElement
-			).disabled,
-		).toBe(true);
+		const pickers = container.querySelectorAll<HTMLButtonElement>(
+			'button[aria-haspopup="dialog"]',
+		);
+		expect(pickers).toHaveLength(2);
+		for (const picker of pickers) expect(picker.disabled).toBe(true);
 	});
 });

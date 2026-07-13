@@ -7,20 +7,12 @@ import { formatTokens } from "../../shared/context-breakdown";
 import type { ThinkingLevel } from "../../shared/ipc-types";
 import { useInvalidateOnTurnEnd, useSessionFooterStats } from "../queries";
 import { ChatModelMenu } from "./ChatModelMenu";
+import { ChatThinkingMenu } from "./ChatThinkingMenu";
 
 interface ChatFooterProps {
 	piSessionId: string | null;
 	streaming: boolean;
 }
-
-const THINKING_LABELS: Record<ThinkingLevel, string> = {
-	off: "off",
-	minimal: "min",
-	low: "low",
-	medium: "med",
-	high: "high",
-	xhigh: "xhigh",
-};
 
 function stripClaudePrefix(name: string): string {
 	return name.startsWith("Claude ") ? name.slice(7) : name;
@@ -50,11 +42,11 @@ export function ChatFooter({ piSessionId, streaming }: ChatFooterProps) {
 
 	if (!piSessionId || !stats.data) return null;
 
-	const { model, thinkingLevel, contextUsage } = stats.data;
+	const { model, thinkingLevel, availableThinkingLevels, contextUsage } =
+		stats.data;
 	const modelName = model
 		? stripClaudePrefix(model.name || model.id)
 		: "no model";
-	const thinkLabel = THINKING_LABELS[thinkingLevel];
 
 	let contextDisplay: string;
 	if (contextUsage && contextUsage.percent !== null) {
@@ -86,12 +78,13 @@ export function ChatFooter({ piSessionId, streaming }: ChatFooterProps) {
 			<span aria-hidden className="text-faint">
 				·
 			</span>
-			<span
-				className={`inline-flex items-center gap-1 ${thinkingPillTone(thinkingLevel)}`}
-				title="Thinking level"
-			>
-				<span aria-hidden>think:</span>
-				<span className="font-medium">{thinkLabel}</span>
+			<span className={thinkingPillTone(thinkingLevel)}>
+				<ChatThinkingMenu
+					piSessionId={piSessionId}
+					currentLevel={thinkingLevel}
+					availableLevels={availableThinkingLevels}
+					streaming={streaming}
+				/>
 			</span>
 			<span aria-hidden className="text-faint">
 				·
