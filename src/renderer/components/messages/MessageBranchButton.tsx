@@ -1,7 +1,7 @@
 // Inline button rendered on user message rows (on hover) that forks the
 // session at this pi entry. Pi creates a new session file (with the parent's
 // history up to and including this entry); macpi attaches it under the
-// parent's channel with parent_pi_session_id = parent session. The caller is
+// parent's workspace with parent_pi_session_id = parent session. The caller is
 // notified via onForkNavigate so the renderer can switch to the new session.
 
 import { useForkSession } from "../../queries";

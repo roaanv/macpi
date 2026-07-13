@@ -1,6 +1,6 @@
 // Global registry of pi sessions currently streaming a turn. Subscribes once
 // to PiEvents at module load and updates an in-memory Set; consumers read it
-// via useStreamingSessions(). This lets the channel sidebar paint a pulse
+// via useStreamingSessions(). This lets the workspace sidebar paint a pulse
 // indicator on any streaming session, including ones not currently focused.
 
 import React from "react";

@@ -5,16 +5,16 @@ import React from "react";
 import {
 	useAbortSession,
 	useAttachSession,
-	useChannels,
 	useClearQueue,
 	usePromptSession,
 	usePrompts,
 	useReloadSession,
 	useRemoveFromQueue,
-	useSessionChannel,
 	useSessionMeta,
+	useSessionWorkspace,
 	useSetFirstMessageLabel,
 	useSkills,
+	useWorkspaces,
 } from "../queries";
 import { builtinCommands } from "../slash/registry";
 import { skillCommands } from "../slash/skills";
@@ -64,8 +64,8 @@ export function ChatPane({
 	const setFirstMessageLabelMutation = useSetFirstMessageLabel();
 	const reload = useReloadSession();
 	const sessionMeta = useSessionMeta(piSessionId);
-	const channels = useChannels();
-	const sessionChannel = useSessionChannel(piSessionId);
+	const workspaces = useWorkspaces();
+	const sessionWorkspace = useSessionWorkspace(piSessionId);
 	const [helpOpen, setHelpOpen] = React.useState(false);
 	const lastAssistantText = React.useCallback(() => {
 		const ts = snapshot.timeline;
@@ -88,9 +88,10 @@ export function ChatPane({
 		],
 		[prompts.data, skills.data],
 	);
-	const channelName =
-		channels.data?.channels.find((c) => c.id === sessionChannel.data?.channelId)
-			?.name ?? null;
+	const workspaceName =
+		workspaces.data?.workspaces.find(
+			(workspace) => workspace.id === sessionWorkspace.data?.workspaceId,
+		)?.name ?? null;
 	const [filesOpen, setFilesOpen] = React.useState<boolean>(() => {
 		try {
 			return window.localStorage.getItem("macpi:pane-open:files") === "1";
@@ -194,11 +195,11 @@ export function ChatPane({
 				<div className="flex items-start gap-2">
 					<div className="flex-1 min-w-0">
 						<ChatBreadcrumb
-							channelName={channelName}
+							workspaceName={workspaceName}
 							sessionName={sessionMeta.data?.label ?? null}
 						/>
 						<BreadcrumbBar
-							channelName={channelName}
+							workspaceName={workspaceName}
 							piSessionId={piSessionId}
 							cwd={sessionMeta.data?.cwd ?? null}
 							label={sessionMeta.data?.label ?? null}
@@ -253,7 +254,7 @@ export function ChatPane({
 					onSend={send}
 					messageHistory={messageHistory}
 					piSessionId={piSessionId}
-					channelId={sessionChannel.data?.channelId ?? null}
+					workspaceId={sessionWorkspace.data?.workspaceId ?? null}
 					lastAssistantText={lastAssistantText}
 					openHelpDialog={() => setHelpOpen(true)}
 					onSessionCreated={onSelectSession}

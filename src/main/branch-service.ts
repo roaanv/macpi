@@ -1,15 +1,15 @@
 // Orchestrates pi's session-tree primitives + sessions repo writes. Pure
 // delegation to pi for read paths; for fork, also inserts a row into
-// channel_sessions so the new pi session appears under the parent's channel
+// workspace_sessions so the new pi session appears under the parent's workspace
 // in the renderer sidebar.
 
 import type { BranchTreeSnapshot } from "../shared/branch-types";
 import type { PiEvent } from "../shared/pi-events";
-import type { ChannelSessionsRepo } from "./repos/channel-sessions";
+import type { WorkspaceSessionsRepo } from "./repos/workspace-sessions";
 import { projectTree } from "./tree-projection";
 
 interface ActiveSessionMeta {
-	channelId: string;
+	workspaceId: string;
 	cwd: string | null;
 	sessionFilePath: string | null;
 	label: string | null;
@@ -56,7 +56,7 @@ interface PiEntryLike {
 
 export interface BranchServiceDeps {
 	getAgentSession: (piSessionId: string) => BranchAgentSession | undefined;
-	channelSessions: ChannelSessionsRepo;
+	workspaceSessions: WorkspaceSessionsRepo;
 	piSessionManager: {
 		getActiveSessionMeta: (
 			piSessionId: string,
@@ -164,8 +164,8 @@ export class BranchService {
 
 		const parentDisplay = meta.label ?? piSessionId.slice(0, 6);
 		const defaultLabel = `${parentDisplay} · ${newSessionId.slice(0, 6)}`;
-		this.deps.channelSessions.attach({
-			channelId: meta.channelId,
+		this.deps.workspaceSessions.attach({
+			workspaceId: meta.workspaceId,
 			piSessionId: newSessionId,
 			cwd: meta.cwd,
 			sessionFilePath: newSessionFile,

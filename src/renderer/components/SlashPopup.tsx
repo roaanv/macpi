@@ -41,7 +41,7 @@ export function SlashPopup({
 			{matches.map((cmd, i) => {
 				const isActive = i === highlight;
 				// Highlight uses surface-row-active so it tracks the same active-
-				// row treatment used in the channel sidebar / file tree across
+				// row treatment used in the workspace sidebar / file tree across
 				// all themes.
 				return (
 					<button

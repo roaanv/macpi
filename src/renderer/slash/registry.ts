@@ -25,7 +25,7 @@ export function builtinCommands(): SlashCommand[] {
 		},
 		{
 			name: "new",
-			description: "Start a new session in this channel",
+			description: "Start a new session in this workspace",
 			argumentHint: "[cwd]",
 			kind: "builtin",
 			availableDuringStream: true,

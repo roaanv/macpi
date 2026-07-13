@@ -13,8 +13,8 @@ import type { NotesService } from "../../src/main/notes-service";
 import type { PiSessionManager } from "../../src/main/pi-session-manager";
 import type { PromptsService } from "../../src/main/prompts-service";
 import { AppSettingsRepo } from "../../src/main/repos/app-settings";
-import { ChannelSessionsRepo } from "../../src/main/repos/channel-sessions";
-import { ChannelsRepo } from "../../src/main/repos/channels";
+import { WorkspaceSessionsRepo } from "../../src/main/repos/workspace-sessions";
+import { WorkspacesRepo } from "../../src/main/repos/workspaces";
 import type { SkillsService } from "../../src/main/skills-service";
 import type { TimelineEntry } from "../../src/shared/timeline-types";
 
@@ -207,8 +207,8 @@ beforeEach(() => {
 		}),
 	};
 	router = new IpcRouter({
-		channels: new ChannelsRepo(db),
-		channelSessions: new ChannelSessionsRepo(db),
+		workspaces: new WorkspacesRepo(db),
+		workspaceSessions: new WorkspaceSessionsRepo(db),
 		piSessionManager: piSessionManagerMock as unknown as PiSessionManager,
 		appSettings: new AppSettingsRepo(db),
 		modelAuthService: modelAuthServiceMock as never,
@@ -248,19 +248,19 @@ describe("IpcRouter", () => {
 		if (r.ok) expect(r.data.value).toBe("hi");
 	});
 
-	it("channels.create then channels.list returns the new channel", async () => {
-		const r1 = await router.dispatch("channels.create", { name: "scratch" });
+	it("workspaces.create then workspaces.list returns the new workspace", async () => {
+		const r1 = await router.dispatch("workspaces.create", { name: "scratch" });
 		expect(r1.ok).toBe(true);
-		const r2 = await router.dispatch("channels.list", {});
+		const r2 = await router.dispatch("workspaces.list", {});
 		expect(r2.ok).toBe(true);
 		if (r2.ok) {
-			expect(r2.data.channels.map((c) => c.name)).toEqual(["scratch"]);
+			expect(r2.data.workspaces.map((c) => c.name)).toEqual(["scratch"]);
 		}
 	});
 
-	it("session.create rejects unknown channel", async () => {
+	it("session.create rejects unknown workspace", async () => {
 		const r = await router.dispatch("session.create", {
-			channelId: "nope",
+			workspaceId: "nope",
 			cwd: "/tmp",
 		});
 		expect(r.ok).toBe(false);
@@ -268,14 +268,14 @@ describe("IpcRouter", () => {
 	});
 
 	it("session.create maps missing selected model errors to model code", async () => {
-		const created = await router.dispatch("channels.create", { name: "x" });
-		if (!created.ok) throw new Error("setup: channel create failed");
+		const created = await router.dispatch("workspaces.create", { name: "x" });
+		if (!created.ok) throw new Error("setup: workspace create failed");
 		piSessionManagerMock.createSession.mockRejectedValueOnce(
 			new Error("Selected model anthropic/missing not found"),
 		);
 
 		const r = await router.dispatch("session.create", {
-			channelId: created.data.id,
+			workspaceId: created.data.id,
 		});
 
 		expect(r).toEqual({
@@ -288,23 +288,23 @@ describe("IpcRouter", () => {
 		});
 	});
 
-	it("session.create attaches the returned pi session id to the channel", async () => {
-		const created = await router.dispatch("channels.create", { name: "x" });
-		if (!created.ok) throw new Error("setup: channel create failed");
+	it("session.create attaches the returned pi session id to the workspace", async () => {
+		const created = await router.dispatch("workspaces.create", { name: "x" });
+		if (!created.ok) throw new Error("setup: workspace create failed");
 		piSessionManagerMock.createSession.mockResolvedValueOnce({
 			piSessionId: "sess-1",
 			sessionFilePath: null,
 		});
 
 		const r = await router.dispatch("session.create", {
-			channelId: created.data.id,
+			workspaceId: created.data.id,
 			cwd: "/tmp",
 		});
 		expect(r.ok).toBe(true);
 		if (r.ok) expect(r.data.piSessionId).toBe("sess-1");
 
-		const list = await router.dispatch("session.listForChannel", {
-			channelId: created.data.id,
+		const list = await router.dispatch("session.listForWorkspace", {
+			workspaceId: created.data.id,
 		});
 		expect(list.ok).toBe(true);
 		if (list.ok)
@@ -327,10 +327,10 @@ describe("IpcRouter", () => {
 
 	it("handler exceptions are caught and surfaced as `exception`", async () => {
 		piSessionManagerMock.createSession.mockRejectedValueOnce(new Error("boom"));
-		const c = await router.dispatch("channels.create", { name: "x" });
+		const c = await router.dispatch("workspaces.create", { name: "x" });
 		if (!c.ok) throw new Error("setup");
 		const r = await router.dispatch("session.create", {
-			channelId: c.data.id,
+			workspaceId: c.data.id,
 			cwd: "/tmp",
 		});
 		expect(r.ok).toBe(false);
@@ -767,14 +767,14 @@ describe("IpcRouter", () => {
 	});
 
 	it("session.rename writes the user-set label", async () => {
-		const c = await router.dispatch("channels.create", { name: "x" });
+		const c = await router.dispatch("workspaces.create", { name: "x" });
 		if (!c.ok) throw new Error("setup");
 		piSessionManagerMock.createSession.mockResolvedValueOnce({
 			piSessionId: "s-rename",
 			sessionFilePath: null,
 		});
 		await router.dispatch("session.create", {
-			channelId: c.data.id,
+			workspaceId: c.data.id,
 			cwd: "/tmp",
 		});
 
@@ -784,20 +784,20 @@ describe("IpcRouter", () => {
 		});
 
 		expect(r).toEqual({ ok: true, data: {} });
-		const repo = new ChannelSessionsRepo(db);
+		const repo = new WorkspaceSessionsRepo(db);
 		expect(repo.getMeta("s-rename")?.label).toBe("my work");
 		expect(repo.getMeta("s-rename")?.labelUserSet).toBe(true);
 	});
 
 	it("session.delete removes the row and disposes the active pi session", async () => {
-		const c = await router.dispatch("channels.create", { name: "x" });
+		const c = await router.dispatch("workspaces.create", { name: "x" });
 		if (!c.ok) throw new Error("setup");
 		piSessionManagerMock.createSession.mockResolvedValueOnce({
 			piSessionId: "s-del",
 			sessionFilePath: null,
 		});
 		await router.dispatch("session.create", {
-			channelId: c.data.id,
+			workspaceId: c.data.id,
 			cwd: "/tmp",
 		});
 
@@ -805,26 +805,26 @@ describe("IpcRouter", () => {
 
 		expect(r).toEqual({ ok: true, data: {} });
 		expect(piSessionManagerMock.disposeSession).toHaveBeenCalledWith("s-del");
-		const list = await router.dispatch("session.listForChannel", {
-			channelId: c.data.id,
+		const list = await router.dispatch("session.listForWorkspace", {
+			workspaceId: c.data.id,
 		});
-		if (!list.ok) throw new Error("listForChannel failed");
+		if (!list.ok) throw new Error("listForWorkspace failed");
 		expect(list.data.sessions).toEqual([]);
 	});
 
-	it("channels.delete on a non-empty channel without force returns non_empty", async () => {
-		const c = await router.dispatch("channels.create", { name: "x" });
+	it("workspaces.delete on a non-empty workspace without force returns non_empty", async () => {
+		const c = await router.dispatch("workspaces.create", { name: "x" });
 		if (!c.ok) throw new Error("setup");
 		piSessionManagerMock.createSession.mockResolvedValueOnce({
 			piSessionId: "s1",
 			sessionFilePath: null,
 		});
 		await router.dispatch("session.create", {
-			channelId: c.data.id,
+			workspaceId: c.data.id,
 			cwd: "/tmp",
 		});
 
-		const r = await router.dispatch("channels.delete", { id: c.data.id });
+		const r = await router.dispatch("workspaces.delete", { id: c.data.id });
 
 		expect(r.ok).toBe(false);
 		if (!r.ok) {
@@ -833,8 +833,8 @@ describe("IpcRouter", () => {
 		}
 	});
 
-	it("channels.delete with force=true cascades and disposes pi sessions", async () => {
-		const c = await router.dispatch("channels.create", { name: "x" });
+	it("workspaces.delete with force=true cascades and disposes pi sessions", async () => {
+		const c = await router.dispatch("workspaces.create", { name: "x" });
 		if (!c.ok) throw new Error("setup");
 		piSessionManagerMock.createSession.mockResolvedValueOnce({
 			piSessionId: "s1",
@@ -845,15 +845,15 @@ describe("IpcRouter", () => {
 			sessionFilePath: null,
 		});
 		await router.dispatch("session.create", {
-			channelId: c.data.id,
+			workspaceId: c.data.id,
 			cwd: "/tmp",
 		});
 		await router.dispatch("session.create", {
-			channelId: c.data.id,
+			workspaceId: c.data.id,
 			cwd: "/tmp",
 		});
 
-		const r = await router.dispatch("channels.delete", {
+		const r = await router.dispatch("workspaces.delete", {
 			id: c.data.id,
 			force: true,
 		});
@@ -861,29 +861,29 @@ describe("IpcRouter", () => {
 		expect(r).toEqual({ ok: true, data: {} });
 		expect(piSessionManagerMock.disposeSession).toHaveBeenCalledWith("s1");
 		expect(piSessionManagerMock.disposeSession).toHaveBeenCalledWith("s2");
-		const list = await router.dispatch("channels.list", {});
+		const list = await router.dispatch("workspaces.list", {});
 		if (!list.ok) throw new Error("list failed");
-		expect(list.data.channels).toHaveLength(0);
+		expect(list.data.workspaces).toHaveLength(0);
 	});
 
-	it("channels.delete on an empty channel succeeds without force", async () => {
-		const c = await router.dispatch("channels.create", { name: "empty" });
+	it("workspaces.delete on an empty workspace succeeds without force", async () => {
+		const c = await router.dispatch("workspaces.create", { name: "empty" });
 		if (!c.ok) throw new Error("setup");
 
-		const r = await router.dispatch("channels.delete", { id: c.data.id });
+		const r = await router.dispatch("workspaces.delete", { id: c.data.id });
 
 		expect(r).toEqual({ ok: true, data: {} });
 	});
 
 	it("session.getMeta returns the persisted label and cwd", async () => {
-		const c = await router.dispatch("channels.create", { name: "x" });
+		const c = await router.dispatch("workspaces.create", { name: "x" });
 		if (!c.ok) throw new Error("setup");
 		piSessionManagerMock.createSession.mockResolvedValueOnce({
 			piSessionId: "s-meta",
 			sessionFilePath: null,
 		});
 		await router.dispatch("session.create", {
-			channelId: c.data.id,
+			workspaceId: c.data.id,
 			cwd: "/Users/x/repo",
 		});
 
@@ -908,14 +908,14 @@ describe("IpcRouter", () => {
 	});
 
 	it("session.setFirstMessageLabel writes when label_user_set=0", async () => {
-		const c = await router.dispatch("channels.create", { name: "x" });
+		const c = await router.dispatch("workspaces.create", { name: "x" });
 		if (!c.ok) throw new Error("setup");
 		piSessionManagerMock.createSession.mockResolvedValueOnce({
 			piSessionId: "s-fm",
 			sessionFilePath: null,
 		});
 		await router.dispatch("session.create", {
-			channelId: c.data.id,
+			workspaceId: c.data.id,
 			cwd: "/Users/x/macpi",
 		});
 
@@ -934,14 +934,14 @@ describe("IpcRouter", () => {
 	});
 
 	it("session.setFirstMessageLabel returns applied=false when user has set a label", async () => {
-		const c = await router.dispatch("channels.create", { name: "x" });
+		const c = await router.dispatch("workspaces.create", { name: "x" });
 		if (!c.ok) throw new Error("setup");
 		piSessionManagerMock.createSession.mockResolvedValueOnce({
 			piSessionId: "s-fm2",
 			sessionFilePath: null,
 		});
 		await router.dispatch("session.create", {
-			channelId: c.data.id,
+			workspaceId: c.data.id,
 			cwd: "/x",
 		});
 		await router.dispatch("session.rename", {
@@ -985,32 +985,32 @@ describe("IpcRouter", () => {
 		}
 	});
 
-	it("session.findChannel returns the owning channel id", async () => {
-		const c = await router.dispatch("channels.create", { name: "x" });
+	it("session.findWorkspace returns the owning workspace id", async () => {
+		const c = await router.dispatch("workspaces.create", { name: "x" });
 		if (!c.ok) throw new Error("setup");
 		piSessionManagerMock.createSession.mockResolvedValueOnce({
 			piSessionId: "s-fc",
 			sessionFilePath: null,
 		});
 		await router.dispatch("session.create", {
-			channelId: c.data.id,
+			workspaceId: c.data.id,
 			cwd: "/x",
 		});
 
-		const r = await router.dispatch("session.findChannel", {
+		const r = await router.dispatch("session.findWorkspace", {
 			piSessionId: "s-fc",
 		});
 
 		expect(r.ok).toBe(true);
-		if (r.ok) expect(r.data.channelId).toBe(c.data.id);
+		if (r.ok) expect(r.data.workspaceId).toBe(c.data.id);
 	});
 
-	it("session.findChannel returns null for unknown session", async () => {
-		const r = await router.dispatch("session.findChannel", {
+	it("session.findWorkspace returns null for unknown session", async () => {
+		const r = await router.dispatch("session.findWorkspace", {
 			piSessionId: "no-such",
 		});
 		expect(r.ok).toBe(true);
-		if (r.ok) expect(r.data.channelId).toBeNull();
+		if (r.ok) expect(r.data.workspaceId).toBeNull();
 	});
 
 	it("settings.getAll returns the stored settings", async () => {
@@ -1249,33 +1249,33 @@ describe("IpcRouter", () => {
 		});
 	});
 
-	it("channels.create persists cwd when provided", async () => {
-		const c = await router.dispatch("channels.create", {
+	it("workspaces.create persists cwd when provided", async () => {
+		const c = await router.dispatch("workspaces.create", {
 			name: "x",
 			cwd: "/Users/x/code",
 		});
 		if (!c.ok) throw new Error("setup");
 
-		const list = await router.dispatch("channels.list", {});
+		const list = await router.dispatch("workspaces.list", {});
 		if (!list.ok) throw new Error("list failed");
-		const ch = list.data.channels.find((x) => x.id === c.data.id);
+		const ch = list.data.workspaces.find((x) => x.id === c.data.id);
 		expect(ch?.cwd).toBe("/Users/x/code");
 	});
 
-	it("channels.create stores null cwd when not provided", async () => {
-		const c = await router.dispatch("channels.create", { name: "x" });
+	it("workspaces.create stores null cwd when not provided", async () => {
+		const c = await router.dispatch("workspaces.create", { name: "x" });
 		if (!c.ok) throw new Error("setup");
 
-		const list = await router.dispatch("channels.list", {});
+		const list = await router.dispatch("workspaces.list", {});
 		if (!list.ok) throw new Error("list failed");
-		const ch = list.data.channels.find((x) => x.id === c.data.id);
+		const ch = list.data.workspaces.find((x) => x.id === c.data.id);
 		expect(ch?.cwd).toBeNull();
 	});
 
-	it("session.create resolves cwd from channel.cwd when override absent", async () => {
-		const c = await router.dispatch("channels.create", {
+	it("session.create resolves cwd from workspace.cwd when override absent", async () => {
+		const c = await router.dispatch("workspaces.create", {
 			name: "x",
-			cwd: "/from-channel",
+			cwd: "/from-workspace",
 		});
 		if (!c.ok) throw new Error("setup");
 		piSessionManagerMock.createSession.mockResolvedValueOnce({
@@ -1284,16 +1284,16 @@ describe("IpcRouter", () => {
 		});
 
 		const r = await router.dispatch("session.create", {
-			channelId: c.data.id,
+			workspaceId: c.data.id,
 		});
 		expect(r.ok).toBe(true);
 		expect(piSessionManagerMock.createSession).toHaveBeenCalledWith({
-			cwd: "/from-channel",
+			cwd: "/from-workspace",
 		});
 	});
 
-	it("session.create resolves cwd from defaultCwd when channel.cwd null", async () => {
-		const c = await router.dispatch("channels.create", { name: "x" });
+	it("session.create resolves cwd from defaultCwd when workspace.cwd null", async () => {
+		const c = await router.dispatch("workspaces.create", { name: "x" });
 		if (!c.ok) throw new Error("setup");
 		await router.dispatch("settings.set", {
 			key: "defaultCwd",
@@ -1305,7 +1305,7 @@ describe("IpcRouter", () => {
 		});
 
 		const r = await router.dispatch("session.create", {
-			channelId: c.data.id,
+			workspaceId: c.data.id,
 		});
 		expect(r.ok).toBe(true);
 		expect(piSessionManagerMock.createSession).toHaveBeenCalledWith({
@@ -1313,10 +1313,10 @@ describe("IpcRouter", () => {
 		});
 	});
 
-	it("session.create explicit override beats channel + default", async () => {
-		const c = await router.dispatch("channels.create", {
+	it("session.create explicit override beats workspace + default", async () => {
+		const c = await router.dispatch("workspaces.create", {
 			name: "x",
-			cwd: "/channel",
+			cwd: "/workspace",
 		});
 		if (!c.ok) throw new Error("setup");
 		await router.dispatch("settings.set", {
@@ -1329,7 +1329,7 @@ describe("IpcRouter", () => {
 		});
 
 		const r = await router.dispatch("session.create", {
-			channelId: c.data.id,
+			workspaceId: c.data.id,
 			cwd: "/explicit",
 		});
 		expect(r.ok).toBe(true);

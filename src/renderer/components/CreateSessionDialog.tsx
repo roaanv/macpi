@@ -1,47 +1,49 @@
-// Modal for creating a new session in a channel. The session inherits
-// the channel's cwd (cannot be changed). Name is optional — empty name
+// Modal for creating a new session in a workspace. The session inherits
+// the workspace's cwd (cannot be changed). Name is optional — empty name
 // lets the auto-label-on-first-message flow run as before.
 
 import React from "react";
-import { useChannels, useCreateSession } from "../queries";
+import { useCreateSession, useWorkspaces } from "../queries";
 
 export interface CreateSessionDialogProps {
-	channelId: string | null;
+	workspaceId: string | null;
 	onClose: () => void;
 	onCreated: (piSessionId: string) => void;
 }
 
 export function CreateSessionDialog({
-	channelId,
+	workspaceId,
 	onClose,
 	onCreated,
 }: CreateSessionDialogProps) {
-	const channels = useChannels();
+	const workspaces = useWorkspaces();
 	const createSession = useCreateSession();
 	const [name, setName] = React.useState("");
 
-	const channel = channels.data?.channels.find((c) => c.id === channelId);
+	const workspace = workspaces.data?.workspaces.find(
+		(candidate) => candidate.id === workspaceId,
+	);
 
 	React.useEffect(() => {
-		if (!channelId) return;
+		if (!workspaceId) return;
 		setName("");
-	}, [channelId]);
+	}, [workspaceId]);
 
 	React.useEffect(() => {
-		if (!channelId) return;
+		if (!workspaceId) return;
 		const onKey = (e: KeyboardEvent) => {
 			if (e.key === "Escape") onClose();
 		};
 		window.addEventListener("keydown", onKey);
 		return () => window.removeEventListener("keydown", onKey);
-	}, [channelId, onClose]);
+	}, [workspaceId, onClose]);
 
-	if (!channelId || !channel) return null;
+	if (!workspaceId || !workspace) return null;
 
 	const handleCreate = async (e: React.FormEvent) => {
 		e.preventDefault();
 		const r = await createSession.mutateAsync({
-			channelId: channel.id,
+			workspaceId: workspace.id,
 			label: name.trim() || undefined,
 		});
 		onCreated(r.piSessionId);
@@ -63,7 +65,7 @@ export function CreateSessionDialog({
 				onKeyDown={() => undefined}
 			>
 				<div className="mb-3 text-sm font-semibold">
-					New session in <span className="text-muted">#</span> {channel.name}
+					New session in <span className="text-muted">#</span> {workspace.name}
 				</div>
 
 				<label className="mb-1 block">
@@ -79,7 +81,7 @@ export function CreateSessionDialog({
 					/>
 				</label>
 				<div className="mb-4 text-[11px] text-muted">
-					cwd: {channel.cwd ?? "(global default)"}
+					cwd: {workspace.cwd ?? "(global default)"}
 				</div>
 
 				<div className="flex justify-end gap-2">

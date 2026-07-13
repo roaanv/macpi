@@ -1,17 +1,17 @@
-// Left sidebar: channels (with hover ⋮ menu + right-click for new session)
-// and sessions in the selected channel. Sessions render as a proper tree with
+// Left sidebar: workspaces (with hover ⋮ menu + right-click for new session)
+// and sessions in the selected workspace. Sessions render as a proper tree with
 // vertical rails + L-connectors; the active lineage paints in the accent
-// colour. Channel + session creation happens via dialogs hosted in App.tsx.
+// colour. Workspace + session creation happens via dialogs hosted in App.tsx.
 
 import React from "react";
 import { IpcError } from "../ipc";
 import {
-	useChannels,
-	useDeleteChannel,
 	useDeleteSession,
-	useRenameChannel,
+	useDeleteWorkspace,
 	useRenameSession,
-	useSessionsForChannel,
+	useRenameWorkspace,
+	useSessionsForWorkspace,
+	useWorkspaces,
 } from "../queries";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { ContextMenu } from "./ContextMenu";
@@ -121,33 +121,33 @@ function computeActiveLineage(
 	return out;
 }
 
-export function ChannelSidebar({
-	selectedChannelId,
+export function WorkspaceSidebar({
+	selectedWorkspaceId,
 	selectedSessionId,
-	onSelectChannel,
+	onSelectWorkspace,
 	onSelectSession,
-	onOpenCreateChannel,
+	onOpenCreateWorkspace,
 	onOpenCreateSession,
 }: {
-	selectedChannelId: string | null;
+	selectedWorkspaceId: string | null;
 	selectedSessionId: string | null;
-	onSelectChannel: (id: string | null) => void;
+	onSelectWorkspace: (id: string | null) => void;
 	onSelectSession: (id: string | null) => void;
-	onOpenCreateChannel: () => void;
-	onOpenCreateSession: (channelId: string) => void;
+	onOpenCreateWorkspace: () => void;
+	onOpenCreateSession: (workspaceId: string) => void;
 }) {
-	const channels = useChannels();
-	const renameChannel = useRenameChannel();
-	const deleteChannel = useDeleteChannel();
+	const workspaces = useWorkspaces();
+	const renameWorkspace = useRenameWorkspace();
+	const deleteWorkspace = useDeleteWorkspace();
 	const renameSession = useRenameSession();
 	const deleteSession = useDeleteSession();
-	const sessions = useSessionsForChannel(selectedChannelId);
+	const sessions = useSessionsForWorkspace(selectedWorkspaceId);
 
-	const [editingChannelId, setEditingChannelId] = React.useState<string | null>(
-		null,
-	);
-	const [editingChannelDraft, setEditingChannelDraft] = React.useState("");
-	const [confirmChannelDelete, setConfirmChannelDelete] = React.useState<{
+	const [editingWorkspaceId, setEditingWorkspaceId] = React.useState<
+		string | null
+	>(null);
+	const [editingWorkspaceDraft, setEditingWorkspaceDraft] = React.useState("");
+	const [confirmWorkspaceDelete, setConfirmWorkspaceDelete] = React.useState<{
 		id: string;
 		name: string;
 		count: number;
@@ -155,42 +155,42 @@ export function ChannelSidebar({
 	const [confirmSessionDelete, setConfirmSessionDelete] = React.useState<{
 		piSessionId: string;
 	} | null>(null);
-	const [channelContextMenu, setChannelContextMenu] = React.useState<{
-		channelId: string;
+	const [workspaceContextMenu, setWorkspaceContextMenu] = React.useState<{
+		workspaceId: string;
 		x: number;
 		y: number;
 	} | null>(null);
 
-	const handleDeleteChannelForce = async () => {
-		if (!confirmChannelDelete) return;
-		const id = confirmChannelDelete.id;
-		await deleteChannel.mutateAsync({ id, force: true });
-		setConfirmChannelDelete(null);
-		if (selectedChannelId === id) {
-			onSelectChannel(null);
+	const handleDeleteWorkspaceForce = async () => {
+		if (!confirmWorkspaceDelete) return;
+		const id = confirmWorkspaceDelete.id;
+		await deleteWorkspace.mutateAsync({ id, force: true });
+		setConfirmWorkspaceDelete(null);
+		if (selectedWorkspaceId === id) {
+			onSelectWorkspace(null);
 			onSelectSession(null);
 		}
 	};
 
-	const handleRequestDeleteChannel = async (id: string, name: string) => {
+	const handleRequestDeleteWorkspace = async (id: string, name: string) => {
 		try {
-			await deleteChannel.mutateAsync({ id });
-			if (selectedChannelId === id) {
-				onSelectChannel(null);
+			await deleteWorkspace.mutateAsync({ id });
+			if (selectedWorkspaceId === id) {
+				onSelectWorkspace(null);
 				onSelectSession(null);
 			}
 		} catch (e) {
 			if (e instanceof IpcError && e.code === "non_empty") {
 				const m = e.message.match(/(\d+)/);
 				const count = m ? Number(m[1]) : 1;
-				setConfirmChannelDelete({ id, name, count });
+				setConfirmWorkspaceDelete({ id, name, count });
 				return;
 			}
 			throw e;
 		}
 	};
 
-	const channelMenuItems = (id: string, name: string): RowMenuItem[] => [
+	const workspaceMenuItems = (id: string, name: string): RowMenuItem[] => [
 		{
 			label: "New session…",
 			onClick: () => onOpenCreateSession(id),
@@ -198,24 +198,26 @@ export function ChannelSidebar({
 		{
 			label: "Rename",
 			onClick: () => {
-				setEditingChannelDraft(name);
-				setEditingChannelId(id);
+				setEditingWorkspaceDraft(name);
+				setEditingWorkspaceId(id);
 			},
 		},
 		{
 			label: "Delete",
 			destructive: true,
-			onClick: () => handleRequestDeleteChannel(id, name),
+			onClick: () => handleRequestDeleteWorkspace(id, name),
 		},
 	];
 
-	const contextMenuChannel = channelContextMenu
-		? channels.data?.channels.find((c) => c.id === channelContextMenu.channelId)
+	const contextMenuWorkspace = workspaceContextMenu
+		? workspaces.data?.workspaces.find(
+				(workspace) => workspace.id === workspaceContextMenu.workspaceId,
+			)
 		: null;
 
 	const sessionRows: readonly SessionRef[] =
 		sessions.data?.sessions ?? EMPTY_SESSIONS;
-	const treeRows = React.useMemo(
+	const workspaceTreeRows = React.useMemo(
 		() => flattenForestWithRails(buildSessionForest(sessionRows)),
 		[sessionRows],
 	);
@@ -230,34 +232,34 @@ export function ChannelSidebar({
 				<span className="font-semibold">Workspaces</span>
 				<button
 					type="button"
-					onClick={onOpenCreateChannel}
-					title="New channel"
-					aria-label="New channel"
+					onClick={onOpenCreateWorkspace}
+					title="New workspace"
+					aria-label="New workspace"
 					className="rounded px-1.5 text-xs text-muted hover:surface-row hover:text-primary"
 				>
 					+
 				</button>
 			</div>
-			{channels.data?.channels.map((c) =>
-				editingChannelId === c.id ? (
+			{workspaces.data?.workspaces.map((workspace) =>
+				editingWorkspaceId === workspace.id ? (
 					<input
-						key={c.id}
+						key={workspace.id}
 						// biome-ignore lint/a11y/noAutofocus: focus is intentional when entering inline rename mode
 						autoFocus
-						value={editingChannelDraft}
-						onChange={(e) => setEditingChannelDraft(e.target.value)}
+						value={editingWorkspaceDraft}
+						onChange={(e) => setEditingWorkspaceDraft(e.target.value)}
 						onBlur={() => {
-							const name = editingChannelDraft.trim();
-							if (name && name !== c.name) {
-								renameChannel.mutate({ id: c.id, name });
+							const name = editingWorkspaceDraft.trim();
+							if (name && name !== workspace.name) {
+								renameWorkspace.mutate({ id: workspace.id, name });
 							}
-							setEditingChannelId(null);
+							setEditingWorkspaceId(null);
 						}}
 						onKeyDown={(e) => {
 							if (e.key === "Enter") {
 								(e.target as HTMLInputElement).blur();
 							} else if (e.key === "Escape") {
-								setEditingChannelId(null);
+								setEditingWorkspaceId(null);
 							}
 						}}
 						className="rounded surface-panel px-2 py-1 text-primary outline-none"
@@ -265,17 +267,17 @@ export function ChannelSidebar({
 				) : (
 					// biome-ignore lint/a11y/noStaticElementInteractions: right-click opens the same menu the ⋮ button shows; keyboard-accessible via that button
 					<div
-						key={c.id}
+						key={workspace.id}
 						className={`group flex items-center gap-1 rounded ${
-							selectedChannelId === c.id
+							selectedWorkspaceId === workspace.id
 								? "surface-row-active text-primary"
 								: "text-muted hover:surface-row"
 						}`}
-						title={`# ${c.name}\n${c.cwd ?? "(global default)"}`}
+						title={`# ${workspace.name}\n${workspace.cwd ?? "(global default)"}`}
 						onContextMenu={(e) => {
 							e.preventDefault();
-							setChannelContextMenu({
-								channelId: c.id,
+							setWorkspaceContextMenu({
+								workspaceId: workspace.id,
 								x: e.clientX,
 								y: e.clientY,
 							});
@@ -283,96 +285,103 @@ export function ChannelSidebar({
 					>
 						<button
 							type="button"
-							onClick={() => onSelectChannel(c.id)}
+							onClick={() => onSelectWorkspace(workspace.id)}
 							className="flex-1 px-2 py-1 text-left"
 						>
 							<span
 								className={
-									selectedChannelId === c.id ? "text-accent" : "text-faint"
+									selectedWorkspaceId === workspace.id
+										? "text-accent"
+										: "text-faint"
 								}
 							>
 								#
 							</span>{" "}
-							{c.name}
+							{workspace.name}
 						</button>
-						<RowMenu items={channelMenuItems(c.id, c.name)} />
+						<RowMenu items={workspaceMenuItems(workspace.id, workspace.name)} />
 					</div>
 				),
 			)}
 
-			{selectedChannelId && (
+			{selectedWorkspaceId && (
 				<>
 					<div className="mt-3 flex items-center justify-between px-2 pb-1 text-[10px] text-faint uppercase tracking-widest">
 						<span className="font-semibold">Sessions</span>
-						{treeRows.length > 0 && (
+						{workspaceTreeRows.length > 0 && (
 							<span className="font-medium normal-case tracking-normal">
-								{treeRows.length}
+								{workspaceTreeRows.length}
 							</span>
 						)}
 					</div>
 					{/*
-					 * Sessions render at 90% of the channel size so the tree feels
-					 * subordinate to its channel — the wrapper sets the base size
+					 * Sessions render at 90% of the workspace size so the tree feels
+					 * subordinate to its workspace — the wrapper sets the base size
 					 * once and SessionRow inherits it.
 					 */}
 					<div
 						className="flex flex-col gap-px"
 						style={{ fontSize: "calc(var(--font-size-sidebar) * 0.9)" }}
 					>
-						{treeRows.map(({ node, depth, isLastChild, throughRailDepths }) => (
-							<SessionRow
-								key={node.piSessionId}
-								piSessionId={node.piSessionId}
-								selected={selectedSessionId === node.piSessionId}
-								depth={depth}
-								throughRailDepths={throughRailDepths}
-								isLastChild={isLastChild}
-								onActiveLineage={activeLineage.has(node.piSessionId)}
-								onSelect={() => onSelectSession(node.piSessionId)}
-								onRename={(label) =>
-									renameSession.mutate({
-										piSessionId: node.piSessionId,
-										label,
-									})
-								}
-								onRequestDelete={() =>
-									setConfirmSessionDelete({ piSessionId: node.piSessionId })
-								}
-							/>
-						))}
+						{workspaceTreeRows.map(
+							({ node, depth, isLastChild, throughRailDepths }) => (
+								<SessionRow
+									key={node.piSessionId}
+									piSessionId={node.piSessionId}
+									selected={selectedSessionId === node.piSessionId}
+									depth={depth}
+									throughRailDepths={throughRailDepths}
+									isLastChild={isLastChild}
+									onActiveLineage={activeLineage.has(node.piSessionId)}
+									onSelect={() => onSelectSession(node.piSessionId)}
+									onRename={(label) =>
+										renameSession.mutate({
+											piSessionId: node.piSessionId,
+											label,
+										})
+									}
+									onRequestDelete={() =>
+										setConfirmSessionDelete({ piSessionId: node.piSessionId })
+									}
+								/>
+							),
+						)}
 					</div>
 				</>
 			)}
 
 			<ContextMenu
 				items={
-					contextMenuChannel
-						? channelMenuItems(contextMenuChannel.id, contextMenuChannel.name)
+					contextMenuWorkspace
+						? workspaceMenuItems(
+								contextMenuWorkspace.id,
+								contextMenuWorkspace.name,
+							)
 						: []
 				}
 				position={
-					contextMenuChannel && channelContextMenu
-						? { x: channelContextMenu.x, y: channelContextMenu.y }
+					contextMenuWorkspace && workspaceContextMenu
+						? { x: workspaceContextMenu.x, y: workspaceContextMenu.y }
 						: null
 				}
-				onClose={() => setChannelContextMenu(null)}
+				onClose={() => setWorkspaceContextMenu(null)}
 			/>
 			<ConfirmDialog
-				open={!!confirmChannelDelete}
-				title="Delete channel?"
+				open={!!confirmWorkspaceDelete}
+				title="Delete workspace?"
 				body={
-					confirmChannelDelete && (
+					confirmWorkspaceDelete && (
 						<>
-							Channel <code>#{confirmChannelDelete.name}</code> has{" "}
-							{confirmChannelDelete.count} session(s). Delete the channel and
-							all its sessions? Pi's session files on disk are preserved.
+							Workspace <code>#{confirmWorkspaceDelete.name}</code> has{" "}
+							{confirmWorkspaceDelete.count} session(s). Delete the workspace
+							and all its sessions? Pi's session files on disk are preserved.
 						</>
 					)
 				}
 				confirmLabel="Delete"
 				destructive
-				onConfirm={handleDeleteChannelForce}
-				onCancel={() => setConfirmChannelDelete(null)}
+				onConfirm={handleDeleteWorkspaceForce}
+				onCancel={() => setConfirmWorkspaceDelete(null)}
 			/>
 			<ConfirmDialog
 				open={!!confirmSessionDelete}

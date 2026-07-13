@@ -16,12 +16,12 @@ describe("IPC envelope", () => {
 	});
 
 	it("err() builds a failure envelope", () => {
-		const r = err("not_found", "no such channel");
+		const r = err("not_found", "no such workspace");
 		expect(isErr(r)).toBe(true);
 		expect(isOk(r)).toBe(false);
 		if (isErr(r)) {
 			expect(r.error.code).toBe("not_found");
-			expect(r.error.message).toBe("no such channel");
+			expect(r.error.message).toBe("no such workspace");
 		}
 	});
 

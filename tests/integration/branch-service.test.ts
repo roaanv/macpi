@@ -33,10 +33,10 @@ describe("BranchService.getTree", () => {
 		const ags = fakeAgentSession([u1], "e1");
 		const svc = new BranchService({
 			getAgentSession: () => ags as never,
-			channelSessions: { attach: vi.fn() } as never,
+			workspaceSessions: { attach: vi.fn() } as never,
 			piSessionManager: {
 				getActiveSessionMeta: () => ({
-					channelId: "c1",
+					workspaceId: "c1",
 					cwd: "/tmp",
 					sessionFilePath: "/tmp/s.jsonl",
 					label: "Session A",
@@ -54,7 +54,7 @@ describe("BranchService.getTree", () => {
 	it("throws not_found when the session is unknown", async () => {
 		const svc = new BranchService({
 			getAgentSession: () => undefined,
-			channelSessions: { attach: vi.fn() } as never,
+			workspaceSessions: { attach: vi.fn() } as never,
 			piSessionManager: {
 				getActiveSessionMeta: () => undefined,
 			} as never,
@@ -69,7 +69,7 @@ describe("BranchService.navigateTree", () => {
 		const ags = fakeAgentSession([], null);
 		const svc = new BranchService({
 			getAgentSession: () => ags as never,
-			channelSessions: { attach: vi.fn() } as never,
+			workspaceSessions: { attach: vi.fn() } as never,
 			piSessionManager: { getActiveSessionMeta: () => undefined } as never,
 			emitEvent: vi.fn(),
 		});
@@ -94,7 +94,7 @@ describe("BranchService.navigateTree", () => {
 		const emitEvent = vi.fn();
 		const svc = new BranchService({
 			getAgentSession: () => ags as never,
-			channelSessions: { attach: vi.fn() } as never,
+			workspaceSessions: { attach: vi.fn() } as never,
 			piSessionManager: { getActiveSessionMeta: () => undefined } as never,
 			emitEvent,
 		});
@@ -110,7 +110,7 @@ describe("BranchService.navigateTree", () => {
 	it("throws not_found for unknown session", async () => {
 		const svc = new BranchService({
 			getAgentSession: () => undefined,
-			channelSessions: { attach: vi.fn() } as never,
+			workspaceSessions: { attach: vi.fn() } as never,
 			piSessionManager: { getActiveSessionMeta: () => undefined } as never,
 			emitEvent: vi.fn(),
 		});
@@ -131,7 +131,7 @@ describe("BranchService.setEntryLabel", () => {
 		};
 		const svc = new BranchService({
 			getAgentSession: () => ags as never,
-			channelSessions: { attach: vi.fn() } as never,
+			workspaceSessions: { attach: vi.fn() } as never,
 			piSessionManager: { getActiveSessionMeta: () => undefined } as never,
 			emitEvent: vi.fn(),
 		});
@@ -151,7 +151,7 @@ describe("BranchService.setEntryLabel", () => {
 		};
 		const svc = new BranchService({
 			getAgentSession: () => ags as never,
-			channelSessions: { attach: vi.fn() } as never,
+			workspaceSessions: { attach: vi.fn() } as never,
 			piSessionManager: { getActiveSessionMeta: () => undefined } as never,
 			emitEvent: vi.fn(),
 		});
@@ -161,7 +161,7 @@ describe("BranchService.setEntryLabel", () => {
 });
 
 describe("BranchService.fork", () => {
-	it("creates a branched session file and attaches it under the parent's channel", async () => {
+	it("creates a branched session file and attaches it under the parent's workspace", async () => {
 		const createBranchedSession = vi.fn().mockReturnValue("/tmp/new-s.jsonl");
 		const getEntry = vi.fn().mockReturnValue({
 			id: "entry-42",
@@ -186,10 +186,10 @@ describe("BranchService.fork", () => {
 			.mockResolvedValue({ piSessionId: "new-s" });
 		const svc = new BranchService({
 			getAgentSession: () => ags as never,
-			channelSessions: { attach } as never,
+			workspaceSessions: { attach } as never,
 			piSessionManager: {
 				getActiveSessionMeta: () => ({
-					channelId: "channel-1",
+					workspaceId: "workspace-1",
 					cwd: "/work",
 					sessionFilePath: "/tmp/old.jsonl",
 					label: "Parent",
@@ -203,7 +203,7 @@ describe("BranchService.fork", () => {
 		expect(createBranchedSession).toHaveBeenCalledWith("entry-42");
 		expect(attachSessionByFile).toHaveBeenCalledWith("/tmp/new-s.jsonl");
 		expect(attach).toHaveBeenCalledWith({
-			channelId: "channel-1",
+			workspaceId: "workspace-1",
 			piSessionId: "new-s",
 			cwd: "/work",
 			sessionFilePath: "/tmp/new-s.jsonl",
@@ -234,10 +234,10 @@ describe("BranchService.fork", () => {
 		};
 		const svc = new BranchService({
 			getAgentSession: () => ags as never,
-			channelSessions: { attach: vi.fn() } as never,
+			workspaceSessions: { attach: vi.fn() } as never,
 			piSessionManager: {
 				getActiveSessionMeta: () => ({
-					channelId: "c",
+					workspaceId: "c",
 					cwd: null,
 					sessionFilePath: null,
 					label: null,
@@ -271,10 +271,10 @@ describe("BranchService.fork", () => {
 		};
 		const svc = new BranchService({
 			getAgentSession: () => ags as never,
-			channelSessions: { attach: vi.fn() } as never,
+			workspaceSessions: { attach: vi.fn() } as never,
 			piSessionManager: {
 				getActiveSessionMeta: () => ({
-					channelId: "c",
+					workspaceId: "c",
 					cwd: null,
 					sessionFilePath: null,
 					label: null,
@@ -289,7 +289,7 @@ describe("BranchService.fork", () => {
 	it("throws not_found if the session is unknown", async () => {
 		const svc = new BranchService({
 			getAgentSession: () => undefined,
-			channelSessions: { attach: vi.fn() } as never,
+			workspaceSessions: { attach: vi.fn() } as never,
 			piSessionManager: {
 				getActiveSessionMeta: () => undefined,
 				attachSessionByFile: vi.fn(),

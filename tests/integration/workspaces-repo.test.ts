@@ -4,22 +4,22 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { type DbHandle, openDb } from "../../src/main/db/connection";
 import { runMigrations } from "../../src/main/db/migrations";
-import { ChannelSessionsRepo } from "../../src/main/repos/channel-sessions";
-import { ChannelsRepo } from "../../src/main/repos/channels";
+import { WorkspaceSessionsRepo } from "../../src/main/repos/workspace-sessions";
+import { WorkspacesRepo } from "../../src/main/repos/workspaces";
 
 let dir: string;
 let db: DbHandle;
-let repo: ChannelsRepo;
+let repo: WorkspacesRepo;
 
 beforeEach(() => {
 	process.env.MACPI_MIGRATIONS_DIR = path.resolve(
 		__dirname,
 		"../../src/main/db/migrations",
 	);
-	dir = fs.mkdtempSync(path.join(os.tmpdir(), "macpi-channels-"));
+	dir = fs.mkdtempSync(path.join(os.tmpdir(), "macpi-workspaces-"));
 	db = openDb({ filename: path.join(dir, "test.db") });
 	runMigrations(db);
-	repo = new ChannelsRepo(db);
+	repo = new WorkspacesRepo(db);
 });
 
 afterEach(() => {
@@ -27,8 +27,8 @@ afterEach(() => {
 	fs.rmSync(dir, { recursive: true, force: true });
 });
 
-describe("ChannelsRepo", () => {
-	it("creates a channel and lists it", () => {
+describe("WorkspacesRepo", () => {
+	it("creates a workspace and lists it", () => {
 		const c = repo.create({ name: "general" });
 		expect(c.id).toBeTruthy();
 		expect(c.name).toBe("general");
@@ -37,45 +37,45 @@ describe("ChannelsRepo", () => {
 		expect(all[0].id).toBe(c.id);
 	});
 
-	it("lists channels in `position` order", () => {
+	it("lists workspaces in `position` order", () => {
 		const a = repo.create({ name: "a" });
 		const b = repo.create({ name: "b" });
 		const c = repo.create({ name: "c" });
 		expect(repo.list().map((x) => x.id)).toEqual([a.id, b.id, c.id]);
 	});
 
-	it("renames a channel", () => {
+	it("renames a workspace", () => {
 		const c = repo.create({ name: "scratch" });
 		repo.rename(c.id, "macpi-dev");
 		expect(repo.list()[0].name).toBe("macpi-dev");
 	});
 
-	it("deletes a channel", () => {
+	it("deletes a workspace", () => {
 		const c = repo.create({ name: "tmp" });
 		repo.delete(c.id);
 		expect(repo.list()).toHaveLength(0);
 	});
 
-	it("getById returns null for unknown channel", () => {
+	it("getById returns null for unknown workspace", () => {
 		expect(repo.getById("no-such-id")).toBeNull();
 	});
 
-	it("countSessions returns 0 for an empty channel", () => {
+	it("countSessions returns 0 for an empty workspace", () => {
 		const c = repo.create({ name: "empty" });
 		expect(repo.countSessions(c.id)).toBe(0);
 	});
 
 	it("countSessions returns the number of attached sessions", () => {
 		const c = repo.create({ name: "busy" });
-		const sr = new ChannelSessionsRepo(db);
+		const sr = new WorkspaceSessionsRepo(db);
 		sr.attach({
-			channelId: c.id,
+			workspaceId: c.id,
 			piSessionId: "s1",
 			cwd: null,
 			sessionFilePath: null,
 		});
 		sr.attach({
-			channelId: c.id,
+			workspaceId: c.id,
 			piSessionId: "s2",
 			cwd: null,
 			sessionFilePath: null,
@@ -101,7 +101,7 @@ describe("ChannelsRepo", () => {
 		expect(repo.getById(c.id)?.cwd).toBeNull();
 	});
 
-	it("list includes cwd on each channel", () => {
+	it("list includes cwd on each workspace", () => {
 		const a = repo.create({ name: "a" });
 		const b = repo.create({ name: "b" });
 		repo.setCwd(b.id, "/path");
@@ -111,90 +111,94 @@ describe("ChannelsRepo", () => {
 	});
 });
 
-describe("ChannelSessionsRepo", () => {
-	let sessionsRepo: ChannelSessionsRepo;
-	let channelId: string;
+describe("WorkspaceSessionsRepo", () => {
+	let sessionsRepo: WorkspaceSessionsRepo;
+	let workspaceId: string;
 
 	beforeEach(() => {
-		sessionsRepo = new ChannelSessionsRepo(db);
-		channelId = repo.create({ name: "test" }).id;
+		sessionsRepo = new WorkspaceSessionsRepo(db);
+		workspaceId = repo.create({ name: "test" }).id;
 	});
 
-	it("attaches a pi session to a channel", () => {
+	it("attaches a pi session to a workspace", () => {
 		sessionsRepo.attach({
-			channelId,
+			workspaceId,
 			piSessionId: "pi-session-abc",
 			cwd: null,
 			sessionFilePath: null,
 		});
-		const ids = sessionsRepo.listByChannel(channelId);
+		const ids = sessionsRepo.listByWorkspace(workspaceId);
 		expect(ids).toEqual(["pi-session-abc"]);
 	});
 
 	it("preserves attach order via position", () => {
 		sessionsRepo.attach({
-			channelId,
+			workspaceId,
 			piSessionId: "s1",
 			cwd: null,
 			sessionFilePath: null,
 		});
 		sessionsRepo.attach({
-			channelId,
+			workspaceId,
 			piSessionId: "s2",
 			cwd: null,
 			sessionFilePath: null,
 		});
 		sessionsRepo.attach({
-			channelId,
+			workspaceId,
 			piSessionId: "s3",
 			cwd: null,
 			sessionFilePath: null,
 		});
-		expect(sessionsRepo.listByChannel(channelId)).toEqual(["s1", "s2", "s3"]);
+		expect(sessionsRepo.listByWorkspace(workspaceId)).toEqual([
+			"s1",
+			"s2",
+			"s3",
+		]);
 	});
 
-	it("findChannelOf returns the owning channel", () => {
+	it("findWorkspaceOf returns the owning workspace", () => {
 		sessionsRepo.attach({
-			channelId,
+			workspaceId,
 			piSessionId: "s1",
 			cwd: null,
 			sessionFilePath: null,
 		});
-		expect(sessionsRepo.findChannelOf("s1")).toBe(channelId);
-		expect(sessionsRepo.findChannelOf("missing")).toBeNull();
+		expect(sessionsRepo.findWorkspaceOf("s1")).toBe(workspaceId);
+		expect(sessionsRepo.findWorkspaceOf("missing")).toBeNull();
 	});
 
 	it("detach removes the mapping", () => {
 		sessionsRepo.attach({
-			channelId,
+			workspaceId,
 			piSessionId: "s1",
 			cwd: null,
 			sessionFilePath: null,
 		});
-		sessionsRepo.detach(channelId, "s1");
-		expect(sessionsRepo.listByChannel(channelId)).toEqual([]);
+		sessionsRepo.detach(workspaceId, "s1");
+		expect(sessionsRepo.listByWorkspace(workspaceId)).toEqual([]);
 	});
 
-	it("deleting a channel cascades to channel_sessions", () => {
+	it("deleting a workspace cascades to workspace_sessions", () => {
 		sessionsRepo.attach({
-			channelId,
+			workspaceId,
 			piSessionId: "s1",
 			cwd: null,
 			sessionFilePath: null,
 		});
 		sessionsRepo.attach({
-			channelId,
+			workspaceId,
 			piSessionId: "s2",
 			cwd: null,
 			sessionFilePath: null,
 		});
-		repo.delete(channelId);
-		expect(sessionsRepo.listByChannel(channelId)).toEqual([]);
+		repo.delete(workspaceId);
+		expect(sessionsRepo.listByWorkspace(workspaceId)).toEqual([]);
 	});
 
 	it("attach() persists cwd and session_file_path", () => {
 		sessionsRepo.attach({
-			channelId,
+			workspaceId,
 			piSessionId: "pi-1",
 			cwd: "/tmp/work",
 			sessionFilePath: "/Users/x/.pi/agent/sessions/abc/def.jsonl",
@@ -212,7 +216,7 @@ describe("ChannelSessionsRepo", () => {
 
 	it("setSessionFilePath updates the path for an existing session", () => {
 		sessionsRepo.attach({
-			channelId,
+			workspaceId,
 			piSessionId: "pi-2",
 			cwd: "/tmp/work2",
 			sessionFilePath: null,
@@ -230,7 +234,7 @@ describe("ChannelSessionsRepo", () => {
 
 	it("setLabel stores a user-set label and flags label_user_set=1", () => {
 		sessionsRepo.attach({
-			channelId,
+			workspaceId,
 			piSessionId: "pi-1",
 			cwd: "/tmp/work",
 			sessionFilePath: null,
@@ -243,7 +247,7 @@ describe("ChannelSessionsRepo", () => {
 
 	it("setLabel with empty string clears the label and unsets the flag", () => {
 		sessionsRepo.attach({
-			channelId,
+			workspaceId,
 			piSessionId: "pi-1",
 			cwd: null,
 			sessionFilePath: null,
@@ -257,7 +261,7 @@ describe("ChannelSessionsRepo", () => {
 
 	it("setFirstMessageLabel writes when label_user_set=0", () => {
 		sessionsRepo.attach({
-			channelId,
+			workspaceId,
 			piSessionId: "pi-1",
 			cwd: "/Users/x/mycode/macpi",
 			sessionFilePath: null,
@@ -274,7 +278,7 @@ describe("ChannelSessionsRepo", () => {
 
 	it("setFirstMessageLabel is a no-op when label_user_set=1", () => {
 		sessionsRepo.attach({
-			channelId,
+			workspaceId,
 			piSessionId: "pi-1",
 			cwd: null,
 			sessionFilePath: null,
@@ -288,20 +292,20 @@ describe("ChannelSessionsRepo", () => {
 		expect(sessionsRepo.getMeta("pi-1")?.label).toBe("user named me");
 	});
 
-	it("delete removes a single channel_sessions row", () => {
+	it("delete removes a single workspace_sessions row", () => {
 		sessionsRepo.attach({
-			channelId,
+			workspaceId,
 			piSessionId: "pi-1",
 			cwd: null,
 			sessionFilePath: null,
 		});
 		sessionsRepo.attach({
-			channelId,
+			workspaceId,
 			piSessionId: "pi-2",
 			cwd: null,
 			sessionFilePath: null,
 		});
 		sessionsRepo.delete("pi-1");
-		expect(sessionsRepo.listByChannel(channelId)).toEqual(["pi-2"]);
+		expect(sessionsRepo.listByWorkspace(workspaceId)).toEqual(["pi-2"]);
 	});
 });

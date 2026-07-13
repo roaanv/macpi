@@ -5,7 +5,7 @@
 import type { DbHandle } from "./connection";
 import { DbSchemaNewerError } from "./errors";
 
-export const KNOWN_MAX_VERSION = 5;
+export const KNOWN_MAX_VERSION = 6;
 
 export function assertSchemaCompatible(db: DbHandle): void {
 	// A fresh DB has no _migrations table yet — runMigrations will create

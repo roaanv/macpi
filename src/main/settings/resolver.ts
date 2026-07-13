@@ -1,4 +1,4 @@
-// Pure settings cascade resolver. Merges global/channel/session overrides on top of defaults.
+// Pure settings cascade resolver. Merges global/workspace/session overrides on top of defaults.
 // No side effects — does not read from the database directly.
 
 import {
@@ -8,13 +8,13 @@ import {
 	type SettingsValues,
 } from "../../shared/settings-keys";
 
-export type Layer = "default" | "global" | "channel" | "session";
+export type Layer = "default" | "global" | "workspace" | "session";
 
 export type LayerOverrides = Partial<SettingsValues>;
 
 export interface SettingsLayers {
 	global: LayerOverrides;
-	channel: LayerOverrides;
+	workspace: LayerOverrides;
 	session: LayerOverrides;
 }
 
@@ -23,9 +23,9 @@ export interface ResolvedSettings {
 	provenance: Record<SettingsKey, Layer>;
 }
 
-const ORDER: ("session" | "channel" | "global")[] = [
+const ORDER: ("session" | "workspace" | "global")[] = [
 	"session",
-	"channel",
+	"workspace",
 	"global",
 ];
 

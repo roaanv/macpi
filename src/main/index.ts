@@ -20,8 +20,8 @@ import { ensureMacPiPiAgentRoot } from "./pi-agent-root";
 import { PiSessionManager } from "./pi-session-manager";
 import { PromptsService } from "./prompts-service";
 import { AppSettingsRepo } from "./repos/app-settings";
-import { ChannelSessionsRepo } from "./repos/channel-sessions";
-import { ChannelsRepo } from "./repos/channels";
+import { WorkspaceSessionsRepo } from "./repos/workspace-sessions";
+import { WorkspacesRepo } from "./repos/workspaces";
 import { ensureResourceRoot } from "./resource-root";
 import { SkillsService } from "./skills-service";
 import { startupWithRecovery } from "./startup-recovery";
@@ -125,8 +125,8 @@ app.whenReady().then(async () => {
 	process.env.MACPI_MIGRATIONS_DIR = path.join(__dirname, "migrations");
 	const { db } = await startupWithRecovery(dbPath, mainLogger);
 
-	const channels = new ChannelsRepo(db);
-	const channelSessions = new ChannelSessionsRepo(db);
+	const workspaces = new WorkspacesRepo(db);
+	const workspaceSessions = new WorkspaceSessionsRepo(db);
 	const appSettings = new AppSettingsRepo(db);
 
 	const macpiRoot = ensureResourceRoot(appSettings.getAll(), os.homedir());
@@ -161,8 +161,8 @@ app.whenReady().then(async () => {
 	});
 	manager.setPathStore({
 		getSessionFilePath: (id) =>
-			channelSessions.getMeta(id)?.sessionFilePath ?? null,
-		setSessionFilePath: (id, p) => channelSessions.setSessionFilePath(id, p),
+			workspaceSessions.getMeta(id)?.sessionFilePath ?? null,
+		setSessionFilePath: (id, p) => workspaceSessions.setSessionFilePath(id, p),
 	});
 
 	const skillsService = new SkillsService({
@@ -196,21 +196,21 @@ app.whenReady().then(async () => {
 		// pi's unstable internal fields).
 		getAgentSession: (id) =>
 			manager.getAgentSession(id) as unknown as BranchAgentSession | undefined,
-		channelSessions,
+		workspaceSessions,
 		piSessionManager: {
-			getActiveSessionMeta: (id) => channelSessions.findMeta(id),
+			getActiveSessionMeta: (id) => workspaceSessions.findMeta(id),
 			attachSessionByFile: (path) => manager.attachSessionByFile(path),
 		},
 		emitEvent: (event) => manager.broadcastEvent(event),
 	});
 
 	const filesService = new FilesService({
-		getSessionCwd: (id) => channelSessions.getMeta(id)?.cwd ?? null,
+		getSessionCwd: (id) => workspaceSessions.getMeta(id)?.cwd ?? null,
 	});
 
 	router = new IpcRouter({
-		channels,
-		channelSessions,
+		workspaces,
+		workspaceSessions,
 		piSessionManager: manager,
 		appSettings,
 		modelAuthService,

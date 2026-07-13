@@ -1,29 +1,28 @@
 // Root application component that composes the three-pane shell:
-// ModeRail | ChannelSidebar | ChatPane. Skills, Extensions, and Prompts
+// ModeRail | WorkspaceSidebar | ChatPane. Skills, Extensions, and Prompts
 // have moved into the global settings dialog, so the rail now only swaps
 // between Chat and Notes. Hosts SettingsApplier and dialog state.
 
 import React from "react";
-import { ChannelSidebar } from "./components/ChannelSidebar";
 import { ChatPane } from "./components/ChatPane";
-import { CreateChannelDialog } from "./components/CreateChannelDialog";
 import { CreateSessionDialog } from "./components/CreateSessionDialog";
+import { CreateWorkspaceDialog } from "./components/CreateWorkspaceDialog";
 import { GlobalSettingsDialog } from "./components/GlobalSettingsDialog";
 import { type Mode, ModeRail } from "./components/ModeRail";
 import { NotesMode } from "./components/NotesMode";
 import { ResizablePane } from "./components/ResizablePane";
 import { SettingsApplier } from "./components/SettingsApplier";
 import { ToastHost } from "./components/ToastHost";
+import { WorkspaceSidebar } from "./components/WorkspaceSidebar";
 
 export function App() {
 	const [mode, setMode] = React.useState<Mode>("chat");
-	const [channelId, setChannelId] = React.useState<string | null>(null);
+	const [workspaceId, setWorkspaceId] = React.useState<string | null>(null);
 	const [sessionId, setSessionId] = React.useState<string | null>(null);
 	const [globalSettingsOpen, setGlobalSettingsOpen] = React.useState(false);
-	const [createChannelOpen, setCreateChannelOpen] = React.useState(false);
-	const [createSessionInChannel, setCreateSessionInChannel] = React.useState<
-		string | null
-	>(null);
+	const [createWorkspaceOpen, setCreateWorkspaceOpen] = React.useState(false);
+	const [createSessionInWorkspace, setCreateSessionInWorkspace] =
+		React.useState<string | null>(null);
 
 	return (
 		<>
@@ -36,17 +35,17 @@ export function App() {
 				/>
 				{mode === "chat" && (
 					<>
-						<ResizablePane storageKey="channels" defaultWidth={240}>
-							<ChannelSidebar
-								selectedChannelId={channelId}
+						<ResizablePane storageKey="workspaces" defaultWidth={240}>
+							<WorkspaceSidebar
+								selectedWorkspaceId={workspaceId}
 								selectedSessionId={sessionId}
-								onSelectChannel={(id) => {
-									setChannelId(id);
+								onSelectWorkspace={(id) => {
+									setWorkspaceId(id);
 									setSessionId(null);
 								}}
 								onSelectSession={setSessionId}
-								onOpenCreateChannel={() => setCreateChannelOpen(true)}
-								onOpenCreateSession={setCreateSessionInChannel}
+								onOpenCreateWorkspace={() => setCreateWorkspaceOpen(true)}
+								onOpenCreateSession={setCreateSessionInWorkspace}
 							/>
 						</ResizablePane>
 						<ChatPane
@@ -62,17 +61,17 @@ export function App() {
 				open={globalSettingsOpen}
 				onClose={() => setGlobalSettingsOpen(false)}
 			/>
-			<CreateChannelDialog
-				open={createChannelOpen}
-				onClose={() => setCreateChannelOpen(false)}
+			<CreateWorkspaceDialog
+				open={createWorkspaceOpen}
+				onClose={() => setCreateWorkspaceOpen(false)}
 				onCreated={(id) => {
-					setChannelId(id);
+					setWorkspaceId(id);
 					setSessionId(null);
 				}}
 			/>
 			<CreateSessionDialog
-				channelId={createSessionInChannel}
-				onClose={() => setCreateSessionInChannel(null)}
+				workspaceId={createSessionInWorkspace}
+				onClose={() => setCreateSessionInWorkspace(null)}
 				onCreated={setSessionId}
 			/>
 			<ToastHost />

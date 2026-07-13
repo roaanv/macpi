@@ -29,7 +29,7 @@ export interface ComposerProps {
 	messageHistory?: readonly string[];
 	// Slash-command wiring (new):
 	piSessionId: string | null;
-	channelId: string | null;
+	workspaceId: string | null;
 	lastAssistantText: () => string | null;
 	openHelpDialog: () => void;
 	onSessionCreated: (newPiSessionId: string) => void;
@@ -40,7 +40,7 @@ export function Composer({
 	onSend,
 	messageHistory = [],
 	piSessionId,
-	channelId,
+	workspaceId,
 	lastAssistantText,
 	openHelpDialog,
 	onSessionCreated,
@@ -156,7 +156,7 @@ export function Composer({
 		const action = dispatch(cmd, parsedQuery, {
 			streaming,
 			piSessionId,
-			channelId,
+			workspaceId,
 			lastAssistantText,
 			openHelpDialog,
 			showToast,

@@ -1,4 +1,4 @@
-// Unit tests for the session tree rail computation used by ChannelSidebar.
+// Unit tests for the session tree rail computation used by WorkspaceSidebar.
 // Verifies forest construction, the depth-first flatten, last-child detection,
 // through-rail depth tracking, and active-lineage resolution.
 
@@ -7,7 +7,7 @@ import {
 	buildSessionForest,
 	computeActiveLineage,
 	flattenForestWithRails,
-} from "../../src/renderer/components/ChannelSidebar";
+} from "../../src/renderer/components/WorkspaceSidebar";
 
 interface Row {
 	piSessionId: string;

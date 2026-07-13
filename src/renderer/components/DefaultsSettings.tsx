@@ -1,5 +1,5 @@
 // Defaults category: default cwd field + 📁 picker. Stored in
-// settings_global.defaultCwd; new channels with no cwd inherit it.
+// settings_global.defaultCwd; new workspaces with no cwd inherit it.
 
 import React from "react";
 import { getDefaultCwd } from "../../shared/app-settings-keys";
@@ -47,8 +47,8 @@ export function DefaultsSettings() {
 			<div>
 				<div className="mb-1 text-sm font-medium">Default cwd</div>
 				<div className="mb-1 text-xs text-muted">
-					New channels with no cwd inherit this. Sessions inherit the channel's
-					cwd at creation.
+					New workspaces with no cwd inherit this. Sessions inherit the
+					workspace's cwd at creation.
 				</div>
 				<div className="flex gap-2">
 					<input

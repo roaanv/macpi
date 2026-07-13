@@ -60,17 +60,17 @@ function dispatchBuiltin(
 			};
 
 		case "new":
-			if (!ctx.channelId) {
+			if (!ctx.workspaceId) {
 				return {
 					kind: "run",
-					effect: () => ctx.showToast("No active channel"),
+					effect: () => ctx.showToast("No active workspace"),
 				};
 			}
 			return {
 				kind: "ipc",
 				method: "session.create",
 				args: {
-					channelId: ctx.channelId,
+					workspaceId: ctx.workspaceId,
 					cwd: args[0],
 				},
 			};

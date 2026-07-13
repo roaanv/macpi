@@ -1,21 +1,21 @@
-// Modal for creating a new channel: name + cwd + Browse + Create/Cancel.
-// Channel cwd is locked at creation (cannot be edited later).
+// Modal for creating a new workspace: name + cwd + Browse + Create/Cancel.
+// Workspace cwd is locked at creation (cannot be edited later).
 
 import React from "react";
-import { useCreateChannel, useDefaultCwd, useOpenFolder } from "../queries";
+import { useCreateWorkspace, useDefaultCwd, useOpenFolder } from "../queries";
 
-export interface CreateChannelDialogProps {
+export interface CreateWorkspaceDialogProps {
 	open: boolean;
 	onClose: () => void;
-	onCreated: (channelId: string) => void;
+	onCreated: (workspaceId: string) => void;
 }
 
-export function CreateChannelDialog({
+export function CreateWorkspaceDialog({
 	open,
 	onClose,
 	onCreated,
-}: CreateChannelDialogProps) {
-	const createChannel = useCreateChannel();
+}: CreateWorkspaceDialogProps) {
+	const createWorkspace = useCreateWorkspace();
 	const openFolder = useOpenFolder();
 	const defaultCwd = useDefaultCwd();
 	const [name, setName] = React.useState("");
@@ -49,7 +49,7 @@ export function CreateChannelDialog({
 		const trimmedName = name.trim();
 		if (!trimmedName) return;
 		const trimmedCwd = cwd.trim();
-		const r = await createChannel.mutateAsync({
+		const r = await createWorkspace.mutateAsync({
 			name: trimmedName,
 			cwd: trimmedCwd === "" ? null : trimmedCwd,
 		});
@@ -71,7 +71,7 @@ export function CreateChannelDialog({
 				onClick={(e) => e.stopPropagation()}
 				onKeyDown={() => undefined}
 			>
-				<div className="mb-3 text-sm font-semibold">New channel</div>
+				<div className="mb-3 text-sm font-semibold">New workspace</div>
 
 				<label className="mb-3 block">
 					<div className="mb-1 text-xs text-muted">Name</div>
@@ -81,7 +81,7 @@ export function CreateChannelDialog({
 						autoFocus
 						value={name}
 						onChange={(e) => setName(e.target.value)}
-						placeholder="my channel"
+						placeholder="my workspace"
 						className="w-full surface-row rounded px-2 py-1 text-sm"
 					/>
 				</label>
@@ -107,7 +107,7 @@ export function CreateChannelDialog({
 					</div>
 				</label>
 				<div className="mb-4 text-[11px] text-muted">
-					This cannot be changed after the channel is created.
+					This cannot be changed after the workspace is created.
 				</div>
 
 				<div className="flex justify-end gap-2">
@@ -120,10 +120,10 @@ export function CreateChannelDialog({
 					</button>
 					<button
 						type="submit"
-						disabled={!name.trim() || createChannel.isPending}
+						disabled={!name.trim() || createWorkspace.isPending}
 						className="rounded surface-accent px-3 py-1 text-xs hover:opacity-90 disabled:opacity-50"
 					>
-						{createChannel.isPending ? "Creating…" : "Create"}
+						{createWorkspace.isPending ? "Creating…" : "Create"}
 					</button>
 				</div>
 			</form>

@@ -9,7 +9,7 @@ function makeCtx(overrides: Partial<SlashDispatchCtx> = {}): SlashDispatchCtx {
 	return {
 		streaming: false,
 		piSessionId: "sid",
-		channelId: "ch",
+		workspaceId: "ch",
 		lastAssistantText: () => "hello world",
 		openHelpDialog: vi.fn(),
 		showToast: vi.fn(),
@@ -132,8 +132,8 @@ describe("dispatch", () => {
 		expect(action).toBeNull();
 	});
 
-	it("/new with channelId → ipc session.create with the channel + first arg as cwd", () => {
-		const ctx = makeCtx({ channelId: "ch-7" });
+	it("/new with workspaceId → ipc session.create with the workspace + first arg as cwd", () => {
+		const ctx = makeCtx({ workspaceId: "ch-7" });
 		const action = dispatch(
 			builtin("new"),
 			{ name: "new", args: ["/tmp/foo"] },
@@ -142,15 +142,15 @@ describe("dispatch", () => {
 		expect(action).toEqual({
 			kind: "ipc",
 			method: "session.create",
-			args: { channelId: "ch-7", cwd: "/tmp/foo" },
+			args: { workspaceId: "ch-7", cwd: "/tmp/foo" },
 		});
 	});
 
-	it("/new with no channelId → run effect toasting 'No active channel'", async () => {
-		const ctx = makeCtx({ channelId: null });
+	it("/new with no workspaceId → run effect toasting 'No active workspace'", async () => {
+		const ctx = makeCtx({ workspaceId: null });
 		const action = dispatch(builtin("new"), { name: "new", args: [] }, ctx);
 		if (action?.kind === "run") await action.effect();
-		expect(ctx.showToast).toHaveBeenCalledWith("No active channel");
+		expect(ctx.showToast).toHaveBeenCalledWith("No active workspace");
 	});
 
 	it("/reload idle → ipc session.reload", () => {

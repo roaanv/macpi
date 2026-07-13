@@ -34,40 +34,43 @@ export function useInvalidateOnTurnEnd(
 	}, [piSessionId, qc]);
 }
 
-export function useChannels() {
+export function useWorkspaces() {
 	return useQuery({
-		queryKey: ["channels"],
-		queryFn: () => invoke("channels.list", {}),
+		queryKey: ["workspaces"],
+		queryFn: () => invoke("workspaces.list", {}),
 	});
 }
 
-export function useCreateChannel() {
+export function useCreateWorkspace() {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: (input: { name: string; cwd?: string | null }) =>
-			invoke("channels.create", input),
-		onSuccess: () => qc.invalidateQueries({ queryKey: ["channels"] }),
+			invoke("workspaces.create", input),
+		onSuccess: () => qc.invalidateQueries({ queryKey: ["workspaces"] }),
 	});
 }
 
-export function useSessionsForChannel(channelId: string | null) {
+export function useSessionsForWorkspace(workspaceId: string | null) {
 	return useQuery({
-		queryKey: ["sessions", channelId],
+		queryKey: ["sessions", workspaceId],
 		queryFn: () =>
-			channelId
-				? invoke("session.listForChannel", { channelId })
+			workspaceId
+				? invoke("session.listForWorkspace", { workspaceId })
 				: Promise.resolve({ sessions: [] as const }),
-		enabled: !!channelId,
+		enabled: !!workspaceId,
 	});
 }
 
 export function useCreateSession() {
 	const qc = useQueryClient();
 	return useMutation({
-		mutationFn: (input: { channelId: string; cwd?: string; label?: string }) =>
-			invoke("session.create", input),
+		mutationFn: (input: {
+			workspaceId: string;
+			cwd?: string;
+			label?: string;
+		}) => invoke("session.create", input),
 		onSuccess: (_data, vars) =>
-			qc.invalidateQueries({ queryKey: ["sessions", vars.channelId] }),
+			qc.invalidateQueries({ queryKey: ["sessions", vars.workspaceId] }),
 	});
 }
 
@@ -120,22 +123,22 @@ export function useAttachSession(piSessionId: string | null) {
 	});
 }
 
-export function useRenameChannel() {
+export function useRenameWorkspace() {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: (input: { id: string; name: string }) =>
-			invoke("channels.rename", input),
-		onSuccess: () => qc.invalidateQueries({ queryKey: ["channels"] }),
+			invoke("workspaces.rename", input),
+		onSuccess: () => qc.invalidateQueries({ queryKey: ["workspaces"] }),
 	});
 }
 
-export function useDeleteChannel() {
+export function useDeleteWorkspace() {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: (input: { id: string; force?: boolean }) =>
-			invoke("channels.delete", input),
+			invoke("workspaces.delete", input),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["channels"] });
+			qc.invalidateQueries({ queryKey: ["workspaces"] });
 			qc.invalidateQueries({ queryKey: ["sessions"] });
 		},
 	});
@@ -287,13 +290,13 @@ export function useFileContent(
 	});
 }
 
-export function useSessionChannel(piSessionId: string | null) {
+export function useSessionWorkspace(piSessionId: string | null) {
 	return useQuery({
-		queryKey: ["session.channel", piSessionId],
+		queryKey: ["session.workspace", piSessionId],
 		queryFn: () =>
 			piSessionId
-				? invoke("session.findChannel", { piSessionId })
-				: Promise.resolve({ channelId: null }),
+				? invoke("session.findWorkspace", { piSessionId })
+				: Promise.resolve({ workspaceId: null }),
 		enabled: !!piSessionId,
 		staleTime: Number.POSITIVE_INFINITY,
 	});

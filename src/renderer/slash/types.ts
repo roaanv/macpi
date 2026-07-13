@@ -31,7 +31,7 @@ export type SlashAction =
 export interface SlashDispatchCtx {
 	streaming: boolean;
 	piSessionId: string;
-	channelId: string | null;
+	workspaceId: string | null;
 	lastAssistantText: () => string | null;
 	openHelpDialog: () => void;
 	showToast: (message: string) => void;

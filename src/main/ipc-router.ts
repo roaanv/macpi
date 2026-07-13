@@ -28,8 +28,8 @@ import type { NotesService } from "./notes-service";
 import type { PiSessionManager } from "./pi-session-manager";
 import type { PromptsService } from "./prompts-service";
 import type { AppSettingsRepo } from "./repos/app-settings";
-import type { ChannelSessionsRepo } from "./repos/channel-sessions";
-import type { ChannelsRepo } from "./repos/channels";
+import type { WorkspaceSessionsRepo } from "./repos/workspace-sessions";
+import type { WorkspacesRepo } from "./repos/workspaces";
 import type { SkillsService } from "./skills-service";
 
 type Handler<M extends IpcMethodName> = (
@@ -37,8 +37,8 @@ type Handler<M extends IpcMethodName> = (
 ) => Promise<IpcResult<IpcMethods[M]["res"]>> | IpcResult<IpcMethods[M]["res"]>;
 
 export interface RouterDeps {
-	channels: ChannelsRepo;
-	channelSessions: ChannelSessionsRepo;
+	workspaces: WorkspacesRepo;
+	workspaceSessions: WorkspaceSessionsRepo;
 	piSessionManager: PiSessionManager;
 	appSettings: AppSettingsRepo;
 	modelAuthService: ModelAuthService;
@@ -83,44 +83,44 @@ export class IpcRouter {
 				return err("invalid_url", "Invalid URL");
 			}
 		});
-		this.register("channels.list", async () =>
-			ok({ channels: this.deps.channels.list() }),
+		this.register("workspaces.list", async () =>
+			ok({ workspaces: this.deps.workspaces.list() }),
 		);
-		this.register("channels.create", async (args) => {
-			const c = this.deps.channels.create({
+		this.register("workspaces.create", async (args) => {
+			const workspace = this.deps.workspaces.create({
 				name: args.name,
 				icon: args.icon,
 				cwd: args.cwd ?? null,
 			});
-			return ok({ id: c.id });
+			return ok({ id: workspace.id });
 		});
-		this.register("channels.rename", async (args) => {
-			this.deps.channels.rename(args.id, args.name);
+		this.register("workspaces.rename", async (args) => {
+			this.deps.workspaces.rename(args.id, args.name);
 			return ok({});
 		});
-		this.register("channels.delete", async (args) => {
-			const sessionIds = this.deps.channelSessions.listByChannel(args.id);
+		this.register("workspaces.delete", async (args) => {
+			const sessionIds = this.deps.workspaceSessions.listByWorkspace(args.id);
 			if (sessionIds.length > 0 && !args.force) {
 				return err(
 					"non_empty",
-					`channel has ${sessionIds.length} session(s); pass force:true to cascade`,
+					`workspace has ${sessionIds.length} session(s); pass force:true to cascade`,
 				);
 			}
 			for (const id of sessionIds) {
 				this.deps.piSessionManager.disposeSession(id);
 			}
-			this.deps.channels.delete(args.id);
+			this.deps.workspaces.delete(args.id);
 			return ok({});
 		});
 		this.register("session.create", async (args) => {
-			const channel = this.deps.channels.getById(args.channelId);
-			if (!channel)
-				return err("not_found", `channel ${args.channelId} not found`);
+			const workspace = this.deps.workspaces.getById(args.workspaceId);
+			if (!workspace)
+				return err("not_found", `workspace ${args.workspaceId} not found`);
 
 			const settings = this.deps.appSettings.getAll();
 			const cwd = resolveCwd({
 				override: args.cwd,
-				channelCwd: channel.cwd,
+				workspaceCwd: workspace.cwd,
 				defaultCwd: readDefaultCwdFromSettings(settings),
 				homeDir: this.deps.getDefaultCwd(),
 			});
@@ -139,15 +139,15 @@ export class IpcRouter {
 				throw e;
 			}
 			const { piSessionId, sessionFilePath } = created;
-			this.deps.channelSessions.attach({
-				channelId: args.channelId,
+			this.deps.workspaceSessions.attach({
+				workspaceId: args.workspaceId,
 				piSessionId,
 				cwd,
 				sessionFilePath,
 			});
 			const label = args.label?.trim();
 			if (label) {
-				this.deps.channelSessions.setLabel(piSessionId, label);
+				this.deps.workspaceSessions.setLabel(piSessionId, label);
 			}
 			return ok({ piSessionId });
 		});
@@ -289,22 +289,24 @@ export class IpcRouter {
 				return err("compact_failed", msg);
 			}
 		});
-		this.register("session.listForChannel", async (args) => {
+		this.register("session.listForWorkspace", async (args) => {
 			return ok({
-				sessions: this.deps.channelSessions.listTreeByChannel(args.channelId),
+				sessions: this.deps.workspaceSessions.listTreeByWorkspace(
+					args.workspaceId,
+				),
 			});
 		});
 		this.register("session.rename", async (args) => {
-			this.deps.channelSessions.setLabel(args.piSessionId, args.label);
+			this.deps.workspaceSessions.setLabel(args.piSessionId, args.label);
 			return ok({});
 		});
 		this.register("session.delete", async (args) => {
 			this.deps.piSessionManager.disposeSession(args.piSessionId);
-			this.deps.channelSessions.delete(args.piSessionId);
+			this.deps.workspaceSessions.delete(args.piSessionId);
 			return ok({});
 		});
 		this.register("session.getMeta", async (args) => {
-			const meta = this.deps.channelSessions.getMeta(args.piSessionId);
+			const meta = this.deps.workspaceSessions.getMeta(args.piSessionId);
 			if (!meta)
 				return err("not_found", `session ${args.piSessionId} not found`);
 			return ok({
@@ -314,15 +316,17 @@ export class IpcRouter {
 			});
 		});
 		this.register("session.setFirstMessageLabel", async (args) => {
-			const applied = this.deps.channelSessions.setFirstMessageLabel(
+			const applied = this.deps.workspaceSessions.setFirstMessageLabel(
 				args.piSessionId,
 				args.text,
 			);
 			return ok({ applied });
 		});
-		this.register("session.findChannel", async (args) => {
+		this.register("session.findWorkspace", async (args) => {
 			return ok({
-				channelId: this.deps.channelSessions.findChannelOf(args.piSessionId),
+				workspaceId: this.deps.workspaceSessions.findWorkspaceOf(
+					args.piSessionId,
+				),
 			});
 		});
 		this.register("session.getContextBreakdown", async (args) => {
@@ -347,7 +351,7 @@ export class IpcRouter {
 				contextWindow,
 			});
 			const usage = sumAssistantUsage(messages);
-			const meta = this.deps.channelSessions.getMeta(args.piSessionId);
+			const meta = this.deps.workspaceSessions.getMeta(args.piSessionId);
 			return ok({
 				segments: breakdown.segments,
 				usedTokens: breakdown.usedTokens,

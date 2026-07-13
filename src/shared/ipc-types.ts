@@ -92,10 +92,10 @@ export interface FileEntry {
 // handler is implemented (Tasks 9, 14, 18, 21, 26 of plan 1).
 export interface IpcMethods {
 	ping: { req: { value: string }; res: { value: string } };
-	"channels.list": {
+	"workspaces.list": {
 		req: Record<string, never>;
 		res: {
-			channels: {
+			workspaces: {
 				id: string;
 				name: string;
 				position: number;
@@ -105,20 +105,20 @@ export interface IpcMethods {
 			}[];
 		};
 	};
-	"channels.create": {
+	"workspaces.create": {
 		req: { name: string; icon?: string; cwd?: string | null };
 		res: { id: string };
 	};
-	"channels.rename": {
+	"workspaces.rename": {
 		req: { id: string; name: string };
 		res: Record<string, never>;
 	};
-	"channels.delete": {
+	"workspaces.delete": {
 		req: { id: string; force?: boolean };
 		res: Record<string, never>;
 	};
 	"session.create": {
-		req: { channelId: string; cwd?: string; label?: string };
+		req: { workspaceId: string; cwd?: string; label?: string };
 		res: { piSessionId: string };
 	};
 	"session.prompt": {
@@ -173,8 +173,8 @@ export interface IpcMethods {
 		req: { piSessionId: string; prompt?: string };
 		res: Record<string, never>;
 	};
-	"session.listForChannel": {
-		req: { channelId: string };
+	"session.listForWorkspace": {
+		req: { workspaceId: string };
 		res: {
 			sessions: ReadonlyArray<{
 				piSessionId: string;
@@ -203,9 +203,9 @@ export interface IpcMethods {
 			label: string | null;
 		};
 	};
-	"session.findChannel": {
+	"session.findWorkspace": {
 		req: { piSessionId: string };
-		res: { channelId: string | null };
+		res: { workspaceId: string | null };
 	};
 	"session.getContextBreakdown": {
 		req: { piSessionId: string };

@@ -829,7 +829,7 @@ export class PiSessionManager {
 
 	/**
 	 * Tear down a single active session if loaded. No-op if not loaded.
-	 * Used by session/channel deletion. Does not delete pi's session file
+	 * Used by session/workspace deletion. Does not delete pi's session file
 	 * on disk — that's preserved for recoverability.
 	 */
 	disposeSession(piSessionId: string): void {

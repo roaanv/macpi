@@ -6,29 +6,29 @@ describe("resolveCwd", () => {
 		expect(
 			resolveCwd({
 				override: "/explicit",
-				channelCwd: "/channel",
+				workspaceCwd: "/workspace",
 				defaultCwd: "/default",
 				homeDir: "/home",
 			}),
 		).toBe("/explicit");
 	});
 
-	it("falls back to channelCwd when no override", () => {
+	it("falls back to workspaceCwd when no override", () => {
 		expect(
 			resolveCwd({
 				override: undefined,
-				channelCwd: "/channel",
+				workspaceCwd: "/workspace",
 				defaultCwd: "/default",
 				homeDir: "/home",
 			}),
-		).toBe("/channel");
+		).toBe("/workspace");
 	});
 
-	it("falls back to defaultCwd when channel cwd is null", () => {
+	it("falls back to defaultCwd when workspace cwd is null", () => {
 		expect(
 			resolveCwd({
 				override: undefined,
-				channelCwd: null,
+				workspaceCwd: null,
 				defaultCwd: "/default",
 				homeDir: "/home",
 			}),
@@ -39,7 +39,7 @@ describe("resolveCwd", () => {
 		expect(
 			resolveCwd({
 				override: undefined,
-				channelCwd: null,
+				workspaceCwd: null,
 				defaultCwd: "",
 				homeDir: "/home",
 			}),
@@ -50,10 +50,10 @@ describe("resolveCwd", () => {
 		expect(
 			resolveCwd({
 				override: "",
-				channelCwd: "/channel",
+				workspaceCwd: "/workspace",
 				defaultCwd: "/default",
 				homeDir: "/home",
 			}),
-		).toBe("/channel");
+		).toBe("/workspace");
 	});
 });
