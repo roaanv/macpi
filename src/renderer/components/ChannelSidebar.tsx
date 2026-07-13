@@ -227,7 +227,7 @@ export function ChannelSidebar({
 	return (
 		<div className="flex h-full w-full min-w-0 flex-col gap-px surface-panel p-3 text-[length:var(--font-size-sidebar)] text-primary">
 			<div className="mb-1 flex items-center justify-between px-2 pt-1 text-[10px] text-faint uppercase tracking-widest">
-				<span className="font-semibold">Channels</span>
+				<span className="font-semibold">Workspaces</span>
 				<button
 					type="button"
 					onClick={onOpenCreateChannel}
