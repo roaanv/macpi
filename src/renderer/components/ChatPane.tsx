@@ -131,7 +131,9 @@ export function ChatPane({
 				className="flex flex-1 items-center justify-center px-6 text-center type-status text-muted"
 			>
 				<div>
-					<span className="type-overline">Couldn't attach to session</span>{" "}
+					<span className="type-overline text-muted">
+						Couldn't attach to session
+					</span>{" "}
 					<code className="type-code type-technical-wrap text-primary">
 						{piSessionId}
 					</code>

@@ -96,6 +96,7 @@ describe("timeline-state error banner reducer", () => {
 		).toHaveLength(2);
 		expect(source).toMatch(/role="status"[^>]*className="[^"]*type-status/);
 		expect(source).toMatch(/role="alert"[^>]*className="[^"]*type-status/);
+		expect(source).toContain('className="type-overline text-muted"');
 		expect(source).toContain("type-code type-technical-wrap");
 		expect(source).toMatch(/type-status type-technical-wrap text-err/);
 	});
