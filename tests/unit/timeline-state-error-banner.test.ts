@@ -80,8 +80,8 @@ describe("timeline-state error banner reducer", () => {
 
 		expect(html).toContain('role="alert"');
 		expect(html).toContain('aria-live="assertive"');
-		expect(html).toContain("type-status");
-		expect(html).toContain("type-overline");
+		expect(html).toContain("type-status text-err");
+		expect(html).toContain("type-overline text-err");
 		expect(html).toContain("type-technical-wrap");
 		expect(html.match(/type-control/g)).toHaveLength(2);
 	});

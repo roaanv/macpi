@@ -40,6 +40,12 @@ describe("layer-3: banners", () => {
 				lastResult: null,
 			}),
 		);
+		const compactionSuccess = renderToStaticMarkup(
+			React.createElement(CompactionBanner, {
+				compaction: null,
+				lastResult: { ok: true },
+			}),
+		);
 		const compactionError = renderToStaticMarkup(
 			React.createElement(CompactionBanner, {
 				compaction: null,
@@ -56,22 +62,24 @@ describe("layer-3: banners", () => {
 
 		expect(retry).toContain('role="status"');
 		expect(retry).toContain("type-status");
-		expect(retry).toContain("type-overline");
+		expect(retry).toContain("type-overline text-warn");
+		expect(retry).toContain("type-metadata type-tabular text-warn");
 		expect(retry).toContain("type-technical-wrap");
 		expect(retry).toContain("rate limit exceeded");
 
 		expect(compacting).toContain('role="status"');
 		expect(compacting).toContain("type-status");
-		expect(compacting).toContain("type-overline");
+		expect(compacting).toContain("type-overline text-accent");
 		expect(compacting).toContain("threshold");
+		expect(compactionSuccess).toContain("type-overline text-ok");
 		expect(compactionError).toContain('role="alert"');
 		expect(compactionError).toContain("type-status");
-		expect(compactionError).toContain("type-overline");
+		expect(compactionError).toContain("type-overline text-err");
 		expect(compactionError).toContain("type-technical-wrap");
 		expect(compactionError).toContain("generated failure");
 
 		expect(queue).toContain('role="status"');
-		expect(queue).toContain("type-status");
+		expect(queue).toContain("type-status text-primary");
 		expect(queue.match(/type-control/g)).toHaveLength(3);
 		expect(queue).toContain("steered: redirect");
 		expect(queue).toContain("queued: continue");

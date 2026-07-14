@@ -48,4 +48,29 @@ describe("typography CSS contract", () => {
 			expect(css).toContain(selector);
 		}
 	});
+
+	it("lets explicit semantic text colors override typography role defaults", () => {
+		const finalRoleIndex = css.indexOf("\t.type-technical-wrap {");
+		expect(finalRoleIndex).toBeGreaterThan(-1);
+
+		for (const selector of [
+			".text-primary",
+			".text-muted",
+			".text-faint",
+			".text-accent",
+			".text-ok",
+			".text-warn",
+			".text-err",
+		]) {
+			const colorUtilityIndex = css.indexOf(`\t${selector} {`);
+			expect(colorUtilityIndex, selector).toBeGreaterThan(finalRoleIndex);
+		}
+
+		expect(css).toMatch(
+			/\.type-metadata\s*{[^}]*color:\s*var\(--text-muted\)/s,
+		);
+		expect(css).toMatch(
+			/\.type-overline\s*{[^}]*color:\s*var\(--text-faint\)/s,
+		);
+	});
 });

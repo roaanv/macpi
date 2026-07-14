@@ -510,72 +510,6 @@ html {
 	.surface-rail {
 		background: var(--rail-bg);
 	}
-	.text-primary {
-		color: var(--text-primary);
-	}
-	.text-muted {
-		color: var(--text-muted);
-	}
-	.text-faint {
-		color: var(--text-faint);
-	}
-	.placeholder-faint::placeholder {
-		color: var(--text-faint);
-	}
-	.text-accent {
-		color: var(--accent);
-	}
-	.border-divider {
-		border-color: var(--divider);
-	}
-	/* Status + accent semantics (theme-token backed). These replace hardcoded
-	 * Tailwind palette colours (text-red-300, bg-indigo-600, …) so status and
-	 * accent surfaces track the active family + light/dark mode. Soft variants
-	 * are translucent tints via color-mix so they read on both light and dark
-	 * backgrounds. */
-	.text-ok {
-		color: var(--ok);
-	}
-	.text-warn {
-		color: var(--warn);
-	}
-	.text-err {
-		color: var(--err);
-	}
-	.border-accent {
-		border-color: var(--accent);
-	}
-	.border-ok {
-		border-color: var(--ok);
-	}
-	.border-warn {
-		border-color: var(--warn);
-	}
-	.border-err {
-		border-color: var(--err);
-	}
-	.surface-accent {
-		background: var(--accent);
-		color: var(--accent-fg);
-	}
-	.surface-accent-soft {
-		background: var(--accent-soft);
-	}
-	.surface-ok {
-		background: var(--ok);
-	}
-	.surface-err {
-		background: var(--err);
-	}
-	.surface-ok-soft {
-		background: color-mix(in oklab, var(--ok) 16%, transparent);
-	}
-	.surface-warn-soft {
-		background: color-mix(in oklab, var(--warn) 16%, transparent);
-	}
-	.surface-err-soft {
-		background: color-mix(in oklab, var(--err) 16%, transparent);
-	}
 	.type-view-title {
 		font-family: var(--font-display);
 		font-size: clamp(16px, calc(var(--font-size-interface) + 6px), 38px);
@@ -656,6 +590,72 @@ html {
 	.type-technical-wrap {
 		overflow-wrap: anywhere;
 		word-break: break-word;
+	}
+	.text-primary {
+		color: var(--text-primary);
+	}
+	.text-muted {
+		color: var(--text-muted);
+	}
+	.text-faint {
+		color: var(--text-faint);
+	}
+	.placeholder-faint::placeholder {
+		color: var(--text-faint);
+	}
+	.text-accent {
+		color: var(--accent);
+	}
+	.border-divider {
+		border-color: var(--divider);
+	}
+	/* Status + accent semantics (theme-token backed). These replace hardcoded
+	 * Tailwind palette colours (text-red-300, bg-indigo-600, …) so status and
+	 * accent surfaces track the active family + light/dark mode. Soft variants
+	 * are translucent tints via color-mix so they read on both light and dark
+	 * backgrounds. */
+	.text-ok {
+		color: var(--ok);
+	}
+	.text-warn {
+		color: var(--warn);
+	}
+	.text-err {
+		color: var(--err);
+	}
+	.border-accent {
+		border-color: var(--accent);
+	}
+	.border-ok {
+		border-color: var(--ok);
+	}
+	.border-warn {
+		border-color: var(--warn);
+	}
+	.border-err {
+		border-color: var(--err);
+	}
+	.surface-accent {
+		background: var(--accent);
+		color: var(--accent-fg);
+	}
+	.surface-accent-soft {
+		background: var(--accent-soft);
+	}
+	.surface-ok {
+		background: var(--ok);
+	}
+	.surface-err {
+		background: var(--err);
+	}
+	.surface-ok-soft {
+		background: color-mix(in oklab, var(--ok) 16%, transparent);
+	}
+	.surface-warn-soft {
+		background: color-mix(in oklab, var(--warn) 16%, transparent);
+	}
+	.surface-err-soft {
+		background: color-mix(in oklab, var(--err) 16%, transparent);
 	}
 }
 
