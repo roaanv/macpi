@@ -75,16 +75,27 @@ export function UninstallResourceDialog({
 			body={
 				target && (
 					<>
-						Uninstall the package <code>{target.source}</code>
+						Uninstall the package{" "}
+						<code className="type-code type-technical-wrap">
+							{target.source}
+						</code>
 						{target.name && target.name !== target.source && (
 							<>
 								{" "}
-								(installed <code>{target.name}</code>)
+								(installed{" "}
+								<code className="type-code type-technical-wrap">
+									{target.name}
+								</code>
+								)
 							</>
 						)}
 						. Pi removes the package from disk, including any other {kind}s it
 						shipped. You can reinstall it any time.
-						{error && <div className="mt-2 text-err">⚠ {error}</div>}
+						{error && (
+							<div className="mt-2 type-status type-technical-wrap text-err">
+								⚠ {error}
+							</div>
+						)}
 					</>
 				)
 			}

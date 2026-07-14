@@ -105,15 +105,17 @@ export function OAuthLoginDialog({ provider, onClose }: OAuthLoginDialogProps) {
 
 	return (
 		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-			<div className="surface-panel flex max-h-[80vh] w-[560px] flex-col gap-3 overflow-auto rounded p-4 shadow-xl">
+			<div className="max-w-[calc(100vw-2rem)] surface-panel flex max-h-[80vh] w-[560px] flex-col gap-3 overflow-auto rounded p-4 shadow-xl">
 				<div className="flex items-center justify-between gap-3">
 					<div>
-						<div className="text-base font-semibold">OAuth login</div>
-						<div className="text-xs text-muted">{provider}</div>
+						<div className="type-section-heading">OAuth login</div>
+						<div className="type-code type-metadata type-technical-wrap text-muted">
+							{provider}
+						</div>
 					</div>
 					<button
 						type="button"
-						className="rounded px-2 py-1 hover:opacity-80"
+						className="rounded px-2 py-1 hover:opacity-80 type-control"
 						onClick={onClose}
 					>
 						✕
@@ -153,10 +155,12 @@ export function OAuthLoginDialog({ provider, onClose }: OAuthLoginDialogProps) {
 						{latestUrl.instructions ? (
 							<div className="mb-2 text-muted">{latestUrl.instructions}</div>
 						) : null}
-						<div className="break-all text-xs text-muted">{latestUrl.url}</div>
+						<div className="type-code type-technical-wrap text-muted">
+							{latestUrl.url}
+						</div>
 						<button
 							type="button"
-							className="mt-2 rounded surface-accent-soft px-2 py-1 text-sm hover:opacity-80"
+							className="mt-2 rounded surface-accent-soft px-2 py-1 hover:opacity-80 type-control"
 							onClick={() =>
 								void invoke("system.openExternalUrl", { url: latestUrl.url })
 							}
@@ -168,17 +172,19 @@ export function OAuthLoginDialog({ provider, onClose }: OAuthLoginDialogProps) {
 
 				{latestPrompt?.type === "oauth.prompt" && !result ? (
 					<div className="flex flex-col gap-2 rounded border border-border/40 p-2 text-sm">
-						<label htmlFor="oauth-prompt-input">{latestPrompt.message}</label>
+						<label className="type-label" htmlFor="oauth-prompt-input">
+							{latestPrompt.message}
+						</label>
 						<input
 							id="oauth-prompt-input"
-							className="surface-row rounded px-2 py-1"
+							className="surface-row rounded px-2 py-1 type-control"
 							value={promptValue}
 							placeholder={latestPrompt.placeholder}
 							onChange={(e) => setPromptValue(e.target.value)}
 						/>
 						<button
 							type="button"
-							className="rounded surface-accent-soft px-2 py-1 hover:opacity-80"
+							className="rounded surface-accent-soft px-2 py-1 hover:opacity-80 type-control"
 							onClick={() => {
 								respond.mutate({
 									loginId: latestPrompt.loginId,
@@ -200,7 +206,7 @@ export function OAuthLoginDialog({ provider, onClose }: OAuthLoginDialogProps) {
 							<button
 								key={option}
 								type="button"
-								className="surface-row rounded px-2 py-1 text-left hover:opacity-80"
+								className="surface-row rounded px-2 py-1 text-left hover:opacity-80 type-control"
 								onClick={() =>
 									respond.mutate({
 										loginId: latestPrompt.loginId,
@@ -219,7 +225,7 @@ export function OAuthLoginDialog({ provider, onClose }: OAuthLoginDialogProps) {
 					<div>
 						<button
 							type="button"
-							className="rounded px-2 py-1 text-sm hover:opacity-80"
+							className="rounded px-2 py-1 hover:opacity-80 type-control"
 							aria-expanded={detailsOpen}
 							onClick={() => setDetailsOpen((open) => !open)}
 						>
@@ -235,7 +241,7 @@ export function OAuthLoginDialog({ provider, onClose }: OAuthLoginDialogProps) {
 					{result?.kind === "success" ? (
 						<button
 							type="button"
-							className="rounded surface-accent px-3 py-1 text-sm hover:opacity-90"
+							className="rounded surface-accent px-3 py-1 hover:opacity-90 type-control"
 							onClick={onClose}
 						>
 							Done
@@ -244,14 +250,14 @@ export function OAuthLoginDialog({ provider, onClose }: OAuthLoginDialogProps) {
 						<>
 							<button
 								type="button"
-								className="rounded px-3 py-1 text-sm hover:opacity-80"
+								className="rounded px-3 py-1 hover:opacity-80 type-control"
 								onClick={onClose}
 							>
 								Close
 							</button>
 							<button
 								type="button"
-								className="rounded surface-accent px-3 py-1 text-sm hover:opacity-90 disabled:opacity-50"
+								className="rounded surface-accent px-3 py-1 hover:opacity-90 disabled:opacity-50 type-control"
 								disabled={start.isPending}
 								onClick={() => void startAttempt()}
 							>
@@ -261,7 +267,7 @@ export function OAuthLoginDialog({ provider, onClose }: OAuthLoginDialogProps) {
 					) : (
 						<button
 							type="button"
-							className="rounded px-2 py-1 text-sm hover:opacity-80"
+							className="rounded px-2 py-1 hover:opacity-80 type-control"
 							onClick={() => {
 								if (loginId) cancel.mutate({ loginId });
 								onClose();
@@ -278,7 +284,7 @@ export function OAuthLoginDialog({ provider, onClose }: OAuthLoginDialogProps) {
 
 function OAuthEventHistory({ events }: { events: OAuthEvent[] }) {
 	return (
-		<div className="rounded bg-black/20 p-2 text-xs text-muted">
+		<div className="rounded bg-black/20 p-2 type-code type-technical-wrap text-muted">
 			{events.length === 0 ? <div>Starting login…</div> : null}
 			{events.map((event) => (
 				<div key={oauthEventKey(event)}>

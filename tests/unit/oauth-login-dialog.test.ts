@@ -124,6 +124,14 @@ describe("OAuthLoginDialog", () => {
 		await renderDialog();
 
 		expect(container.textContent).toContain("https://example.com/oauth");
+		expect(
+			container.querySelector(".type-section-heading")?.textContent,
+		).toContain("OAuth login");
+		expect(
+			[...container.querySelectorAll(".type-code.type-technical-wrap")].some(
+				(element) => element.textContent?.includes("https://example.com/oauth"),
+			),
+		).toBe(true);
 		await click(button("Open Browser"));
 		expect(mocks.invoke).toHaveBeenCalledWith("system.openExternalUrl", {
 			url: "https://example.com/oauth",

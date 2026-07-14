@@ -120,6 +120,9 @@ async function click(element: Element) {
 
 describe("ProvidersSettings", () => {
 	it("focuses the screen on provider management and retains provider actions", async () => {
+		expect(container.querySelector("h2")?.classList).toContain(
+			"type-view-title",
+		);
 		expect(container.textContent).toContain("Providers");
 		expect(container.textContent).not.toContain("Models & Auth");
 		expect(container.textContent).not.toContain("Active:");

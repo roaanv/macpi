@@ -43,27 +43,27 @@ export function ConfirmDialog({
 			role="presentation"
 		>
 			<div
-				className="w-80 rounded surface-panel p-4 text-primary shadow-xl"
+				className="max-w-[calc(100vw-2rem)] w-80 rounded surface-panel p-4 text-primary shadow-xl"
 				onClick={(e) => e.stopPropagation()}
 				onKeyDown={() => undefined}
 				role="dialog"
 				aria-modal="true"
 				aria-label={title}
 			>
-				<div className="mb-2 text-sm font-semibold">{title}</div>
-				<div className="mb-4 text-xs text-primary">{body}</div>
+				<div className="mb-2 type-section-heading">{title}</div>
+				<div className="mb-4 type-body text-primary">{body}</div>
 				<div className="flex justify-end gap-2">
 					<button
 						type="button"
 						onClick={onCancel}
-						className="rounded surface-row px-3 py-1 text-xs hover:opacity-80"
+						className="rounded surface-row px-3 py-1 hover:opacity-80 type-control"
 					>
 						{cancelLabel}
 					</button>
 					<button
 						type="button"
 						onClick={onConfirm}
-						className={`rounded px-3 py-1 text-xs ${
+						className={`rounded px-3 py-1 type-control ${
 							destructive
 								? "surface-err text-white hover:opacity-90"
 								: "surface-accent hover:opacity-90"

@@ -163,8 +163,8 @@ export function ModelsSettings() {
 	return (
 		<div className="-m-6 flex h-full flex-col overflow-hidden text-primary">
 			<header className="border-b border-divider px-5 py-4">
-				<h2 className="text-xl font-semibold">Models</h2>
-				<div className="mt-1 text-sm text-muted">
+				<h2 className="type-view-title">Models</h2>
+				<div className="mt-1 type-metadata text-muted">
 					Choose favourite models for quick access.
 				</div>
 			</header>
@@ -172,7 +172,7 @@ export function ModelsSettings() {
 			{persistenceError || setSetting.error ? (
 				<div
 					role="alert"
-					className="mx-5 mt-4 rounded surface-err-soft p-3 text-err text-sm"
+					className="mx-5 mt-4 rounded surface-err-soft p-3 type-status text-err"
 				>
 					Could not update favourites:{" "}
 					{(persistenceError ?? setSetting.error)?.message}
@@ -180,25 +180,28 @@ export function ModelsSettings() {
 			) : null}
 
 			{providers.error || models.error || settings.error ? (
-				<div className="flex flex-1 flex-col gap-3 p-6" role="alert">
+				<div
+					className="flex flex-1 flex-col gap-3 p-6 type-status"
+					role="alert"
+				>
 					{providers.error ? (
-						<div className="rounded surface-err-soft p-3 text-err text-sm">
+						<div className="rounded surface-err-soft p-3 type-status text-err">
 							Could not load providers: {providers.error.message}
 						</div>
 					) : null}
 					{models.error ? (
-						<div className="rounded surface-err-soft p-3 text-err text-sm">
+						<div className="rounded surface-err-soft p-3 type-status text-err">
 							Could not load models: {models.error.message}
 						</div>
 					) : null}
 					{settings.error ? (
-						<div className="rounded surface-err-soft p-3 text-err text-sm">
+						<div className="rounded surface-err-soft p-3 type-status text-err">
 							Could not load favourite settings: {settings.error.message}
 						</div>
 					) : null}
 				</div>
 			) : providers.isLoading || models.isLoading || settings.isLoading ? (
-				<div className="flex flex-1 flex-col gap-2 p-6 text-muted text-sm">
+				<div className="flex flex-1 flex-col gap-2 p-6 type-status text-muted">
 					{providers.isLoading ? <div>Loading providers…</div> : null}
 					{models.isLoading ? <div>Loading models…</div> : null}
 					{settings.isLoading ? <div>Loading favourite settings…</div> : null}
@@ -207,7 +210,7 @@ export function ModelsSettings() {
 				<div className="flex flex-1 items-center justify-center p-6 text-center">
 					<div>
 						<div className="font-medium">No configured providers</div>
-						<div className="mt-1 text-sm text-muted">
+						<div className="mt-1 type-metadata text-muted">
 							Open Providers to configure one before choosing favourites.
 						</div>
 					</div>
@@ -235,7 +238,7 @@ export function ModelsSettings() {
 								onChange={(event) => setQuery(event.target.value)}
 								placeholder="Search models by name or ID…"
 								aria-label="Search models"
-								className="surface-row w-full rounded px-3 py-2 text-sm outline-none"
+								className="surface-row w-full rounded px-3 py-2 type-control outline-none"
 							/>
 						</div>
 						<div className="min-h-0 flex-1 overflow-y-auto p-4">
@@ -247,7 +250,7 @@ export function ModelsSettings() {
 											value={customModelId}
 											onChange={(event) => setCustomModelId(event.target.value)}
 											placeholder="Model ID"
-											className="surface-row min-w-48 flex-1 rounded px-2 py-1 text-sm"
+											className="surface-row min-w-48 flex-1 rounded px-2 py-1 type-control"
 										/>
 										<input
 											aria-label="Custom model display name"
@@ -256,11 +259,11 @@ export function ModelsSettings() {
 												setCustomModelName(event.target.value)
 											}
 											placeholder="Display name (optional)"
-											className="surface-row min-w-48 flex-1 rounded px-2 py-1 text-sm"
+											className="surface-row min-w-48 flex-1 rounded px-2 py-1 type-control"
 										/>
 										<button
 											type="button"
-											className="rounded surface-accent-soft px-3 py-1 text-sm disabled:opacity-50"
+											className="rounded surface-accent-soft px-3 py-1 disabled:opacity-50 type-control"
 											disabled={
 												!customModelId.trim() || saveCustomModel.isPending
 											}
@@ -283,7 +286,7 @@ export function ModelsSettings() {
 										</button>
 										<button
 											type="button"
-											className="rounded surface-accent-soft px-3 py-1 text-sm disabled:opacity-50"
+											className="rounded surface-accent-soft px-3 py-1 disabled:opacity-50 type-control"
 											disabled={fetchCustomModels.isPending}
 											onClick={() =>
 												fetchCustomModels.mutate({
@@ -297,22 +300,22 @@ export function ModelsSettings() {
 										</button>
 									</div>
 									{fetchCustomModels.data ? (
-										<div role="status" className="mt-2 text-xs text-ok">
+										<div role="status" className="mt-2 type-status text-ok">
 											Models refreshed.
 										</div>
 									) : saveCustomModel.isSuccess ? (
-										<div role="status" className="mt-2 text-xs text-ok">
+										<div role="status" className="mt-2 type-status text-ok">
 											Model saved.
 										</div>
 									) : removeCustomModel.isSuccess ? (
-										<div role="status" className="mt-2 text-xs text-ok">
+										<div role="status" className="mt-2 type-status text-ok">
 											Model removed.
 										</div>
 									) : null}
 									{fetchCustomModels.error ||
 									saveCustomModel.error ||
 									removeCustomModel.error ? (
-										<div role="alert" className="mt-2 text-xs text-err">
+										<div role="alert" className="mt-2 type-status text-err">
 											{
 												(
 													fetchCustomModels.error ??
@@ -325,11 +328,11 @@ export function ModelsSettings() {
 								</div>
 							) : null}
 							{activeProvider?.models.length === 0 ? (
-								<div className="text-sm text-muted">
+								<div className="type-status text-muted">
 									{activeProvider.name} has no models available.
 								</div>
 							) : visibleModels.length === 0 ? (
-								<div className="text-sm text-muted">
+								<div className="type-status text-muted">
 									No models match “{query.trim()}”.
 								</div>
 							) : (
@@ -407,7 +410,7 @@ function ModelSection({
 				aria-expanded={open}
 				aria-controls={contentId}
 				onClick={onToggle}
-				className="flex w-full items-center justify-between px-3 py-2 text-left text-sm font-semibold hover:surface-row"
+				className="flex w-full items-center justify-between px-3 py-2 text-left hover:surface-row type-control"
 			>
 				<span>
 					{title} ({models.length})
@@ -422,7 +425,9 @@ function ModelSection({
 					className="flex flex-col gap-2 border-t border-divider p-2"
 				>
 					{models.length === 0 ? (
-						<div className="px-2 py-1 text-xs text-muted">{emptyMessage}</div>
+						<div className="px-2 py-1 type-metadata text-muted">
+							{emptyMessage}
+						</div>
 					) : (
 						models.map((model) => (
 							<ModelRow
@@ -456,7 +461,9 @@ function ModelRow({
 		<div className="surface-row flex items-center justify-between gap-3 rounded px-3 py-2">
 			<div className="min-w-0">
 				<div className="truncate text-sm font-medium">{model.name}</div>
-				<div className="truncate font-mono text-muted text-xs">{model.id}</div>
+				<div className="min-w-0 type-code type-metadata type-ellipsis text-muted">
+					{model.id}
+				</div>
 			</div>
 			<div className="flex items-center gap-2">
 				<button
@@ -508,7 +515,7 @@ function ProviderRow({
 			}`}
 		>
 			<span className="truncate text-sm font-medium">{provider.name}</span>
-			<span className="shrink-0 text-xs text-muted">
+			<span className="shrink-0 type-metadata text-muted">
 				{count} {count === 1 ? "model" : "models"}
 			</span>
 		</button>

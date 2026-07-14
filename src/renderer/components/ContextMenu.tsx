@@ -56,9 +56,10 @@ export function ContextMenu({ items, position, onClose }: ContextMenuProps) {
 						onClose();
 						item.onClick();
 					}}
-					className={`block w-full px-3 py-1 text-left text-xs hover:surface-row ${
+					className={`block w-full px-3 py-1 text-left type-control type-ellipsis hover:surface-row ${
 						item.destructive ? "text-err" : "text-primary"
 					}`}
+					title={item.label}
 				>
 					{item.label}
 				</button>

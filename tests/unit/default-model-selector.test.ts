@@ -211,7 +211,13 @@ describe("DefaultModelSelector codec", () => {
 
 describe("DefaultModelSelector", () => {
 	it("groups only configured models by configured provider", async () => {
+		expect(container.querySelector("h3")?.classList).toContain(
+			"type-section-heading",
+		);
 		await openMenu();
+		expect(
+			container.querySelector('input[type="search"]')?.classList,
+		).toContain("type-control");
 		const text = container.textContent ?? "";
 		expect(text).toContain("Anthropic");
 		expect(text).toContain("Google");

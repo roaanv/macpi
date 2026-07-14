@@ -219,6 +219,9 @@ async function settle(action: () => void) {
 
 describe("ModelsSettings", () => {
 	it("lists only configured providers with model counts and switches provider models", async () => {
+		expect(container.querySelector("h2")?.classList).toContain(
+			"type-view-title",
+		);
 		expect(container.textContent).toContain("Anthropic");
 		expect(container.textContent).toContain("2 models");
 		expect(container.textContent).toContain("Google");

@@ -65,6 +65,10 @@ describe("ChatThinkingMenu", () => {
 	it("shows only supported levels and marks the current one", async () => {
 		await openMenu();
 		const options = [...container.querySelectorAll('[role="option"]')];
+		expect(options[0]?.classList).toContain("type-control");
+		expect(container.querySelector(".type-overline")?.textContent).toContain(
+			"Thinking level",
+		);
 		expect(options.map((option) => option.textContent?.trim())).toEqual([
 			"Off",
 			"LowCurrent",

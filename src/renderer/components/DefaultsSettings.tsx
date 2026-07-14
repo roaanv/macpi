@@ -42,11 +42,11 @@ export function DefaultsSettings() {
 
 	return (
 		<div className="flex flex-col gap-3">
-			<h2 className="text-base font-semibold">Defaults</h2>
+			<h2 className="type-section-heading">Defaults</h2>
 
 			<div>
 				<div className="mb-1 text-sm font-medium">Default cwd</div>
-				<div className="mb-1 text-xs text-muted">
+				<div className="mb-1 type-metadata text-muted">
 					New workspaces with no cwd inherit this. Sessions inherit the
 					workspace's cwd at creation.
 				</div>
@@ -63,7 +63,7 @@ export function DefaultsSettings() {
 						type="button"
 						onClick={handleBrowse}
 						title="Browse for folder"
-						className="surface-row rounded px-2 hover:opacity-80"
+						className="surface-row rounded px-2 hover:opacity-80 type-control"
 					>
 						📁
 					</button>
@@ -74,9 +74,9 @@ export function DefaultsSettings() {
 
 			<div>
 				<div className="mb-1 text-sm font-medium">Pi environment</div>
-				<div className="mb-1 text-xs text-muted">
+				<div className="mb-1 type-metadata text-muted">
 					MacPi stores its Pi runtime state inside the MacPi resource root at{" "}
-					<span className="font-mono">pi-agent</span>. Packages, skills,
+					<span className="type-code">pi-agent</span>. Packages, skills,
 					prompts, sessions, and extensions are sandboxed from the Pi CLI.
 				</div>
 			</div>

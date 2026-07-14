@@ -46,7 +46,7 @@ export function RowMenu({ items, alwaysVisible }: RowMenuProps) {
 					setOpen((v) => !v);
 				}}
 				aria-label="row menu"
-				className={`rounded px-1 text-muted hover:surface-row hover:text-primary ${
+				className={`rounded px-1 type-control text-muted hover:surface-row hover:text-primary ${
 					alwaysVisible ? "" : "opacity-0 group-hover:opacity-100"
 				}`}
 			>
@@ -63,9 +63,10 @@ export function RowMenu({ items, alwaysVisible }: RowMenuProps) {
 								setOpen(false);
 								item.onClick();
 							}}
-							className={`block w-full px-3 py-1 text-left text-xs hover:surface-row ${
+							className={`block w-full px-3 py-1 text-left type-control type-ellipsis hover:surface-row ${
 								item.destructive ? "text-err" : "text-primary"
 							}`}
+							title={item.label}
 						>
 							{item.label}
 						</button>

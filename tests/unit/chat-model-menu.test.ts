@@ -203,6 +203,12 @@ describe("ChatModelMenu", () => {
 	it("shows favourites and provider groups, duplicates favourites in All, and excludes unconfigured inventory", async () => {
 		await openMenu();
 		expect(container.querySelector('[role="dialog"]')).not.toBeNull();
+		expect(
+			container.querySelector('input[type="search"]')?.classList,
+		).toContain("type-control");
+		expect(container.querySelector('[role="option"]')?.classList).toContain(
+			"type-control",
+		);
 		expect(container.textContent).toContain("Favourites");
 		expect(container.textContent).toContain("All");
 		expect(container.textContent).toContain("Anthropic");

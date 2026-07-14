@@ -84,36 +84,36 @@ export function InstallSkillDialog({
 			role="presentation"
 		>
 			<div
-				className="surface-panel flex w-[480px] flex-col gap-3 rounded p-4 shadow-xl"
+				className="max-w-[calc(100vw-2rem)] surface-panel flex w-[480px] flex-col gap-3 rounded p-4 shadow-xl"
 				onClick={(e) => e.stopPropagation()}
 				onKeyDown={() => undefined}
 				role="dialog"
 				aria-modal="true"
 				aria-label={`Install ${resourceKind}`}
 			>
-				<div className="text-sm font-semibold">Install {resourceKind}</div>
+				<div className="type-section-heading">Install {resourceKind}</div>
 				<input
 					type="text"
 					value={source}
 					onChange={(e) => setSource(e.target.value)}
 					placeholder="npm package name, git URL, or local path"
-					className="surface-row rounded px-2 py-1 text-sm"
+					className="surface-row rounded px-2 py-1 type-code type-control type-technical-wrap"
 				/>
 				{progress.length > 0 && (
-					<div className="max-h-32 overflow-y-auto rounded surface-row p-2 text-xs text-muted">
+					<div className="max-h-32 overflow-y-auto rounded surface-row p-2 type-metadata text-muted">
 						{progress.map((p, i) => (
 							// biome-ignore lint/suspicious/noArrayIndexKey: progress lines have no stable id
 							<div key={i}>
-								<span className="mr-2 text-[10px] uppercase tracking-widest">
-									{p.phase}
+								<span className="mr-2 type-overline">{p.phase}</span>
+								<span className="type-code type-technical-wrap">
+									{p.message}
 								</span>
-								{p.message}
 							</div>
 						))}
 					</div>
 				)}
 				{install.isError && (
-					<div className="text-xs text-err">
+					<div className="type-status type-technical-wrap text-err">
 						{(install.error as Error).message}
 					</div>
 				)}
@@ -122,7 +122,7 @@ export function InstallSkillDialog({
 						type="button"
 						onClick={onClose}
 						disabled={install.isPending}
-						className="surface-row rounded px-3 py-1 text-xs hover:opacity-80 disabled:opacity-40"
+						className="surface-row rounded px-3 py-1 hover:opacity-80 disabled:opacity-40 type-control"
 					>
 						Cancel
 					</button>
@@ -130,7 +130,7 @@ export function InstallSkillDialog({
 						type="button"
 						onClick={handleInstall}
 						disabled={!source.trim() || install.isPending}
-						className="surface-row rounded px-3 py-1 text-xs hover:opacity-80 disabled:opacity-40"
+						className="surface-row rounded px-3 py-1 hover:opacity-80 disabled:opacity-40 type-control"
 					>
 						{install.isPending ? "Installing…" : "Install"}
 					</button>

@@ -97,8 +97,8 @@ export function ProvidersSettings() {
 
 			<header className="flex items-start justify-between gap-4 border-b border-divider px-5 py-4">
 				<div>
-					<h2 className="text-xl font-semibold">Providers</h2>
-					<div className="mt-1 text-sm text-muted">
+					<h2 className="type-view-title">Providers</h2>
+					<div className="mt-1 type-metadata text-muted">
 						Configure provider authentication and custom endpoints.
 					</div>
 				</div>
@@ -106,14 +106,14 @@ export function ProvidersSettings() {
 					<button
 						type="button"
 						onClick={() => setShowAdvanced(true)}
-						className="rounded px-3 py-2 text-muted hover:surface-row hover:text-primary"
+						className="rounded px-3 py-2 type-control text-muted hover:surface-row hover:text-primary"
 					>
 						Advanced
 					</button>
 					<button
 						type="button"
 						onClick={() => setShowImport(true)}
-						className="rounded px-3 py-2 text-muted hover:surface-row hover:text-primary"
+						className="rounded px-3 py-2 type-control text-muted hover:surface-row hover:text-primary"
 					>
 						↓ Import from pi…
 					</button>
@@ -129,9 +129,9 @@ export function ProvidersSettings() {
 							value={query}
 							onChange={(e) => setQuery(e.target.value)}
 							placeholder="Search providers…"
-							className="surface-row min-w-0 flex-1 rounded px-3 py-2 text-sm outline-none"
+							className="surface-row min-w-0 flex-1 rounded px-3 py-2 type-control outline-none"
 						/>
-						<label className="sr-only" htmlFor="provider-filter">
+						<label className="sr-only type-label" htmlFor="provider-filter">
 							Filter providers
 						</label>
 						<select
@@ -140,7 +140,7 @@ export function ProvidersSettings() {
 							onChange={(event) =>
 								setFilter(event.target.value as ProviderFilter)
 							}
-							className="surface-row rounded px-2 py-2 text-sm outline-none"
+							className="surface-row rounded px-2 py-2 type-control outline-none"
 						>
 							{FILTERS.map((item) => (
 								<option key={item.id} value={item.id}>
@@ -156,7 +156,7 @@ export function ProvidersSettings() {
 								setAddingCustom(true);
 								setFilter("custom");
 							}}
-							className={`mb-3 flex w-full items-center gap-3 rounded border border-dashed border-divider p-3 text-left text-sm ${
+							className={`mb-3 flex w-full items-center gap-3 rounded border border-dashed border-divider p-3 text-left type-control ${
 								addingCustom
 									? "surface-accent-soft text-primary"
 									: "text-muted hover:surface-row"
@@ -166,13 +166,13 @@ export function ProvidersSettings() {
 							<span>Add custom OpenAI-compatible provider</span>
 						</button>
 						{providers.error ? (
-							<div className="rounded surface-err-soft p-2 text-sm text-err">
+							<div className="rounded surface-err-soft p-2 type-status type-technical-wrap text-err">
 								{providers.error.message}
 							</div>
 						) : providers.isLoading ? (
-							<div className="text-sm text-muted">Loading providers…</div>
+							<div className="type-status text-muted">Loading providers…</div>
 						) : filteredProviders.length === 0 ? (
-							<div className="text-sm text-muted">No providers match.</div>
+							<div className="type-status text-muted">No providers match.</div>
 						) : (
 							<div className="flex flex-col gap-2">
 								{filteredProviders.map((provider) => (
@@ -191,14 +191,14 @@ export function ProvidersSettings() {
 				<main className="min-h-0 overflow-y-auto p-6">
 					{models.error ? (
 						<div
-							className="mb-4 rounded surface-err-soft p-3 text-sm text-err"
+							className="mb-4 rounded surface-err-soft p-3 type-status text-err"
 							role="alert"
 						>
 							Models could not be loaded: {models.error.message}
 						</div>
 					) : null}
 					{models.data?.registryError ? (
-						<div className="mb-4 rounded surface-warn-soft p-3 text-sm text-warn">
+						<div className="mb-4 rounded surface-warn-soft p-3 type-status type-technical-wrap text-warn">
 							Model registry warning: {models.data.registryError}
 						</div>
 					) : null}
@@ -316,10 +316,10 @@ function CustomOpenAIProviderForm({
 	return (
 		<div className="mx-auto flex max-w-4xl flex-col gap-6">
 			<section>
-				<h3 className="text-xl font-semibold">
+				<h3 className="type-section-heading">
 					Add custom OpenAI-compatible provider
 				</h3>
-				<p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
+				<p className="mt-2 max-w-2xl type-metadata text-muted">
 					Connect an OpenAI-compatible custom endpoint. Model discovery is
 					optional; models can be fetched or added later under Models.
 				</p>
@@ -327,33 +327,33 @@ function CustomOpenAIProviderForm({
 
 			<section className="rounded-xl border border-divider p-4">
 				<div className="grid gap-3 sm:grid-cols-2">
-					<label className="flex flex-col gap-1 text-sm">
+					<label className="flex flex-col gap-1 type-label">
 						<span className="text-muted">Display name</span>
 						<input
-							className="surface-row rounded px-3 py-2 outline-none"
+							className="surface-row rounded px-3 py-2 outline-none type-control"
 							value={name}
 							onChange={(e) => setName(e.target.value)}
 						/>
 					</label>
-					<label className="flex flex-col gap-1 text-sm">
+					<label className="flex flex-col gap-1 type-label">
 						<span className="text-muted">Provider id</span>
 						<input
-							className="surface-row rounded px-3 py-2 font-mono outline-none"
+							className="surface-row rounded px-3 py-2 type-code type-control type-technical-wrap outline-none"
 							value={providerId}
 							onChange={(e) => setProviderId(e.target.value)}
 						/>
 					</label>
-					<label className="flex flex-col gap-1 text-sm sm:col-span-2">
+					<label className="flex flex-col gap-1 sm:col-span-2 type-label">
 						<span className="text-muted">Base URL</span>
 						<input
-							className="surface-row rounded px-3 py-2 font-mono outline-none"
+							className="surface-row rounded px-3 py-2 type-code type-control type-technical-wrap outline-none"
 							value={baseUrl}
 							onChange={(e) => setBaseUrl(e.target.value)}
 							placeholder="http://localhost:11434/v1"
 						/>
 					</label>
 					<fieldset className="flex flex-col gap-2 text-sm sm:col-span-2">
-						<legend className="text-muted">Credential source</legend>
+						<legend className="type-label text-muted">Credential source</legend>
 						<div className="flex gap-4">
 							<label>
 								<input
@@ -379,7 +379,7 @@ function CustomOpenAIProviderForm({
 								aria-label="API key"
 								type="password"
 								autoComplete="off"
-								className="surface-row rounded px-3 py-2 outline-none"
+								className="surface-row rounded px-3 py-2 outline-none type-control"
 								value={apiKey}
 								onChange={(e) => setApiKey(e.target.value)}
 							/>
@@ -387,7 +387,7 @@ function CustomOpenAIProviderForm({
 							<input
 								aria-label="Keychain service name"
 								autoComplete="off"
-								className="surface-row rounded px-3 py-2 outline-none"
+								className="surface-row rounded px-3 py-2 outline-none type-control"
 								value={keychainService}
 								onChange={(e) => setKeychainService(e.target.value)}
 							/>
@@ -397,7 +397,7 @@ function CustomOpenAIProviderForm({
 				<div className="mt-4 flex flex-wrap gap-2">
 					<button
 						type="button"
-						className="rounded surface-accent-soft px-3 py-2 text-sm hover:opacity-80 disabled:opacity-50"
+						className="rounded surface-accent-soft px-3 py-2 hover:opacity-80 disabled:opacity-50 type-control"
 						disabled={
 							listModels.isPending ||
 							credentialMode !== "apiKey" ||
@@ -409,25 +409,25 @@ function CustomOpenAIProviderForm({
 					</button>
 					<button
 						type="button"
-						className="rounded px-3 py-2 text-sm hover:surface-row"
+						className="rounded px-3 py-2 hover:surface-row type-control"
 						onClick={onCancel}
 					>
 						Cancel
 					</button>
 				</div>
 				{listModels.error ? (
-					<div className="mt-3 text-sm text-err">
+					<div className="mt-3 type-status type-technical-wrap text-err">
 						{listModels.error.message}
 					</div>
 				) : null}
 			</section>
 
 			<section>
-				<div className="mb-3 text-xs uppercase tracking-widest text-muted">
+				<div className="mb-3 type-overline text-muted">
 					Available models · {models.length}
 				</div>
 				{models.length === 0 ? (
-					<div className="rounded-xl border border-divider p-4 text-sm text-muted">
+					<div className="rounded-xl border border-divider p-4 type-status text-muted">
 						No models yet. Save now, then fetch or add models under Models.
 					</div>
 				) : (
@@ -438,7 +438,9 @@ function CustomOpenAIProviderForm({
 								className="border-b border-divider px-3 py-2 last:border-b-0"
 							>
 								<div className="text-sm font-medium">{model.name}</div>
-								<div className="font-mono text-xs text-muted">{model.id}</div>
+								<div className="type-code type-metadata text-muted">
+									{model.id}
+								</div>
 							</div>
 						))}
 					</div>
@@ -446,7 +448,7 @@ function CustomOpenAIProviderForm({
 				<div className="mt-4 flex justify-end">
 					<button
 						type="button"
-						className="rounded surface-accent px-4 py-2 text-sm hover:opacity-90 disabled:opacity-50"
+						className="rounded surface-accent px-4 py-2 hover:opacity-90 disabled:opacity-50 type-control"
 						disabled={
 							saveProvider.isPending ||
 							(credentialMode === "apiKey"
@@ -459,7 +461,7 @@ function CustomOpenAIProviderForm({
 					</button>
 				</div>
 				{saveProvider.error ? (
-					<div className="mt-3 text-sm text-err">
+					<div className="mt-3 type-status type-technical-wrap text-err">
 						{saveProvider.error.message}
 					</div>
 				) : null}
@@ -490,7 +492,7 @@ function ProviderRow({
 			<ProviderBadge provider={provider} />
 			<div className="min-w-0 flex-1">
 				<div className="truncate text-sm font-medium">{provider.name}</div>
-				<div className="truncate font-mono text-xs text-muted">
+				<div className="truncate type-code type-metadata text-muted">
 					{provider.id} · {provider.kind}
 				</div>
 			</div>
@@ -507,7 +509,7 @@ function ProviderRow({
 
 function ProviderBadge({ provider }: { provider: ProviderView }) {
 	return (
-		<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded surface-row font-mono text-xs font-semibold">
+		<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded surface-row type-code text-xs font-semibold">
 			{provider.initials}
 		</div>
 	);
@@ -552,15 +554,15 @@ function ProviderDetail({
 				<ProviderBadge provider={provider} />
 				<div className="min-w-0 flex-1">
 					<div className="flex flex-wrap items-center gap-2">
-						<h3 className="text-xl font-semibold">{provider.name}</h3>
-						<span className="rounded-full surface-row px-2 py-0.5 text-xs text-muted">
+						<h3 className="type-section-heading">{provider.name}</h3>
+						<span className="rounded-full surface-row px-2 py-0.5 type-metadata text-muted">
 							{provider.authStatus.configured ? "Configured" : "Not configured"}
 						</span>
 					</div>
-					<div className="mt-2 font-mono text-sm text-muted">
+					<div className="mt-2 type-code type-technical-wrap text-muted">
 						{provider.id} · {provider.kind}
 					</div>
-					<p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
+					<p className="mt-2 max-w-2xl type-metadata text-muted">
 						{provider.kind === "cloud"
 							? "Built-in MacPi provider. Configure authentication to make its models available."
 							: "OpenAI-compatible custom provider endpoint."}
@@ -569,7 +571,7 @@ function ProviderDetail({
 			</section>
 
 			<section>
-				<div className="mb-3 flex items-center justify-between text-xs uppercase tracking-widest text-muted">
+				<div className="mb-3 flex items-center justify-between type-overline text-muted">
 					<span>Authentication</span>
 					<span>{authLabel(provider)}</span>
 				</div>
@@ -589,7 +591,7 @@ function ProviderDetail({
 							<button
 								type="button"
 								onClick={onStartApiKey}
-								className="rounded surface-accent-soft px-3 py-2 hover:opacity-80"
+								className="rounded surface-accent-soft px-3 py-2 hover:opacity-80 type-control"
 							>
 								Add / replace API key
 							</button>
@@ -598,7 +600,7 @@ function ProviderDetail({
 							<button
 								type="button"
 								onClick={onLogout}
-								className="rounded surface-err-soft px-3 py-2 text-err hover:opacity-80"
+								className="rounded surface-err-soft px-3 py-2 text-err hover:opacity-80 type-control"
 							>
 								Remove auth
 							</button>
@@ -638,7 +640,7 @@ function ProviderDetail({
 									value={apiKey}
 									onChange={(e) => onApiKeyChange(e.target.value)}
 									placeholder="API key"
-									className="surface-row min-w-64 flex-1 rounded px-3 py-2 text-sm outline-none"
+									className="surface-row min-w-64 flex-1 rounded px-3 py-2 type-control outline-none"
 								/>
 							) : (
 								<input
@@ -647,19 +649,19 @@ function ProviderDetail({
 									value={keychainService}
 									onChange={(e) => onKeychainServiceChange(e.target.value)}
 									placeholder="Keychain service name"
-									className="surface-row min-w-64 flex-1 rounded px-3 py-2 text-sm outline-none"
+									className="surface-row min-w-64 flex-1 rounded px-3 py-2 type-control outline-none"
 								/>
 							)}
 							<button
 								type="button"
-								className="rounded surface-accent-soft px-3 py-2 text-sm"
+								className="rounded surface-accent-soft px-3 py-2 type-control"
 								onClick={onSaveApiKey}
 							>
 								Save
 							</button>
 							<button
 								type="button"
-								className="rounded px-3 py-2 text-sm hover:surface-row"
+								className="rounded px-3 py-2 hover:surface-row type-control"
 								onClick={onCancelApiKey}
 							>
 								Cancel
@@ -667,7 +669,9 @@ function ProviderDetail({
 						</div>
 					) : null}
 					{authError ? (
-						<div className="mt-3 text-sm text-err">{authError}</div>
+						<div className="mt-3 type-status type-technical-wrap text-err">
+							{authError}
+						</div>
 					) : null}
 				</div>
 			</section>
@@ -679,7 +683,7 @@ function ProviderDetail({
 					</div>
 				) : (
 					<details className="rounded border border-divider">
-						<summary className="cursor-pointer px-3 py-2 text-sm text-muted">
+						<summary className="cursor-pointer px-3 py-2 text-muted type-control">
 							{provider.models.length} models available
 						</summary>
 						<ReadOnlyModelInventory models={provider.models} />
@@ -706,7 +710,7 @@ function ReadOnlyModelInventory({ models }: { models: ModelSummary[] }) {
 					className="border-b border-divider px-3 py-2 last:border-b-0"
 				>
 					<div className="truncate text-sm font-medium">{model.name}</div>
-					<div className="truncate font-mono text-xs text-muted">
+					<div className="truncate type-code type-metadata text-muted">
 						{model.id}
 					</div>
 				</div>
@@ -731,7 +735,7 @@ function SettingsOverlay({
 		<div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60">
 			<button
 				type="button"
-				className="absolute inset-0 cursor-default"
+				className="absolute inset-0 cursor-default type-control"
 				aria-label={`Close ${title}`}
 				onClick={onClose}
 			/>
@@ -742,10 +746,10 @@ function SettingsOverlay({
 				aria-label={title}
 			>
 				<div className="mb-4 flex items-center justify-between gap-4">
-					<h3 className="text-lg font-semibold">{title}</h3>
+					<h3 className="type-section-heading">{title}</h3>
 					<button
 						type="button"
-						className="rounded px-2 py-1 text-sm hover:surface-row"
+						className="rounded px-2 py-1 hover:surface-row type-control"
 						onClick={onClose}
 					>
 						Close

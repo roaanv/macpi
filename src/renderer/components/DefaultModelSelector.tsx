@@ -93,15 +93,15 @@ export function DefaultModelSelector() {
 
 	return (
 		<section aria-labelledby="default-model-heading">
-			<h3 id="default-model-heading" className="mb-1 text-sm font-medium">
+			<h3 id="default-model-heading" className="mb-1 type-section-heading">
 				Default model for new chats
 			</h3>
-			<div className="mb-2 text-xs text-muted">
+			<div className="mb-2 type-metadata text-muted">
 				Used for new chats. Existing chats keep their current model.
 			</div>
 
-			<div className="mb-2 text-xs">
-				<span className="font-medium">Current saved default:</span>{" "}
+			<div className="mb-2 type-body">
+				<span className="type-label">Current saved default:</span>{" "}
 				{savedModel
 					? (savedModelSummary?.name ??
 						`${savedModel.provider} / ${savedModel.modelId}`)
@@ -109,7 +109,7 @@ export function DefaultModelSelector() {
 			</div>
 
 			{unavailableSavedModel ? (
-				<div role="alert" className="mb-2 text-xs text-warn">
+				<div role="alert" className="mb-2 type-status text-warn">
 					{selectedQuery.data?.error ??
 						"The saved default is not currently available from a configured provider."}{" "}
 					Choose Automatic or another configured model to recover.
@@ -117,43 +117,57 @@ export function DefaultModelSelector() {
 			) : null}
 
 			{providersQuery.isLoading ? (
-				<div className="mb-1 text-xs text-muted">Loading providers…</div>
+				<div className="mb-1 type-metadata text-muted">Loading providers…</div>
 			) : null}
 			{modelsQuery.isLoading ? (
-				<div className="mb-1 text-xs text-muted">Loading models…</div>
+				<div className="mb-1 type-metadata text-muted">Loading models…</div>
 			) : null}
 			{selectedQuery.isLoading ? (
-				<div className="mb-1 text-xs text-muted">Loading saved default…</div>
+				<div className="mb-1 type-metadata text-muted">
+					Loading saved default…
+				</div>
 			) : null}
 			{providersQuery.error ? (
-				<div role="alert" className="mb-1 text-xs text-err">
+				<div
+					role="alert"
+					className="mb-1 type-status type-technical-wrap text-err"
+				>
 					Providers could not be loaded: {errorMessage(providersQuery.error)}
 				</div>
 			) : null}
 			{modelsQuery.error ? (
-				<div role="alert" className="mb-1 text-xs text-err">
+				<div
+					role="alert"
+					className="mb-1 type-status type-technical-wrap text-err"
+				>
 					Models could not be loaded: {errorMessage(modelsQuery.error)}
 				</div>
 			) : null}
 			{selectedQuery.error ? (
-				<div role="alert" className="mb-1 text-xs text-err">
+				<div
+					role="alert"
+					className="mb-1 type-status type-technical-wrap text-err"
+				>
 					Saved default could not be loaded: {errorMessage(selectedQuery.error)}
 				</div>
 			) : null}
 			{modelsQuery.data?.registryError ? (
-				<div role="alert" className="mb-1 text-xs text-warn">
+				<div
+					role="alert"
+					className="mb-1 type-status type-technical-wrap text-warn"
+				>
 					Model registry warning: {modelsQuery.data.registryError}
 				</div>
 			) : null}
 
 			{!loading && !hasQueryError && configuredModels.length === 0 ? (
-				<div className="mb-2 text-xs text-muted">
+				<div className="mb-2 type-metadata text-muted">
 					No configured models available. Configure a provider in Providers, or
 					use Automatic.
 				</div>
 			) : null}
 
-			<div className="mb-1 text-xs">Choose default model</div>
+			<div className="mb-1 type-label">Choose default model</div>
 			<DefaultModelMenu
 				currentModel={savedModel}
 				currentLabel={

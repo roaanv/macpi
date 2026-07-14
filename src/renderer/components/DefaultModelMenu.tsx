@@ -109,11 +109,13 @@ export function DefaultModelMenu({
 				onClick={() =>
 					void choose({ provider: model.provider, modelId: model.id })
 				}
-				className="flex w-full justify-between rounded px-2 py-1.5 text-left hover:surface-row disabled:opacity-50"
+				className="flex w-full min-w-0 justify-between rounded px-2 py-1.5 text-left type-control hover:surface-row disabled:opacity-50"
 			>
-				<span>
-					<span className="font-medium">{model.name}</span>
-					<span className="ml-2 font-mono text-muted">{model.id}</span>
+				<span className="min-w-0 flex-1">
+					<span className="block type-ellipsis">{model.name}</span>
+					<span className="block type-code type-metadata type-ellipsis text-muted">
+						{model.id}
+					</span>
 				</span>
 				{selected ? <span className="text-accent">Current</span> : null}
 			</button>
@@ -134,7 +136,7 @@ export function DefaultModelMenu({
 					setError(null);
 					setOpen((value) => !value);
 				}}
-				className="surface-row flex w-full justify-between rounded px-3 py-2 text-left text-sm disabled:opacity-50"
+				className="surface-row flex w-full justify-between rounded px-3 py-2 text-left type-control disabled:opacity-50"
 			>
 				<span>{currentLabel}</span>
 				<span aria-hidden>▾</span>
@@ -146,7 +148,10 @@ export function DefaultModelMenu({
 					aria-label="Choose default model"
 					className="surface-panel absolute left-0 right-0 top-full z-50 mt-1 max-h-96 overflow-y-auto rounded border border-divider p-2 shadow-xl"
 				>
-					<label className="sr-only" htmlFor="default-model-menu-search">
+					<label
+						className="sr-only type-label"
+						htmlFor="default-model-menu-search"
+					>
 						Search configured models
 					</label>
 					<input
@@ -156,7 +161,7 @@ export function DefaultModelMenu({
 						value={search}
 						onChange={(event) => setSearch(event.target.value)}
 						placeholder="Search configured models…"
-						className="surface-row mb-2 w-full rounded px-2 py-1 text-sm"
+						className="surface-row mb-2 w-full rounded px-2 py-1 type-control"
 					/>
 					<button
 						type="button"
@@ -164,24 +169,22 @@ export function DefaultModelMenu({
 						aria-selected={!currentModel}
 						disabled={pending}
 						onClick={() => void choose(null)}
-						className="flex w-full justify-between rounded px-2 py-1.5 text-left hover:surface-row"
+						className="flex w-full justify-between rounded px-2 py-1.5 text-left type-control hover:surface-row"
 					>
 						<span>Automatic fallback</span>
 						{!currentModel ? (
 							<span className="text-accent">Current</span>
 						) : null}
 					</button>
-					<div className="mt-2 px-2 text-xs font-semibold uppercase text-muted">
-						Favourites
-					</div>
+					<div className="mt-2 px-2 type-overline text-muted">Favourites</div>
 					{favourites.length ? (
 						favourites.map(row)
 					) : (
-						<div className="px-2 py-1 text-xs text-muted">
+						<div className="px-2 py-1 type-metadata text-muted">
 							No favourite models.
 						</div>
 					)}
-					<div className="mt-2 border-t border-divider px-2 pt-2 text-xs font-semibold uppercase text-muted">
+					<div className="mt-2 border-t border-divider px-2 pt-2 type-overline text-muted">
 						All
 					</div>
 					{[...providerNames].map(([provider, name]) => {
@@ -190,23 +193,23 @@ export function DefaultModelMenu({
 						);
 						return providerModels.length ? (
 							<div key={provider}>
-								<div className="px-2 py-1 text-xs font-semibold">{name}</div>
+								<div className="px-2 py-1 type-overline">{name}</div>
 								{providerModels.map(row)}
 							</div>
 						) : null;
 					})}
 					{visible.length === 0 && normalized ? (
-						<div className="px-2 py-2 text-xs text-muted">
+						<div className="px-2 py-2 type-metadata text-muted">
 							No models match this search.
 						</div>
 					) : null}
 					{pending ? (
-						<div role="status" className="mt-2 text-xs text-muted">
+						<div role="status" className="mt-2 type-status text-muted">
 							Saving default model…
 						</div>
 					) : null}
 					{error ? (
-						<div role="alert" className="mt-2 text-xs text-err">
+						<div role="alert" className="mt-2 type-status text-err">
 							{error}
 						</div>
 					) : null}

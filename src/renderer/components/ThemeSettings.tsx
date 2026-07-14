@@ -168,8 +168,8 @@ export function ThemeSettings() {
 		<div className="flex max-w-3xl flex-col gap-6">
 			<section className="flex flex-col gap-3">
 				<div>
-					<h2 className="font-semibold text-primary text-sm">Family</h2>
-					<p className="text-muted text-xs">
+					<h2 className="text-primary type-section-heading">Family</h2>
+					<p className="type-metadata text-muted">
 						Surface palette, accent, and type pairing.
 					</p>
 				</div>
@@ -198,25 +198,25 @@ export function ThemeSettings() {
 								}
 							>
 								<div className="flex items-baseline justify-between gap-2">
-									<span className="font-semibold text-primary text-sm">
-										{opt.label}
-									</span>
+									<span className="type-label text-primary">{opt.label}</span>
 									{active ? (
-										<span className="font-semibold text-[10px] uppercase tracking-wider text-accent">
+										<span className="font-semibold type-overline text-accent">
 											● Active
 										</span>
 									) : null}
 								</div>
-								<p className="text-muted text-xs leading-snug">{opt.tagline}</p>
+								<p className="type-metadata text-muted leading-snug">
+									{opt.tagline}
+								</p>
 								<div className="flex gap-2">
 									<Swatches mode="light" colors={opt.swatches.light} />
 									<Swatches mode="dark" colors={opt.swatches.dark} />
 								</div>
-								<div className="flex justify-between text-[10px] text-faint">
+								<div className="flex justify-between type-metadata text-faint">
 									<span>Light</span>
 									<span>Dark</span>
 								</div>
-								<p className="text-[10px] text-faint leading-snug">
+								<p className="type-metadata text-faint leading-snug">
 									{opt.fonts}
 								</p>
 							</button>
@@ -227,8 +227,8 @@ export function ThemeSettings() {
 
 			<section className="flex flex-col gap-3">
 				<div>
-					<h2 className="font-semibold text-primary text-sm">Mode</h2>
-					<p className="text-muted text-xs">
+					<h2 className="text-primary type-section-heading">Mode</h2>
+					<p className="type-metadata text-muted">
 						Light or dark surfaces within the chosen family.
 					</p>
 				</div>
@@ -242,7 +242,7 @@ export function ThemeSettings() {
 								onClick={() =>
 									setSetting.mutate({ key: "theme", value: opt.value })
 								}
-								className={`min-w-[88px] rounded border px-3 py-1.5 text-xs transition-colors ${
+								className={`min-w-[88px] rounded border px-3 py-1.5 type-control transition-colors ${
 									isActive
 										? "border-transparent text-[color:var(--accent-fg)]"
 										: "border-divider text-muted hover:surface-row hover:text-primary"

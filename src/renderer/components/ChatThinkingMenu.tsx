@@ -135,9 +135,9 @@ export function ChatThinkingMenu({
 				<div
 					role="dialog"
 					aria-label="Choose thinking level"
-					className="surface-panel absolute bottom-full left-0 z-50 mb-2 min-w-44 rounded border border-divider p-2 text-xs text-primary shadow-xl"
+					className="surface-panel absolute bottom-full left-0 z-50 mb-2 min-w-44 rounded border border-divider p-2 text-primary shadow-xl"
 				>
-					<div className="mb-1 px-2 py-1 font-semibold text-muted">
+					<div className="mb-1 px-2 py-1 type-overline text-muted">
 						Thinking level
 					</div>
 					<div role="listbox" aria-label="Supported thinking levels">
@@ -151,7 +151,7 @@ export function ChatThinkingMenu({
 									aria-selected={current}
 									disabled={pending}
 									onClick={() => void select(level)}
-									className="flex w-full items-center justify-between gap-3 rounded px-2 py-1.5 text-left hover:surface-row disabled:opacity-50"
+									className="flex w-full items-center justify-between gap-3 rounded px-2 py-1.5 text-left type-control hover:surface-row disabled:opacity-50"
 								>
 									<span>{LABELS[level].full}</span>
 									{current ? (
@@ -162,7 +162,7 @@ export function ChatThinkingMenu({
 						})}
 					</div>
 					{selectionError ? (
-						<div role="alert" className="mt-2 text-err">
+						<div role="alert" className="mt-2 type-status text-err">
 							{selectionError}
 						</div>
 					) : null}

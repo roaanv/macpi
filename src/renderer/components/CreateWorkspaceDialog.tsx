@@ -67,14 +67,14 @@ export function CreateWorkspaceDialog({
 		>
 			<form
 				onSubmit={handleCreate}
-				className="surface-panel w-96 rounded p-5 text-primary shadow-xl"
+				className="max-w-[calc(100vw-2rem)] surface-panel w-96 rounded p-5 text-primary shadow-xl"
 				onClick={(e) => e.stopPropagation()}
 				onKeyDown={() => undefined}
 			>
-				<div className="mb-3 text-sm font-semibold">New workspace</div>
+				<div className="mb-3 type-section-heading">New workspace</div>
 
-				<label className="mb-3 block">
-					<div className="mb-1 text-xs text-muted">Name</div>
+				<label className="mb-3 block type-label">
+					<div className="mb-1 type-metadata text-muted">Name</div>
 					<input
 						type="text"
 						// biome-ignore lint/a11y/noAutofocus: focus the primary input on dialog open
@@ -82,31 +82,31 @@ export function CreateWorkspaceDialog({
 						value={name}
 						onChange={(e) => setName(e.target.value)}
 						placeholder="my workspace"
-						className="w-full surface-row rounded px-2 py-1 text-sm"
+						className="w-full surface-row rounded px-2 py-1 type-control"
 					/>
 				</label>
 
-				<label className="mb-1 block">
-					<div className="mb-1 text-xs text-muted">cwd</div>
+				<label className="mb-1 block type-label">
+					<div className="mb-1 type-metadata text-muted">cwd</div>
 					<div className="flex gap-2">
 						<input
 							type="text"
 							value={cwd}
 							onChange={(e) => setCwd(e.target.value)}
 							placeholder={defaultCwd.data?.cwd ?? "/"}
-							className="flex-1 surface-row rounded px-2 py-1 text-sm"
+							className="flex-1 surface-row rounded px-2 py-1 type-control"
 						/>
 						<button
 							type="button"
 							onClick={handleBrowse}
 							title="Browse for folder"
-							className="surface-row rounded px-2 hover:opacity-80"
+							className="surface-row rounded px-2 hover:opacity-80 type-control"
 						>
 							📁
 						</button>
 					</div>
 				</label>
-				<div className="mb-4 text-[11px] text-muted">
+				<div className="mb-4 type-metadata text-muted">
 					This cannot be changed after the workspace is created.
 				</div>
 
@@ -114,14 +114,14 @@ export function CreateWorkspaceDialog({
 					<button
 						type="button"
 						onClick={onClose}
-						className="rounded surface-row px-3 py-1 text-xs hover:opacity-80"
+						className="rounded surface-row px-3 py-1 hover:opacity-80 type-control"
 					>
 						Cancel
 					</button>
 					<button
 						type="submit"
 						disabled={!name.trim() || createWorkspace.isPending}
-						className="rounded surface-accent px-3 py-1 text-xs hover:opacity-90 disabled:opacity-50"
+						className="rounded surface-accent px-3 py-1 hover:opacity-90 disabled:opacity-50 type-control"
 					>
 						{createWorkspace.isPending ? "Creating…" : "Create"}
 					</button>

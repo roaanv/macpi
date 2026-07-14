@@ -201,7 +201,7 @@ export function ChatModelMenu({
 				disabled={streaming || pending}
 				aria-expanded={open}
 				aria-haspopup="dialog"
-				className="inline-flex items-center gap-1 rounded px-1 py-0.5 font-medium text-primary hover:surface-row disabled:cursor-not-allowed disabled:opacity-50"
+				className="inline-flex items-center gap-1 rounded px-1 py-0.5 text-primary hover:surface-row disabled:cursor-not-allowed disabled:opacity-50 type-control"
 				title={
 					currentModel
 						? `${currentModel.provider}/${currentModel.id}`
@@ -222,7 +222,7 @@ export function ChatModelMenu({
 					aria-label="Choose chat model"
 					className="absolute bottom-full left-0 z-50 mb-2 flex max-h-[min(28rem,70vh)] w-80 flex-col overflow-hidden rounded-lg border border-divider surface-panel p-2 text-left shadow-xl"
 				>
-					<label className="sr-only" htmlFor="chat-model-search">
+					<label className="sr-only type-label" htmlFor="chat-model-search">
 						Search chat models
 					</label>
 					<input
@@ -232,7 +232,7 @@ export function ChatModelMenu({
 						value={search}
 						onChange={(event) => setSearch(event.target.value)}
 						placeholder="Search models…"
-						className="mb-2 w-full rounded surface-row px-2 py-1.5 text-xs text-primary outline-none"
+						className="mb-2 w-full rounded surface-row px-2 py-1.5 type-control text-primary outline-none"
 					/>
 					<div
 						role="listbox"
@@ -242,7 +242,7 @@ export function ChatModelMenu({
 						{providersQuery.error ||
 						modelsQuery.error ||
 						settingsQuery.error ? (
-							<div className="space-y-1 p-2 text-xs text-err" role="alert">
+							<div className="space-y-1 p-2 type-status text-err" role="alert">
 								{providersQuery.error ? (
 									<div>
 										Providers could not be loaded:{" "}
@@ -271,7 +271,10 @@ export function ChatModelMenu({
 						) : providersQuery.isLoading ||
 							modelsQuery.isLoading ||
 							settingsQuery.isLoading ? (
-							<div className="space-y-1 p-2 text-xs text-muted" role="status">
+							<div
+								className="space-y-1 p-2 type-status text-muted"
+								role="status"
+							>
 								{providersQuery.isLoading ? (
 									<div>Loading providers…</div>
 								) : null}
@@ -281,7 +284,7 @@ export function ChatModelMenu({
 								) : null}
 							</div>
 						) : configuredProviders.size === 0 ? (
-							<div className="p-2 text-xs text-muted">
+							<div className="p-2 type-metadata text-muted">
 								<div className="font-medium text-primary">
 									No configured providers
 								</div>
@@ -292,7 +295,7 @@ export function ChatModelMenu({
 								<section aria-labelledby="chat-model-favourites">
 									<h3
 										id="chat-model-favourites"
-										className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-faint"
+										className="px-2 py-1 type-overline text-faint"
 									>
 										Favourites
 									</h3>
@@ -307,7 +310,7 @@ export function ChatModelMenu({
 											/>
 										))
 									) : (
-										<div className="px-2 py-1 text-xs text-muted">
+										<div className="px-2 py-1 type-metadata text-muted">
 											No favourite models
 											{normalizedSearch ? " match your search" : ""}.
 										</div>
@@ -319,13 +322,13 @@ export function ChatModelMenu({
 								>
 									<h3
 										id="chat-model-all"
-										className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-faint"
+										className="px-2 py-1 type-overline text-faint"
 									>
 										All
 									</h3>
 									{groups.map((group) => (
 										<fieldset className="m-0 border-0 p-0" key={group.provider}>
-											<legend className="w-full px-2 pb-0.5 pt-1 text-xs font-semibold text-muted">
+											<legend className="w-full px-2 pb-0.5 pt-1 type-overline text-muted">
 												{group.providerName}
 											</legend>
 											{group.models.map((model) => (
@@ -340,7 +343,7 @@ export function ChatModelMenu({
 										</fieldset>
 									))}
 									{normalizedSearch && groups.length === 0 ? (
-										<div className="px-2 py-2 text-xs text-muted">
+										<div className="px-2 py-2 type-metadata text-muted">
 											No models match your search.
 										</div>
 									) : null}
@@ -351,7 +354,7 @@ export function ChatModelMenu({
 					{selectionError ? (
 						<div
 							role="alert"
-							className="mt-2 border-divider border-t px-2 pt-2 text-xs text-err"
+							className="mt-2 border-divider border-t px-2 pt-2 type-status text-err"
 						>
 							Could not change model: {selectionError}
 						</div>
@@ -383,11 +386,11 @@ function ModelChoice({
 			aria-label={current ? `${model.name}, Current model` : model.name}
 			disabled={disabled}
 			onClick={() => void onSelect(model)}
-			className="flex w-full items-center justify-between gap-2 rounded px-2 py-1.5 text-left text-xs hover:surface-row disabled:cursor-not-allowed disabled:opacity-50"
+			className="flex w-full min-w-0 items-center justify-between gap-2 rounded px-2 py-1.5 text-left type-control hover:surface-row disabled:cursor-not-allowed disabled:opacity-50"
 		>
 			<span className="min-w-0">
-				<span className="block truncate text-primary">{model.name}</span>
-				<span className="block truncate text-[10px] text-faint">
+				<span className="block type-ellipsis text-primary">{model.name}</span>
+				<span className="block type-code type-metadata type-ellipsis text-faint">
 					{model.id}
 				</span>
 			</span>

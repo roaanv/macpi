@@ -87,13 +87,13 @@ export function SettingsDialog({
 			>
 				<div className="flex min-h-0 flex-1 overflow-hidden">
 					<aside className="flex w-52 flex-col gap-px border-r border-divider surface-panel p-3">
-						<div className="mb-2 px-2 font-semibold text-primary text-sm">
+						<div className="mb-2 px-2 type-view-title text-primary">
 							{title}
 						</div>
 						{groups.map((g) => (
 							<React.Fragment key={g.group ?? "_"}>
 								{g.group && (
-									<div className="mt-3 px-2.5 pb-1 font-semibold text-[10px] text-faint uppercase tracking-widest">
+									<div className="mt-3 px-2.5 pb-1 type-overline text-faint">
 										{g.group}
 									</div>
 								)}
@@ -104,7 +104,7 @@ export function SettingsDialog({
 											key={cat.id}
 											type="button"
 											onClick={() => setActiveId(cat.id)}
-											className={`w-full rounded px-2.5 py-1.5 text-left text-[13px] transition-colors ${
+											className={`w-full rounded px-2.5 py-1.5 text-left type-control transition-colors ${
 												isActive
 													? "surface-row-active text-primary"
 													: "text-muted hover:surface-row hover:text-primary"
@@ -119,7 +119,7 @@ export function SettingsDialog({
 					</aside>
 					<section className="flex min-w-0 flex-1 flex-col overflow-hidden">
 						<div className="border-b border-divider px-6 py-4">
-							<h2 className="font-semibold text-base text-primary">
+							<h2 className="text-primary type-section-heading">
 								{active?.label}
 							</h2>
 						</div>
@@ -132,7 +132,7 @@ export function SettingsDialog({
 					<button
 						type="button"
 						onClick={onClose}
-						className="rounded px-3 py-1 text-muted text-xs hover:surface-row hover:text-primary"
+						className="rounded px-3 py-1 text-muted hover:surface-row hover:text-primary type-control"
 					>
 						Close ⌘W
 					</button>

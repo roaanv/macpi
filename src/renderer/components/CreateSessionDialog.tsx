@@ -60,16 +60,16 @@ export function CreateSessionDialog({
 		>
 			<form
 				onSubmit={handleCreate}
-				className="surface-panel w-96 rounded p-5 text-primary shadow-xl"
+				className="max-w-[calc(100vw-2rem)] surface-panel w-96 rounded p-5 text-primary shadow-xl"
 				onClick={(e) => e.stopPropagation()}
 				onKeyDown={() => undefined}
 			>
-				<div className="mb-3 text-sm font-semibold">
+				<div className="mb-3 type-section-heading">
 					New session in <span className="text-muted">#</span> {workspace.name}
 				</div>
 
-				<label className="mb-1 block">
-					<div className="mb-1 text-xs text-muted">Name (optional)</div>
+				<label className="mb-1 block type-label">
+					<div className="mb-1 type-metadata text-muted">Name (optional)</div>
 					<input
 						type="text"
 						// biome-ignore lint/a11y/noAutofocus: focus the primary input on dialog open
@@ -77,25 +77,28 @@ export function CreateSessionDialog({
 						value={name}
 						onChange={(e) => setName(e.target.value)}
 						placeholder="leave blank for auto-label"
-						className="w-full surface-row rounded px-2 py-1 text-sm"
+						className="w-full surface-row rounded px-2 py-1 type-control"
 					/>
 				</label>
-				<div className="mb-4 text-[11px] text-muted">
-					cwd: {workspace.cwd ?? "(global default)"}
+				<div className="mb-4 type-metadata text-muted">
+					cwd:{" "}
+					<span className="type-code type-technical-wrap">
+						{workspace.cwd ?? "(global default)"}
+					</span>
 				</div>
 
 				<div className="flex justify-end gap-2">
 					<button
 						type="button"
 						onClick={onClose}
-						className="rounded surface-row px-3 py-1 text-xs hover:opacity-80"
+						className="rounded surface-row px-3 py-1 hover:opacity-80 type-control"
 					>
 						Cancel
 					</button>
 					<button
 						type="submit"
 						disabled={createSession.isPending}
-						className="rounded surface-accent px-3 py-1 text-xs hover:opacity-90 disabled:opacity-50"
+						className="rounded surface-accent px-3 py-1 hover:opacity-90 disabled:opacity-50 type-control"
 					>
 						{createSession.isPending ? "Creating…" : "Create"}
 					</button>

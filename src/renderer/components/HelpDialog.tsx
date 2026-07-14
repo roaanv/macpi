@@ -55,11 +55,11 @@ export function HelpDialog({ open, onClose, commands }: HelpDialogProps) {
 				aria-label="Slash Commands"
 			>
 				<div className="flex items-center">
-					<h2 className="font-semibold">Slash Commands</h2>
+					<h2 className="type-section-heading">Slash Commands</h2>
 					<button
 						type="button"
 						onClick={onClose}
-						className="ml-auto rounded px-2 py-1 hover:surface-row"
+						className="ml-auto rounded px-2 py-1 hover:surface-row type-control"
 						aria-label="Close"
 					>
 						✕
@@ -68,18 +68,22 @@ export function HelpDialog({ open, onClose, commands }: HelpDialogProps) {
 				{(Object.keys(groups) as SlashCommand["kind"][]).map((kind) =>
 					groups[kind].length > 0 ? (
 						<section key={kind} className="mt-3">
-							<h3 className="mb-1 text-xs text-muted">{GROUP_LABEL[kind]}</h3>
+							<h3 className="mb-1 type-overline text-muted">
+								{GROUP_LABEL[kind]}
+							</h3>
 							<ul className="space-y-0.5">
 								{groups[kind].map((c) => (
 									<li
 										key={`${c.kind}:${c.name}`}
 										className="flex items-baseline gap-2 px-1 py-0.5"
 									>
-										<span className="font-semibold">/{c.name}</span>
+										<span className="type-code">/{c.name}</span>
 										{c.argumentHint && (
-											<span className="text-muted">{c.argumentHint}</span>
+											<span className="type-metadata text-muted">
+												{c.argumentHint}
+											</span>
 										)}
-										<span className="ml-auto truncate text-muted">
+										<span className="ml-auto type-metadata type-ellipsis text-muted">
 											{c.description}
 										</span>
 									</li>
