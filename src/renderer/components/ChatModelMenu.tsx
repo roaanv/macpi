@@ -284,8 +284,8 @@ export function ChatModelMenu({
 								) : null}
 							</div>
 						) : configuredProviders.size === 0 ? (
-							<div className="p-2 type-metadata text-muted">
-								<div className="font-medium text-primary">
+							<div className="p-2 type-status text-muted">
+								<div className="type-label text-primary">
 									No configured providers
 								</div>
 								<div className="mt-1">Open Providers to configure one.</div>
@@ -310,7 +310,7 @@ export function ChatModelMenu({
 											/>
 										))
 									) : (
-										<div className="px-2 py-1 type-metadata text-muted">
+										<div className="px-2 py-1 type-status text-muted">
 											No favourite models
 											{normalizedSearch ? " match your search" : ""}.
 										</div>
@@ -343,7 +343,7 @@ export function ChatModelMenu({
 										</fieldset>
 									))}
 									{normalizedSearch && groups.length === 0 ? (
-										<div className="px-2 py-2 type-metadata text-muted">
+										<div className="px-2 py-2 type-status text-muted">
 											No models match your search.
 										</div>
 									) : null}
@@ -384,6 +384,7 @@ function ModelChoice({
 			role="option"
 			aria-selected={current}
 			aria-label={current ? `${model.name}, Current model` : model.name}
+			title={`${model.name} (${model.id})`}
 			disabled={disabled}
 			onClick={() => void onSelect(model)}
 			className="flex w-full min-w-0 items-center justify-between gap-2 rounded px-2 py-1.5 text-left type-control hover:surface-row disabled:cursor-not-allowed disabled:opacity-50"

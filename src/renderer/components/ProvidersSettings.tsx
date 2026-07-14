@@ -102,7 +102,7 @@ export function ProvidersSettings() {
 						Configure provider authentication and custom endpoints.
 					</div>
 				</div>
-				<div className="flex items-center gap-2 text-sm">
+				<div className="flex items-center gap-2">
 					<button
 						type="button"
 						onClick={() => setShowAdvanced(true)}
@@ -257,7 +257,7 @@ export function ProvidersSettings() {
 							authError={saveApiKey.error?.message ?? logout.error?.message}
 						/>
 					) : (
-						<div className="text-sm text-muted">
+						<div className="type-status text-muted">
 							No providers discovered yet.
 						</div>
 					)}
@@ -352,11 +352,12 @@ function CustomOpenAIProviderForm({
 							placeholder="http://localhost:11434/v1"
 						/>
 					</label>
-					<fieldset className="flex flex-col gap-2 text-sm sm:col-span-2">
+					<fieldset className="flex flex-col gap-2 sm:col-span-2">
 						<legend className="type-label text-muted">Credential source</legend>
 						<div className="flex gap-4">
-							<label>
+							<label className="type-label">
 								<input
+									className="type-control"
 									type="radio"
 									name="custom-provider-credential-source"
 									checked={credentialMode === "apiKey"}
@@ -364,8 +365,9 @@ function CustomOpenAIProviderForm({
 								/>{" "}
 								Enter API key
 							</label>
-							<label>
+							<label className="type-label">
 								<input
+									className="type-control"
 									type="radio"
 									name="custom-provider-credential-source"
 									checked={credentialMode === "keychainService"}
@@ -437,7 +439,7 @@ function CustomOpenAIProviderForm({
 								key={model.id}
 								className="border-b border-divider px-3 py-2 last:border-b-0"
 							>
-								<div className="text-sm font-medium">{model.name}</div>
+								<div className="type-label">{model.name}</div>
 								<div className="type-code type-metadata text-muted">
 									{model.id}
 								</div>
@@ -483,7 +485,7 @@ function ProviderRow({
 		<button
 			type="button"
 			onClick={onClick}
-			className={`flex w-full items-center gap-2 rounded px-2 py-2 text-left ${
+			className={`flex w-full items-center gap-2 rounded px-2 py-2 text-left type-control ${
 				selected
 					? "border border-accent surface-accent-soft"
 					: "hover:surface-row"
@@ -491,7 +493,7 @@ function ProviderRow({
 		>
 			<ProviderBadge provider={provider} />
 			<div className="min-w-0 flex-1">
-				<div className="truncate text-sm font-medium">{provider.name}</div>
+				<div className="type-label type-ellipsis">{provider.name}</div>
 				<div className="truncate type-code type-metadata text-muted">
 					{provider.id} · {provider.kind}
 				</div>
@@ -509,7 +511,7 @@ function ProviderRow({
 
 function ProviderBadge({ provider }: { provider: ProviderView }) {
 	return (
-		<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded surface-row type-code text-xs font-semibold">
+		<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded surface-row type-code">
 			{provider.initials}
 		</div>
 	);
@@ -576,13 +578,13 @@ function ProviderDetail({
 					<span>{authLabel(provider)}</span>
 				</div>
 				<div className="rounded-xl border border-divider p-4">
-					<div className="text-sm text-primary">{authHelp(provider)}</div>
-					<div className="mt-4 flex flex-wrap gap-2 text-sm">
+					<div className="type-metadata text-primary">{authHelp(provider)}</div>
+					<div className="mt-4 flex flex-wrap gap-2">
 						{provider.supportsOAuth ? (
 							<button
 								type="button"
 								onClick={() => onStartOAuth(provider.id)}
-								className="rounded surface-accent px-3 py-2 hover:opacity-90"
+								className="rounded surface-accent px-3 py-2 type-control hover:opacity-90"
 							>
 								↗ Sign in with {provider.name}
 							</button>
@@ -611,10 +613,11 @@ function ProviderDetail({
 							<div
 								role="radiogroup"
 								aria-label={`Credential source for ${provider.name}`}
-								className="flex w-full gap-4 text-sm"
+								className="flex w-full gap-4"
 							>
-								<label>
+								<label className="type-label">
 									<input
+										className="type-control"
 										type="radio"
 										name={`provider-credential-source-${provider.id}`}
 										checked={credentialMode === "apiKey"}
@@ -622,8 +625,9 @@ function ProviderDetail({
 									/>{" "}
 									Enter API key
 								</label>
-								<label>
+								<label className="type-label">
 									<input
+										className="type-control"
 										type="radio"
 										name={`provider-credential-source-${provider.id}`}
 										checked={credentialMode === "keychainService"}
@@ -678,7 +682,7 @@ function ProviderDetail({
 
 			<section>
 				{modelInventoryUnavailable ? (
-					<div className="rounded border border-divider p-3 text-sm text-muted">
+					<div className="rounded border border-divider p-3 type-status text-muted">
 						Model inventory unavailable.
 					</div>
 				) : (
@@ -697,7 +701,7 @@ function ProviderDetail({
 function ReadOnlyModelInventory({ models }: { models: ModelSummary[] }) {
 	if (models.length === 0) {
 		return (
-			<div className="border-t border-divider px-3 py-2 text-sm text-muted">
+			<div className="border-t border-divider px-3 py-2 type-status text-muted">
 				No models discovered for this provider.
 			</div>
 		);
@@ -709,7 +713,7 @@ function ReadOnlyModelInventory({ models }: { models: ModelSummary[] }) {
 					key={`${model.provider}/${model.id}`}
 					className="border-b border-divider px-3 py-2 last:border-b-0"
 				>
-					<div className="truncate text-sm font-medium">{model.name}</div>
+					<div className="type-label type-ellipsis">{model.name}</div>
 					<div className="truncate type-code type-metadata text-muted">
 						{model.id}
 					</div>
@@ -740,7 +744,7 @@ function SettingsOverlay({
 				onClick={onClose}
 			/>
 			<div
-				className="surface-panel relative max-h-[75vh] w-[720px] overflow-y-auto rounded-xl p-4 shadow-xl"
+				className="surface-panel relative max-h-[75vh] w-[720px] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-xl p-4 shadow-xl"
 				role="dialog"
 				aria-modal="true"
 				aria-label={title}

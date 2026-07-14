@@ -69,7 +69,7 @@ export function CreateSessionDialog({
 				</div>
 
 				<label className="mb-1 block type-label">
-					<div className="mb-1 type-metadata text-muted">Name (optional)</div>
+					<div className="mb-1 type-label text-muted">Name (optional)</div>
 					<input
 						type="text"
 						// biome-ignore lint/a11y/noAutofocus: focus the primary input on dialog open

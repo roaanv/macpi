@@ -74,7 +74,7 @@ export function CreateWorkspaceDialog({
 				<div className="mb-3 type-section-heading">New workspace</div>
 
 				<label className="mb-3 block type-label">
-					<div className="mb-1 type-metadata text-muted">Name</div>
+					<div className="mb-1 type-label text-muted">Name</div>
 					<input
 						type="text"
 						// biome-ignore lint/a11y/noAutofocus: focus the primary input on dialog open
@@ -87,7 +87,7 @@ export function CreateWorkspaceDialog({
 				</label>
 
 				<label className="mb-1 block type-label">
-					<div className="mb-1 type-metadata text-muted">cwd</div>
+					<div className="mb-1 type-label text-muted">cwd</div>
 					<div className="flex gap-2">
 						<input
 							type="text"

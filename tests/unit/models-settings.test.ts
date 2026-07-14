@@ -304,6 +304,7 @@ describe("ModelsSettings", () => {
 			),
 		).toBe("true");
 		const add = button("Add Claude Sonnet 4 to favourites");
+		expect(add.classList).toContain("type-control");
 		expect(add.getAttribute("aria-pressed")).toBe("false");
 		await click(add);
 		expect(mocks.setSetting.mutateAsync).toHaveBeenCalledWith({
@@ -486,6 +487,9 @@ describe("ModelsSettings", () => {
 		mocks.providers.data.providers = [unconfiguredProvider];
 		await render();
 		expect(container.textContent).toContain("No configured providers");
+		expect(container.querySelector(".type-status")?.textContent).toContain(
+			"No configured providers",
+		);
 		expect(container.textContent).toContain("Providers");
 	});
 

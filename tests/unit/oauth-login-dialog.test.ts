@@ -141,6 +141,26 @@ describe("OAuthLoginDialog", () => {
 		expect(onClose).toHaveBeenCalledOnce();
 	});
 
+	it("uses a semantic label for an OAuth selection prompt", async () => {
+		mocks.start.mutateAsync.mockResolvedValue(
+			result("login-1", [
+				{
+					type: "oauth.select",
+					loginId: "login-1",
+					provider,
+					promptId: "account",
+					message: "Choose an account",
+					options: ["Personal", "Work"],
+				},
+			]),
+		);
+		await renderDialog();
+
+		expect(container.querySelector(".type-label")?.textContent).toContain(
+			"Choose an account",
+		);
+	});
+
 	it("renders the exact accessible success card and hides URL controls", async () => {
 		mocks.start.mutateAsync.mockResolvedValue(
 			result("login-1", [
@@ -156,6 +176,7 @@ describe("OAuthLoginDialog", () => {
 		await renderDialog();
 
 		const status = container.querySelector('[role="status"]');
+		expect(status?.classList).toContain("type-status");
 		expect(status?.getAttribute("aria-live")).toBe("polite");
 		expect(status?.textContent).toContain("Login successful");
 		expect(status?.textContent).toContain("Your OAuth token was saved.");

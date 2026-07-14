@@ -180,7 +180,7 @@ export function DefaultModelMenu({
 					{favourites.length ? (
 						favourites.map(row)
 					) : (
-						<div className="px-2 py-1 type-metadata text-muted">
+						<div className="px-2 py-1 type-status text-muted">
 							No favourite models.
 						</div>
 					)}
@@ -199,7 +199,7 @@ export function DefaultModelMenu({
 						) : null;
 					})}
 					{visible.length === 0 && normalized ? (
-						<div className="px-2 py-2 type-metadata text-muted">
+						<div className="px-2 py-2 type-status text-muted">
 							No models match this search.
 						</div>
 					) : null}

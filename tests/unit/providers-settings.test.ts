@@ -134,6 +134,9 @@ describe("ProvidersSettings", () => {
 		expect(button("Remove auth")).toBeTruthy();
 
 		await click(button("Advanced"));
+		expect(container.querySelector('[role="dialog"]')?.classList).toContain(
+			"max-w-[calc(100vw-2rem)]",
+		);
 		expect(container.textContent).toContain("Advanced models.json");
 		expect(container.textContent).toContain("models.json editor");
 		await click(button("Close"));

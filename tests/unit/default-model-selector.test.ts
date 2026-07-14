@@ -219,6 +219,11 @@ describe("DefaultModelSelector", () => {
 			container.querySelector('input[type="search"]')?.classList,
 		).toContain("type-control");
 		const text = container.textContent ?? "";
+		expect(
+			[...container.querySelectorAll(".type-status")].some((element) =>
+				element.textContent?.includes("No favourite models"),
+			),
+		).toBe(true);
 		expect(text).toContain("Anthropic");
 		expect(text).toContain("Google");
 		expect(text).toContain("Automatic fallback");
@@ -322,6 +327,9 @@ describe("DefaultModelSelector", () => {
 		mocks.providers.isLoading = true;
 		await renderSelector();
 		expect(container.textContent).toContain("Loading providers");
+		expect(container.querySelector(".type-status")?.textContent).toContain(
+			"Loading providers",
+		);
 
 		mocks.providers.isLoading = false;
 		mocks.providers.error = new Error("providers failed");

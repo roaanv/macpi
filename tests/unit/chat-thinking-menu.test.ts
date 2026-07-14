@@ -64,6 +64,7 @@ async function openMenu() {
 describe("ChatThinkingMenu", () => {
 	it("shows only supported levels and marks the current one", async () => {
 		await openMenu();
+		expect(trigger().classList).toContain("type-control");
 		const options = [...container.querySelectorAll('[role="option"]')];
 		expect(options[0]?.classList).toContain("type-control");
 		expect(container.querySelector(".type-overline")?.textContent).toContain(

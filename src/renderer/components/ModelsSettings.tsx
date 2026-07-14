@@ -207,9 +207,9 @@ export function ModelsSettings() {
 					{settings.isLoading ? <div>Loading favourite settings…</div> : null}
 				</div>
 			) : configuredProviders.length === 0 ? (
-				<div className="flex flex-1 items-center justify-center p-6 text-center">
+				<div className="flex flex-1 items-center justify-center p-6 text-center type-status">
 					<div>
-						<div className="font-medium">No configured providers</div>
+						<div className="type-label">No configured providers</div>
 						<div className="mt-1 type-metadata text-muted">
 							Open Providers to configure one before choosing favourites.
 						</div>
@@ -425,7 +425,7 @@ function ModelSection({
 					className="flex flex-col gap-2 border-t border-divider p-2"
 				>
 					{models.length === 0 ? (
-						<div className="px-2 py-1 type-metadata text-muted">
+						<div className="px-2 py-1 type-status text-muted">
 							{emptyMessage}
 						</div>
 					) : (
@@ -460,7 +460,7 @@ function ModelRow({
 	return (
 		<div className="surface-row flex items-center justify-between gap-3 rounded px-3 py-2">
 			<div className="min-w-0">
-				<div className="truncate text-sm font-medium">{model.name}</div>
+				<div className="type-label type-ellipsis">{model.name}</div>
 				<div className="min-w-0 type-code type-metadata type-ellipsis text-muted">
 					{model.id}
 				</div>
@@ -471,7 +471,7 @@ function ModelRow({
 					aria-pressed={isFavourite}
 					aria-label={`${action} ${model.name} ${isFavourite ? "from" : "to"} favourites`}
 					onClick={() => onToggleFavourite(model)}
-					className={`rounded px-2 py-1 text-lg ${
+					className={`rounded px-2 py-1 type-control ${
 						isFavourite
 							? "surface-accent-soft text-accent"
 							: "text-muted hover:surface-row"
@@ -484,7 +484,7 @@ function ModelRow({
 						type="button"
 						aria-label={`Remove custom model ${model.name}`}
 						onClick={() => onRemove(model)}
-						className="rounded px-2 py-1 text-xs text-err hover:surface-err-soft"
+						className="rounded px-2 py-1 type-control text-err hover:surface-err-soft"
 					>
 						Remove
 					</button>
@@ -508,13 +508,13 @@ function ProviderRow({
 		<button
 			type="button"
 			onClick={onClick}
-			className={`flex w-full items-center justify-between gap-3 rounded px-3 py-2 text-left ${
+			className={`flex w-full items-center justify-between gap-3 rounded px-3 py-2 text-left type-control ${
 				selected
 					? "surface-accent-soft text-primary"
 					: "text-muted hover:surface-row hover:text-primary"
 			}`}
 		>
-			<span className="truncate text-sm font-medium">{provider.name}</span>
+			<span className="type-label type-ellipsis">{provider.name}</span>
 			<span className="shrink-0 type-metadata text-muted">
 				{count} {count === 1 ? "model" : "models"}
 			</span>

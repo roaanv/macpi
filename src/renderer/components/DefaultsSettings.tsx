@@ -45,7 +45,7 @@ export function DefaultsSettings() {
 			<h2 className="type-section-heading">Defaults</h2>
 
 			<div>
-				<div className="mb-1 text-sm font-medium">Default cwd</div>
+				<div className="mb-1 type-label">Default cwd</div>
 				<div className="mb-1 type-metadata text-muted">
 					New workspaces with no cwd inherit this. Sessions inherit the
 					workspace's cwd at creation.
@@ -57,7 +57,7 @@ export function DefaultsSettings() {
 						onChange={(e) => setDraft(e.target.value)}
 						onBlur={handleBlur}
 						placeholder={homeFallback.data ? homeFallback.data.cwd : "/"}
-						className="flex-1 surface-row rounded px-2 py-1 text-sm"
+						className="flex-1 surface-row rounded px-2 py-1 type-code type-control type-ellipsis type-technical-wrap"
 					/>
 					<button
 						type="button"
@@ -73,22 +73,23 @@ export function DefaultsSettings() {
 			<DefaultModelSelector />
 
 			<div>
-				<div className="mb-1 text-sm font-medium">Pi environment</div>
+				<div className="mb-1 type-label">Pi environment</div>
 				<div className="mb-1 type-metadata text-muted">
 					MacPi stores its Pi runtime state inside the MacPi resource root at{" "}
-					<span className="type-code">pi-agent</span>. Packages, skills,
-					prompts, sessions, and extensions are sandboxed from the Pi CLI.
+					<span className="type-code type-technical-wrap">pi-agent</span>.
+					Packages, skills, prompts, sessions, and extensions are sandboxed from
+					the Pi CLI.
 				</div>
 			</div>
 
 			<div>
-				<div className="mb-1 text-sm font-medium">Logs</div>
+				<div className="mb-1 type-label">Logs</div>
 				<button
 					type="button"
 					onClick={() => {
 						void invoke("system.openLogsFolder", {}).catch(() => {});
 					}}
-					className="text-accent hover:underline text-sm"
+					className="type-control text-accent hover:underline"
 				>
 					Open logs folder
 				</button>

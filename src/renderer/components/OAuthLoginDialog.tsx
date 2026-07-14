@@ -124,7 +124,7 @@ export function OAuthLoginDialog({ provider, onClose }: OAuthLoginDialogProps) {
 
 				{result ? (
 					<div
-						className={`flex items-start gap-3 rounded border p-4 ${
+						className={`flex items-start gap-3 rounded border p-4 type-status ${
 							result.kind === "success"
 								? "border-ok surface-ok-soft text-ok"
 								: "border-err surface-err-soft text-err"
@@ -136,12 +136,12 @@ export function OAuthLoginDialog({ provider, onClose }: OAuthLoginDialogProps) {
 							{result.kind === "success" ? "✓" : "✕"}
 						</div>
 						<div>
-							<div className="font-semibold">
+							<div className="type-label">
 								{result.kind === "success"
 									? "Login successful"
 									: "Login failed"}
 							</div>
-							<div className="text-sm">
+							<div className="type-status">
 								{result.kind === "success"
 									? "Your OAuth token was saved."
 									: result.message}
@@ -151,7 +151,7 @@ export function OAuthLoginDialog({ provider, onClose }: OAuthLoginDialogProps) {
 				) : null}
 
 				{!result && latestUrl?.type === "oauth.authUrl" ? (
-					<div className="rounded border border-border/40 p-2 text-sm">
+					<div className="rounded border border-border/40 p-2 type-body">
 						{latestUrl.instructions ? (
 							<div className="mb-2 text-muted">{latestUrl.instructions}</div>
 						) : null}
@@ -171,7 +171,7 @@ export function OAuthLoginDialog({ provider, onClose }: OAuthLoginDialogProps) {
 				) : null}
 
 				{latestPrompt?.type === "oauth.prompt" && !result ? (
-					<div className="flex flex-col gap-2 rounded border border-border/40 p-2 text-sm">
+					<div className="flex flex-col gap-2 rounded border border-border/40 p-2 type-body">
 						<label className="type-label" htmlFor="oauth-prompt-input">
 							{latestPrompt.message}
 						</label>
@@ -200,8 +200,8 @@ export function OAuthLoginDialog({ provider, onClose }: OAuthLoginDialogProps) {
 				) : null}
 
 				{latestPrompt?.type === "oauth.select" && !result ? (
-					<div className="flex flex-col gap-2 rounded border border-border/40 p-2 text-sm">
-						<div>{latestPrompt.message}</div>
+					<div className="flex flex-col gap-2 rounded border border-border/40 p-2 type-body">
+						<div className="type-label">{latestPrompt.message}</div>
 						{latestPrompt.options.map((option) => (
 							<button
 								key={option}

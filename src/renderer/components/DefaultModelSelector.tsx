@@ -117,13 +117,13 @@ export function DefaultModelSelector() {
 			) : null}
 
 			{providersQuery.isLoading ? (
-				<div className="mb-1 type-metadata text-muted">Loading providers…</div>
+				<div className="mb-1 type-status text-muted">Loading providers…</div>
 			) : null}
 			{modelsQuery.isLoading ? (
-				<div className="mb-1 type-metadata text-muted">Loading models…</div>
+				<div className="mb-1 type-status text-muted">Loading models…</div>
 			) : null}
 			{selectedQuery.isLoading ? (
-				<div className="mb-1 type-metadata text-muted">
+				<div className="mb-1 type-status text-muted">
 					Loading saved default…
 				</div>
 			) : null}
@@ -161,7 +161,7 @@ export function DefaultModelSelector() {
 			) : null}
 
 			{!loading && !hasQueryError && configuredModels.length === 0 ? (
-				<div className="mb-2 type-metadata text-muted">
+				<div className="mb-2 type-status text-muted">
 					No configured models available. Configure a provider in Providers, or
 					use Automatic.
 				</div>

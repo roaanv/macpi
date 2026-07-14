@@ -206,9 +206,9 @@ describe("ChatModelMenu", () => {
 		expect(
 			container.querySelector('input[type="search"]')?.classList,
 		).toContain("type-control");
-		expect(container.querySelector('[role="option"]')?.classList).toContain(
-			"type-control",
-		);
+		const firstOption = container.querySelector('[role="option"]');
+		expect(firstOption?.classList).toContain("type-control");
+		expect(firstOption?.getAttribute("title")).toContain("claude-sonnet-4");
 		expect(container.textContent).toContain("Favourites");
 		expect(container.textContent).toContain("All");
 		expect(container.textContent).toContain("Anthropic");
@@ -410,6 +410,11 @@ describe("ChatModelMenu", () => {
 		await renderMenu();
 		await openMenu();
 		expect(container.textContent).toContain("No favourite models");
+		expect(
+			[...container.querySelectorAll(".type-status")].some((element) =>
+				element.textContent?.includes("No favourite models"),
+			),
+		).toBe(true);
 
 		await searchFor("nothing matches");
 		expect(container.textContent).toContain("No models match your search");
@@ -419,6 +424,9 @@ describe("ChatModelMenu", () => {
 		await renderMenu();
 		await openMenu();
 		expect(container.textContent).toContain("No configured providers");
+		expect(container.querySelector(".type-status")?.textContent).toContain(
+			"No configured providers",
+		);
 		expect(container.textContent).toContain("Open Providers");
 	});
 });

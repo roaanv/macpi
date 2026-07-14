@@ -40,7 +40,7 @@ export function CapabilitySettings({ kind }: { kind: Kind }) {
 	};
 
 	return (
-		<div className="-m-6 flex h-full min-h-0">
+		<div className="-m-6 flex h-full min-h-0 type-body">
 			<div className="w-72 min-w-[240px] shrink-0">
 				{kind === "skills" && <SkillsList {...listProps} />}
 				{kind === "extensions" && <ExtensionsList {...listProps} />}

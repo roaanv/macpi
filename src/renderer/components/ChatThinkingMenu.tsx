@@ -122,11 +122,11 @@ export function ChatThinkingMenu({
 					setSelectionError(null);
 					setOpen((value) => !value);
 				}}
-				className="inline-flex items-center gap-1 rounded px-1 py-0.5 hover:surface-row disabled:cursor-not-allowed disabled:opacity-50"
+				className="inline-flex items-center gap-1 rounded px-1 py-0.5 type-control hover:surface-row disabled:cursor-not-allowed disabled:opacity-50"
 				title="Thinking level"
 			>
 				<span aria-hidden>think:</span>
-				<span className="font-medium">{LABELS[currentLevel].short}</span>
+				<span>{LABELS[currentLevel].short}</span>
 				<span aria-hidden className="text-faint">
 					▾
 				</span>
