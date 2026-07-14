@@ -6,29 +6,36 @@
 
 import React from "react";
 import {
+	type FontFamilyRegion,
 	type FontSizeRegion,
 	getFontFamily,
 	getFontSize,
 	getTheme,
 	getThemeFamily,
+	getTypographyPreset,
 	type ThemeMode,
 } from "../../shared/app-settings-keys";
 import { useSettings } from "../queries";
 
-type LegacyFontSizeRegion =
-	| Exclude<FontSizeRegion, "interface" | "compact">
-	| "sidebar";
+const FAMILY_VAR: Record<FontFamilyRegion, string> = {
+	display: "--font-display",
+	interface: "--font-interface",
+	content: "--font-content",
+	mono: "--font-mono",
+};
 
-const REGIONS: LegacyFontSizeRegion[] = [
-	"sidebar",
+const REGIONS: FontSizeRegion[] = [
+	"interface",
+	"compact",
 	"chatAssistant",
 	"chatUser",
 	"composer",
 	"codeBlock",
 ];
 
-const REGION_VAR: Record<LegacyFontSizeRegion, string> = {
-	sidebar: "--font-size-sidebar",
+const REGION_VAR: Record<FontSizeRegion, string> = {
+	interface: "--font-size-interface",
+	compact: "--font-size-compact",
 	chatAssistant: "--font-size-chat-assistant",
 	chatUser: "--font-size-chat-user",
 	composer: "--font-size-composer",
@@ -66,21 +73,19 @@ export function SettingsApplier() {
 		return () => mql.removeEventListener("change", onChange);
 	}, [theme, themeFamily]);
 
-	// Apply font family + sizes. Empty fontFamily lets the active theme's
-	// CSS variable take over (each theme family declares its own --font-body).
+	// Apply the typography preset, family overrides, and per-region sizes.
 	React.useEffect(() => {
 		const root = document.documentElement;
-		const fam = getFontFamily(settings, "interface");
-		const famMono = getFontFamily(settings, "mono");
-		if (fam) root.style.setProperty("--font-family", fam);
-		else root.style.removeProperty("--font-family");
-		if (famMono) root.style.setProperty("--font-family-mono", famMono);
-		else root.style.removeProperty("--font-family-mono");
+		root.dataset.typographyPreset = getTypographyPreset(settings);
+		for (const region of Object.keys(FAMILY_VAR) as FontFamilyRegion[]) {
+			const family = getFontFamily(settings, region);
+			if (family) root.style.setProperty(FAMILY_VAR[region], family);
+			else root.style.removeProperty(FAMILY_VAR[region]);
+		}
 		for (const region of REGIONS) {
-			const sizeRegion = region === "sidebar" ? "compact" : region;
 			root.style.setProperty(
 				REGION_VAR[region],
-				`${getFontSize(settings, sizeRegion)}px`,
+				`${getFontSize(settings, region)}px`,
 			);
 		}
 	}, [settings]);
