@@ -1,10 +1,3 @@
-@import "@fontsource-variable/fraunces/index.css";
-@import "@fontsource/plus-jakarta-sans/400.css";
-@import "@fontsource/plus-jakarta-sans/500.css";
-@import "@fontsource/plus-jakarta-sans/600.css";
-@import "@fontsource/plus-jakarta-sans/700.css";
-@import "@fontsource/gloock/400.css";
-@import "@fontsource-variable/manrope/index.css";
 @import "@fontsource-variable/inter/index.css";
 @import "@fontsource-variable/jetbrains-mono/index.css";
 
@@ -64,12 +57,6 @@
 	--font-size-chat-user: 14px;
 	--font-size-composer: 14px;
 	--font-size-code-block: 13px;
-
-	/* Temporary compatibility aliases removed in Task 9. */
-	--font-family: var(--font-interface);
-	--font-body: var(--font-content);
-	--font-family-mono: var(--font-mono);
-	--font-size-sidebar: var(--font-size-compact);
 
 	--app-bg: oklch(99% 0.003 250);
 	--app-fg: oklch(22% 0.012 260);
@@ -318,7 +305,7 @@ body,
 }
 body {
 	margin: 0;
-	font-family: var(--font-family, var(--font-interface));
+	font-family: var(--font-interface);
 	font-size: var(--font-size-interface);
 	line-height: 1.5;
 	background: var(--app-bg);

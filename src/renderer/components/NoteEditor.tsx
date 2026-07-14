@@ -1,4 +1,4 @@
-// Right-pane note editor. Plain <textarea> using --font-body (prose,
+// Right-pane note editor. Plain <textarea> using content typography (prose,
 // not code) — the sticky-note aesthetic. Edits debounce-autosave after
 // 500ms of keyboard idle. If a save returns {ok:false,error:"stale"}
 // (the file was edited outside macpi) a banner offers Reload or
