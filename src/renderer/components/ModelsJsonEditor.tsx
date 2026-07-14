@@ -24,10 +24,15 @@ export function ModelsJsonEditor() {
 			{open ? (
 				<div className="mt-2 flex flex-col gap-2">
 					{modelsJson.data ? (
-						<div className="text-xs text-muted">{modelsJson.data.path}</div>
+						<div
+							className="type-metadata type-ellipsis"
+							title={modelsJson.data.path}
+						>
+							{modelsJson.data.path}
+						</div>
 					) : null}
 					{modelsJson.data?.registryError ? (
-						<div className="rounded surface-warn-soft p-2 text-xs text-warn">
+						<div className="rounded surface-warn-soft p-2 type-status type-technical-wrap text-warn">
 							{modelsJson.data.registryError}
 						</div>
 					) : null}
@@ -35,25 +40,27 @@ export function ModelsJsonEditor() {
 						value={draft}
 						onChange={(e) => setDraft(e.target.value)}
 						spellCheck={false}
-						className="surface-row min-h-64 rounded px-2 py-1 font-mono text-xs"
+						className="surface-row min-h-64 rounded px-2 py-1 type-code placeholder-faint"
 						placeholder={'{\n  "providers": []\n}'}
 					/>
 					<div className="flex items-center gap-2">
 						<button
 							type="button"
 							disabled={save.isPending}
-							className="rounded surface-accent-soft px-2 py-1 text-sm hover:opacity-80 disabled:opacity-50"
+							className="rounded surface-accent-soft px-2 py-1 type-control hover:opacity-80 disabled:opacity-50"
 							onClick={() => save.mutate({ text: draft })}
 						>
 							{save.isPending ? "Saving…" : "Save models.json"}
 						</button>
 						{save.data?.registryError ? (
-							<span className="text-xs text-warn">
+							<span className="type-status type-technical-wrap text-warn">
 								{save.data.registryError}
 							</span>
 						) : null}
 						{save.error ? (
-							<span className="text-xs text-err">{save.error.message}</span>
+							<span className="type-status type-technical-wrap text-err">
+								{save.error.message}
+							</span>
 						) : null}
 					</div>
 				</div>

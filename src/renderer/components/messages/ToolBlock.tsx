@@ -50,7 +50,7 @@ export function ToolBlock({ entry }: { entry: ToolCallEntry }) {
 
 	return (
 		<div
-			className={`rounded border-l-2 ${BORDERS[entry.state]} surface-row px-2 py-1 font-[family-name:var(--font-family-mono)] text-[length:var(--font-size-code-block)] text-primary`}
+			className={`rounded border-l-2 ${BORDERS[entry.state]} surface-row px-2 py-1 type-code text-primary`}
 		>
 			<button
 				type="button"
@@ -81,7 +81,7 @@ export function ToolBlock({ entry }: { entry: ToolCallEntry }) {
 						}
 						return (
 							<DetailSection label="args">
-								<pre className="whitespace-pre-wrap text-muted">
+								<pre className="whitespace-pre-wrap type-technical-wrap text-muted">
 									{JSON.stringify(entry.args, null, 2)}
 								</pre>
 							</DetailSection>
@@ -90,7 +90,7 @@ export function ToolBlock({ entry }: { entry: ToolCallEntry }) {
 					{entry.state !== "pending" && (
 						<DetailSection label={entry.state === "ok" ? "result" : "error"}>
 							<pre
-								className={`whitespace-pre-wrap ${entry.state === "error" ? "text-err" : "text-primary"}`}
+								className={`whitespace-pre-wrap type-technical-wrap ${entry.state === "error" ? "text-err" : "text-primary"}`}
 							>
 								{(() => {
 									if (typeof entry.result === "string") {
@@ -135,9 +135,7 @@ function DetailSection({
 }) {
 	return (
 		<div>
-			<div className="text-[9px] uppercase tracking-widest text-muted">
-				{label}
-			</div>
+			<div className="type-overline">{label}</div>
 			<div className="mt-0.5">{children}</div>
 		</div>
 	);
@@ -160,7 +158,7 @@ function diffFromArgs(toolName: string, args: unknown): DiffLine[] | null {
 
 function DiffView({ lines }: { lines: DiffLine[] }) {
 	return (
-		<div className="overflow-x-auto rounded surface-row p-2 font-[family-name:var(--font-family-mono)] text-[length:var(--font-size-code-block)] leading-relaxed">
+		<div className="overflow-x-auto rounded surface-row p-2 type-code">
 			{lines.map((line, i) => (
 				<div
 					// biome-ignore lint/suspicious/noArrayIndexKey: diff lines have no stable id

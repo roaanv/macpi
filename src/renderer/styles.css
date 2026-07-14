@@ -365,12 +365,22 @@ html {
  * (no rebuild) and per-component code stays theme-agnostic.
  */
 /*
- * Markdown rendering for assistant chat messages. Tailwind's preflight
- * strips browser default margins, so we restore minimal vertical rhythm
- * here. Inline code + fenced blocks pick up font tokens from the
- * inline styles set in MarkdownText.tsx; this block only handles
- * spacing + list markers + table layout.
+ * Markdown rendering for chat and file previews. Tailwind's preflight strips
+ * browser defaults, so semantic content typography and compact vertical rhythm
+ * are restored here. Chat role modifiers remain authoritative for message size.
  */
+.macpi-markdown {
+	font-family: var(--font-content);
+	font-size: var(--font-size-interface);
+	font-weight: 400;
+	line-height: 1.5714;
+	color: inherit;
+}
+.type-assistant .macpi-markdown,
+.type-user .macpi-markdown {
+	font-size: inherit;
+	line-height: inherit;
+}
 .macpi-markdown > * + * {
 	margin-top: 0.5em;
 }
@@ -380,8 +390,13 @@ html {
 .macpi-markdown h4,
 .macpi-markdown h5,
 .macpi-markdown h6 {
-	font-weight: 600;
+	font-family: var(--font-interface);
 	margin-top: 0.75em;
+}
+.macpi-markdown h1,
+.macpi-markdown h2 {
+	font-weight: 600;
+	line-height: 1.5;
 }
 .macpi-markdown h1 {
 	font-size: 1.4em;
@@ -389,8 +404,24 @@ html {
 .macpi-markdown h2 {
 	font-size: 1.25em;
 }
+.macpi-markdown h3,
+.macpi-markdown h4,
+.macpi-markdown h5,
+.macpi-markdown h6 {
+	font-weight: 500;
+	line-height: 1.3846;
+}
 .macpi-markdown h3 {
 	font-size: 1.1em;
+}
+.macpi-markdown h4 {
+	font-size: 1em;
+}
+.macpi-markdown h5 {
+	font-size: 0.95em;
+}
+.macpi-markdown h6 {
+	font-size: 0.9em;
 }
 .macpi-markdown ul,
 .macpi-markdown ol {

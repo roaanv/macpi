@@ -21,7 +21,7 @@ export function UserMessage({
 	onForkNavigate,
 }: UserMessageProps) {
 	return (
-		<div className="flex justify-end text-[length:var(--font-size-chat-user)] leading-relaxed">
+		<div className="flex justify-end type-body type-user">
 			<div className="group relative flex max-w-[75%] flex-col items-end gap-1">
 				<div
 					className="macpi-user-bubble rounded-2xl px-3 py-1.5"

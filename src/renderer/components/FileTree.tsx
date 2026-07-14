@@ -40,7 +40,7 @@ export function FileTree(props: FileTreeProps) {
 	if (query.isLoading) {
 		return (
 			<div
-				className="px-2 py-1 text-xs text-muted"
+				className="px-2 py-1 type-status text-muted"
 				style={{ paddingLeft: depth * 12 + 8 }}
 			>
 				Loading…
@@ -59,7 +59,7 @@ export function FileTree(props: FileTreeProps) {
 						: "(error)";
 		return (
 			<div
-				className="px-2 py-1 text-xs text-err"
+				className="px-2 py-1 type-status text-err"
 				style={{ paddingLeft: depth * 12 + 8 }}
 			>
 				{msg}
@@ -70,7 +70,7 @@ export function FileTree(props: FileTreeProps) {
 	if (entries.length === 0 && depth > 0) {
 		return (
 			<div
-				className="px-2 py-1 text-xs text-muted"
+				className="px-2 py-1 type-status text-muted"
 				style={{ paddingLeft: depth * 12 + 8 }}
 			>
 				(empty)
@@ -134,13 +134,15 @@ function DirRow({
 			<button
 				type="button"
 				onClick={onToggle}
-				className="flex w-full items-center gap-1 px-2 py-0.5 text-left text-xs hover:surface-row"
+				className="flex w-full items-center gap-1 px-2 py-0.5 text-left type-label type-compact hover:surface-row"
 				style={{ paddingLeft: depth * 12 + 8 }}
 			>
 				<span className="inline-block w-3 text-muted">
 					{isExpanded ? "▾" : "▸"}
 				</span>
-				<span>{entry.name}</span>
+				<span className="type-ellipsis" title={entry.name}>
+					{entry.name}
+				</span>
 			</button>
 			{children}
 		</>
@@ -159,7 +161,7 @@ function FileRow({
 	onSelect: () => void;
 }) {
 	const className = [
-		"flex w-full items-center gap-1 px-2 py-0.5 text-left text-xs",
+		"flex w-full items-center gap-1 px-2 py-0.5 text-left type-label type-compact",
 		entry.isText ? "hover:surface-row" : "opacity-50 cursor-default",
 		isSelected ? "surface-accent-soft" : "",
 	].join(" ");
@@ -171,7 +173,9 @@ function FileRow({
 			className={className}
 			style={{ paddingLeft: depth * 12 + 8 + 12 /* align past ▸ */ }}
 		>
-			<span>{entry.name}</span>
+			<span className="type-ellipsis" title={entry.name}>
+				{entry.name}
+			</span>
 		</button>
 	);
 }

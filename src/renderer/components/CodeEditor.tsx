@@ -6,7 +6,7 @@
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { javascript } from "@codemirror/lang-javascript";
 import { markdown } from "@codemirror/lang-markdown";
-import { EditorState } from "@codemirror/state";
+import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers } from "@codemirror/view";
 import React from "react";
 
@@ -14,6 +14,20 @@ interface CodeEditorProps {
 	value: string;
 	onChange: (next: string) => void;
 	language: "markdown" | "typescript";
+}
+
+function codeEditorTheme(dark: boolean) {
+	return EditorView.theme(
+		{
+			"&": { height: "100%" },
+			".cm-scroller": {
+				fontFamily: "var(--font-mono)",
+				fontSize: "var(--font-size-code-block)",
+				lineHeight: "1.5385",
+			},
+		},
+		{ dark },
+	);
 }
 
 export function CodeEditor({ value, onChange, language }: CodeEditorProps) {
@@ -33,6 +47,7 @@ export function CodeEditor({ value, onChange, language }: CodeEditorProps) {
 		if (!hostRef.current) return;
 		const langExtension =
 			language === "typescript" ? javascript({ typescript: true }) : markdown();
+		const themeCompartment = new Compartment();
 		const view = new EditorView({
 			state: EditorState.create({
 				doc: value,
@@ -41,14 +56,10 @@ export function CodeEditor({ value, onChange, language }: CodeEditorProps) {
 					history(),
 					langExtension,
 					keymap.of([...defaultKeymap, ...historyKeymap]),
-					EditorView.theme(
-						{
-							"&": { height: "100%" },
-							".cm-scroller": {
-								fontFamily: "var(--font-family-mono, monospace)",
-							},
-						},
-						{ dark: true },
+					themeCompartment.of(
+						codeEditorTheme(
+							document.documentElement.classList.contains("dark"),
+						),
 					),
 					EditorView.updateListener.of((update) => {
 						if (update.docChanged) {
@@ -60,7 +71,19 @@ export function CodeEditor({ value, onChange, language }: CodeEditorProps) {
 			parent: hostRef.current,
 		});
 		viewRef.current = view;
+		const observer = new MutationObserver(() => {
+			view.dispatch({
+				effects: themeCompartment.reconfigure(
+					codeEditorTheme(document.documentElement.classList.contains("dark")),
+				),
+			});
+		});
+		observer.observe(document.documentElement, {
+			attributes: true,
+			attributeFilter: ["class"],
+		});
 		return () => {
+			observer.disconnect();
 			view.destroy();
 			viewRef.current = null;
 		};
@@ -76,5 +99,5 @@ export function CodeEditor({ value, onChange, language }: CodeEditorProps) {
 		}
 	}, [value]);
 
-	return <div ref={hostRef} className="flex-1 overflow-hidden" />;
+	return <div ref={hostRef} className="flex-1 overflow-hidden type-code" />;
 }

@@ -26,7 +26,7 @@ export function SlashPopup({
 			<div
 				role="listbox"
 				aria-label="Slash commands"
-				className="surface-panel border-divider max-h-60 overflow-auto rounded border p-2 text-xs text-muted shadow-lg"
+				className="surface-panel border-divider max-h-60 overflow-auto rounded border p-2 type-status text-muted shadow-lg"
 			>
 				No matches
 			</div>
@@ -51,15 +51,15 @@ export function SlashPopup({
 						aria-selected={isActive}
 						onMouseEnter={() => onHighlight(i)}
 						onClick={() => onPick(cmd)}
-						className={`flex w-full items-baseline gap-2 px-2 py-1 text-left text-xs ${
+						className={`flex w-full items-baseline gap-2 px-2 py-1 text-left type-control ${
 							isActive ? "surface-row-active" : "hover:surface-row"
 						}`}
 					>
 						<span className="font-semibold">/{cmd.name}</span>
 						{cmd.argumentHint && (
-							<span className="text-muted">{cmd.argumentHint}</span>
+							<span className="type-metadata">{cmd.argumentHint}</span>
 						)}
-						<span className="ml-auto truncate text-muted">
+						<span className="ml-auto type-ellipsis type-metadata">
 							{cmd.description}
 						</span>
 					</button>

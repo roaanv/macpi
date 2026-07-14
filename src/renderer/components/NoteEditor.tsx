@@ -59,21 +59,21 @@ export function NoteEditor({ id }: NoteEditorProps) {
 
 	if (!id) {
 		return (
-			<section className="flex-1 surface-panel p-6 text-sm text-muted">
+			<section className="flex-1 surface-panel p-6 type-status text-muted">
 				Select a note or create a new one.
 			</section>
 		);
 	}
 	if (detail.isLoading) {
 		return (
-			<section className="flex-1 surface-panel p-6 text-sm text-muted">
+			<section className="flex-1 surface-panel p-6 type-status text-muted">
 				Loading…
 			</section>
 		);
 	}
 	if (detail.isError || !detail.data) {
 		return (
-			<section className="flex-1 surface-panel p-6 text-sm text-err">
+			<section className="flex-1 surface-panel p-6 type-status text-err">
 				{(detail.error as Error)?.message ?? "Note not found."}
 			</section>
 		);
@@ -128,8 +128,7 @@ export function NoteEditor({ id }: NoteEditorProps) {
 				value={draft}
 				onChange={(e) => setDraft(e.target.value)}
 				placeholder="First line is the title…"
-				className="flex-1 resize-none border-0 bg-transparent p-4 text-sm leading-relaxed text-primary outline-none"
-				style={{ fontFamily: "var(--font-body)" }}
+				className="flex-1 resize-none border-0 bg-transparent p-4 type-body text-primary placeholder-faint outline-none"
 				spellCheck
 			/>
 		</section>

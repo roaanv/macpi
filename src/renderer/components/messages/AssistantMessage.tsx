@@ -12,22 +12,22 @@ export function AssistantMessage({ entry }: { entry: AssistantTextEntry }) {
 		thinkingOpen || (hasThinking && entry.streaming && !entry.text);
 
 	return (
-		<div className="text-[length:var(--font-size-chat-assistant)] leading-relaxed">
-			<div className="mb-1">
+		<div className="type-body type-assistant">
+			<div className="mb-1 type-metadata">
 				<span className="text-warn">pi</span>
 				<span className="text-muted"> · </span>
 				{hasThinking && (
 					<button
 						type="button"
 						onClick={() => setThinkingOpen((open) => !open)}
-						className="rounded border border-divider px-1.5 py-0.5 text-[10px] text-muted hover:surface-row"
+						className="rounded border border-divider px-1.5 py-0.5 type-metadata text-muted hover:surface-row"
 					>
 						{showThinking ? "▾ thinking" : "▸ thinking"}
 					</button>
 				)}
 			</div>
 			{showThinking && (
-				<div className="my-1 border-l-2 border-divider pl-2 text-xs italic text-muted whitespace-pre-wrap">
+				<div className="my-1 whitespace-pre-wrap border-l-2 border-divider pl-2 type-status italic text-muted">
 					{entry.thinking}
 				</div>
 			)}

@@ -75,11 +75,7 @@ export function MarkdownText({ text }: MarkdownTextProps) {
 					code: ({ children, className, ...rest }) => (
 						<code
 							{...rest}
-							className={className}
-							style={{
-								fontFamily: "var(--font-mono)",
-								fontSize: "var(--font-size-code-block)",
-							}}
+							className={["type-code", className].filter(Boolean).join(" ")}
 						>
 							{children}
 						</code>
@@ -87,11 +83,7 @@ export function MarkdownText({ text }: MarkdownTextProps) {
 					pre: ({ children, ...rest }) => (
 						<pre
 							{...rest}
-							className="my-2 overflow-x-auto rounded p-2 surface-row"
-							style={{
-								fontFamily: "var(--font-mono)",
-								fontSize: "var(--font-size-code-block)",
-							}}
+							className="my-2 overflow-x-auto rounded p-2 surface-row type-code"
 						>
 							{children}
 						</pre>

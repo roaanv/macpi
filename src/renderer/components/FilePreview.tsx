@@ -30,26 +30,30 @@ export function FilePreview({
 
 	if (!selectedPath) {
 		return (
-			<div className="flex h-full items-center justify-center px-4 text-center text-sm text-muted">
+			<div className="flex h-full items-center justify-center px-4 text-center type-status text-muted">
 				Select a file to preview.
 			</div>
 		);
 	}
 	if (overCap) {
 		return (
-			<div className="px-3 py-2 text-sm text-muted">
+			<div className="px-3 py-2 type-status text-muted">
 				File too large to preview ({sizeBytes.toLocaleString()} bytes; cap{" "}
 				{MAX_BYTES.toLocaleString()}).
 			</div>
 		);
 	}
 	if (query.isLoading) {
-		return <div className="px-3 py-2 text-sm text-muted">Loading…</div>;
+		return <div className="px-3 py-2 type-status text-muted">Loading…</div>;
 	}
 	if (query.isError) {
 		const msg =
 			query.error instanceof Error ? query.error.message : String(query.error);
-		return <div className="px-3 py-2 text-sm text-err">Error: {msg}</div>;
+		return (
+			<div className="px-3 py-2 type-status type-technical-wrap text-err">
+				Error: {msg}
+			</div>
+		);
 	}
 	const content = query.data?.content ?? "";
 
@@ -65,11 +69,8 @@ export function FilePreview({
 	}
 	return (
 		<pre
-			className="h-full overflow-auto px-3 py-2 text-xs"
-			style={{
-				fontFamily: "var(--font-mono)",
-				tabSize: 4,
-			}}
+			className="h-full overflow-auto px-3 py-2 type-code"
+			style={{ tabSize: 4 }}
 		>
 			{content}
 		</pre>

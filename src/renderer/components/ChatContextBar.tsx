@@ -62,7 +62,7 @@ function Segment({
 	else if (percent >= 5) inlineText = sizeText;
 	return (
 		<div
-			className="flex h-3.5 min-w-0 items-center justify-center overflow-hidden whitespace-nowrap text-[9px] font-medium leading-none tabular-nums"
+			className="flex h-3.5 min-w-0 items-center justify-center overflow-hidden whitespace-nowrap type-metadata type-tabular font-medium leading-none"
 			style={{
 				flexGrow: tokens,
 				flexBasis: 0,
@@ -98,7 +98,7 @@ function FreeSegment({ tokens, percent }: { tokens: number; percent: number }) {
 	else if (percent >= 5) inlineText = sizeText;
 	return (
 		<div
-			className="flex h-3.5 min-w-0 items-center justify-center overflow-hidden whitespace-nowrap text-[9px] font-medium leading-none tabular-nums"
+			className="flex h-3.5 min-w-0 items-center justify-center overflow-hidden whitespace-nowrap type-metadata type-tabular font-medium leading-none"
 			style={{
 				flexGrow: tokens,
 				flexBasis: 0,
@@ -140,7 +140,7 @@ export function ChatContextBar({ piSessionId }: ChatContextBarProps) {
 	const displayCwd = abbreviateHome(d.cwd, d.homeDir);
 
 	return (
-		<div className="mt-1.5 flex flex-col gap-1">
+		<div className="mt-1.5 flex flex-col gap-1 type-metadata type-tabular">
 			<div
 				className="flex w-full overflow-hidden rounded border border-divider"
 				style={{ height: 14 }}
@@ -155,15 +155,13 @@ export function ChatContextBar({ piSessionId }: ChatContextBarProps) {
 				))}
 				<FreeSegment tokens={d.freeTokens} percent={pct(d.freeTokens)} />
 			</div>
-			<div className="flex flex-wrap items-center gap-x-3 text-[10px] text-faint">
-				<span className="font-medium tabular-nums text-muted">
-					{contextSummary}
-				</span>
+			<div className="flex flex-wrap items-center gap-x-3 text-faint">
+				<span className="font-medium text-muted">{contextSummary}</span>
 				{cumulativeParts.length > 0 && (
 					<>
 						<span aria-hidden>·</span>
 						<span
-							className="font-medium tabular-nums"
+							className="font-medium"
 							title="Cumulative tokens this session — ↑ input · ↓ output · R cache read · W cache write · $ cost"
 						>
 							{cumulativeParts.join(" ")}
@@ -173,7 +171,7 @@ export function ChatContextBar({ piSessionId }: ChatContextBarProps) {
 				{displayCwd && (
 					<>
 						<span aria-hidden>·</span>
-						<span className="truncate" title={d.cwd ?? undefined}>
+						<span className="type-ellipsis" title={d.cwd ?? undefined}>
 							{displayCwd}
 						</span>
 					</>
@@ -181,7 +179,7 @@ export function ChatContextBar({ piSessionId }: ChatContextBarProps) {
 				{d.sessionLabel && (
 					<>
 						<span aria-hidden>·</span>
-						<span className="truncate text-muted">{d.sessionLabel}</span>
+						<span className="type-ellipsis text-muted">{d.sessionLabel}</span>
 					</>
 				)}
 			</div>

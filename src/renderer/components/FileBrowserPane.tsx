@@ -140,18 +140,18 @@ export function FileBrowserPane({
 	};
 
 	const body = !sessionCwd ? (
-		<div className="flex h-full items-center justify-center px-4 text-center text-sm text-muted">
+		<div className="flex h-full items-center justify-center px-4 text-center type-status text-muted">
 			This session has no working directory.
 		</div>
 	) : (
 		<div className="flex h-full flex-col">
 			{/* Header */}
-			<div className="flex items-center gap-1 border-b border-divider px-2 py-1 text-xs">
-				<span className="truncate text-muted" title={sessionCwd}>
+			<div className="flex items-center gap-1 border-b border-divider px-2 py-1">
+				<span className="type-ellipsis type-metadata" title={sessionCwd}>
 					{sessionCwd}
 				</span>
 				<div className="ml-auto flex items-center gap-1">
-					<label className="flex items-center gap-1 text-muted">
+					<label className="flex items-center gap-1 type-control type-compact text-muted">
 						<input
 							type="checkbox"
 							checked={showHidden}
@@ -162,7 +162,7 @@ export function FileBrowserPane({
 					<button
 						type="button"
 						onClick={refreshAll}
-						className="rounded px-1 hover:surface-row"
+						className="rounded px-1 type-control type-compact hover:surface-row"
 						title="Refresh"
 					>
 						⟳
@@ -170,7 +170,7 @@ export function FileBrowserPane({
 					<button
 						type="button"
 						onClick={onClose}
-						className="rounded px-1 hover:surface-row"
+						className="rounded px-1 type-control type-compact hover:surface-row"
 						title="Close pane"
 					>
 						✕

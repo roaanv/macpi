@@ -65,7 +65,7 @@ export function ChatFooter({ piSessionId, streaming }: ChatFooterProps) {
 
 	return (
 		<div
-			className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 border-divider border-t pt-1.5 text-[11px] text-muted"
+			className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 border-divider border-t pt-1.5 type-metadata type-tabular"
 			role="status"
 			aria-label="Session footer"
 		>
@@ -99,7 +99,7 @@ export function ChatFooter({ piSessionId, streaming }: ChatFooterProps) {
 				}
 			>
 				<span aria-hidden>ctx</span>
-				<span className="font-medium">{contextDisplay}</span>
+				<span>{contextDisplay}</span>
 			</span>
 		</div>
 	);

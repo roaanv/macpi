@@ -34,13 +34,13 @@ export function MessageBranchButton({
 					)
 				}
 				disabled={fork.isPending}
-				className="invisible rounded px-1 py-0 text-[10px] text-faint hover:text-primary group-hover:visible disabled:opacity-50"
+				className="invisible rounded px-1 py-0 type-metadata text-faint hover:text-primary group-hover:visible disabled:opacity-50"
 				aria-label="Branch from here"
 			>
 				{fork.isPending ? "forking…" : "↪ Branch here"}
 			</button>
 			{errMsg && (
-				<span className="text-[10px] text-err" title={errMsg} role="alert">
+				<span className="type-status text-err" title={errMsg} role="alert">
 					fork failed: {errMsg.length > 40 ? `${errMsg.slice(0, 40)}…` : errMsg}
 				</span>
 			)}
