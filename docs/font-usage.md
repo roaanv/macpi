@@ -1,9 +1,21 @@
 # MacPi font usage audit and recommended typography system
 
-- **Status:** Source audit and design recommendation
+- **Status:** Implemented typography design system; §5 preserves the pre-migration source audit for historical traceability
 - **Scope:** All user-facing renderer text, including persistent surfaces, settings, dialogs, menus, transient feedback, Markdown, editors, code, and data
 - **Audit basis:** Static inspection of `src/renderer`, Tailwind defaults, runtime font settings, and theme tokens
 - **Date:** 2026-07-13
+
+## Implemented token contract
+
+The typography design system is implemented. This section describes the current contract; §5 is intentionally preserved as the static pre-migration inventory and must not be read as a description of current renderer behavior.
+
+| Layer | Current implementation contract |
+|---|---|
+| Settings | `src/shared/app-settings-keys.ts` defines the default/follow-theme preset, four family regions, six size regions, defaults, validation, the legacy sidebar-size migration fallback, and the 11–32px persisted-value clamp. |
+| Runtime | `src/renderer/components/SettingsApplier.tsx` applies the preset, family overrides, size variables, theme family, and light/dark state to the document root, including automatic color-scheme updates. |
+| Family, metric, role, and behavior tokens | `src/renderer/styles.css` defines the default and theme family stacks; size metrics and clamps; semantic typography roles; truncation, technical wrapping, and tabular-number behaviors; and theme-backed semantic status colors. |
+| Controls | `src/renderer/components/FontSettings.tsx` exposes the default/follow-theme preset, Display/Interface/Content/Monospace family overrides, and all six size controls. |
+| Regression tests | `tests/unit/typography-*.test.ts` enforce the CSS token contract, semantic-role migration, behavior helpers, and the 11px minimum for arbitrary text sizes. Related settings, runtime-application, editor, and long-value contracts are covered by focused unit and integration tests alongside them. |
 
 ## 1. Executive summary
 
