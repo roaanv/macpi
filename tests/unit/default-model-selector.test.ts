@@ -228,6 +228,9 @@ describe("DefaultModelSelector", () => {
 		expect(text).toContain("Google");
 		expect(text).toContain("Automatic fallback");
 		expect(text).toContain("Claude Sonnet 4");
+		expect(menuOption("Claude Sonnet 4").getAttribute("title")).toBe(
+			"Claude Sonnet 4 (claude-sonnet-4)",
+		);
 		expect(text).toContain("Claude Opus 4");
 		expect(text).toContain("Gemini Pro");
 		expect(text).not.toContain("GPT-5");
@@ -305,17 +308,29 @@ describe("DefaultModelSelector", () => {
 	});
 
 	it("preserves and warns about an unavailable saved default while offering recovery", async () => {
+		const provider = "legacy-provider-with-a-very-long-identifier";
+		const modelId = "removed-model-with-a-very-long-identifier";
+		const fallback = `${provider} / ${modelId}`;
 		mocks.selected.data = {
-			model: { provider: "legacy", modelId: "removed-model" },
+			model: { provider, modelId },
 			valid: false,
-			error: "Selected model legacy/removed-model is unavailable",
+			error: `Selected model ${provider}/${modelId} is unavailable`,
 		} as typeof mocks.selected.data;
 		await renderSelector();
 		expect(container.textContent).toContain(
-			"Current saved default: legacy / removed-model",
+			`Current saved default: ${fallback}`,
 		);
+		const technicalValue = container.querySelector(
+			".type-code.type-technical-wrap",
+		);
+		expect(technicalValue?.textContent).toBe(fallback);
+		const trigger = container.querySelector<HTMLButtonElement>(
+			'button[aria-haspopup="dialog"]',
+		);
+		expect(trigger?.title).toBe(fallback);
+		expect(trigger?.firstElementChild?.classList).toContain("type-ellipsis");
 		expect(container.textContent).toContain(
-			"Selected model legacy/removed-model is unavailable",
+			`Selected model ${provider}/${modelId} is unavailable`,
 		);
 		await openMenu();
 		expect(container.textContent).toContain("Automatic fallback");

@@ -105,6 +105,7 @@ export function DefaultModelMenu({
 				type="button"
 				role="option"
 				aria-selected={selected}
+				title={`${model.name} (${model.id})`}
 				disabled={pending}
 				onClick={() =>
 					void choose({ provider: model.provider, modelId: model.id })
@@ -131,15 +132,18 @@ export function DefaultModelMenu({
 				aria-expanded={open}
 				aria-haspopup="dialog"
 				aria-controls={open ? dialogId : undefined}
+				title={currentLabel}
 				onClick={() => {
 					setSearch("");
 					setError(null);
 					setOpen((value) => !value);
 				}}
-				className="surface-row flex w-full justify-between rounded px-3 py-2 text-left type-control disabled:opacity-50"
+				className="surface-row flex w-full min-w-0 items-center justify-between gap-2 rounded px-3 py-2 text-left type-control disabled:opacity-50"
 			>
-				<span>{currentLabel}</span>
-				<span aria-hidden>▾</span>
+				<span className="min-w-0 flex-1 type-ellipsis">{currentLabel}</span>
+				<span className="shrink-0" aria-hidden>
+					▾
+				</span>
 			</button>
 			{open ? (
 				<div

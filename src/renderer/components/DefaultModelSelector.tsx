@@ -102,10 +102,17 @@ export function DefaultModelSelector() {
 
 			<div className="mb-2 type-body">
 				<span className="type-label">Current saved default:</span>{" "}
-				{savedModel
-					? (savedModelSummary?.name ??
-						`${savedModel.provider} / ${savedModel.modelId}`)
-					: "Automatic"}
+				{savedModel ? (
+					savedModelSummary?.name ? (
+						savedModelSummary.name
+					) : (
+						<span className="type-code type-technical-wrap">
+							{savedModel.provider} / {savedModel.modelId}
+						</span>
+					)
+				) : (
+					"Automatic"
+				)}
 			</div>
 
 			{unavailableSavedModel ? (
