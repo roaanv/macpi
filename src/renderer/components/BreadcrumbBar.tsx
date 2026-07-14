@@ -19,27 +19,45 @@ export function BreadcrumbBar({
 }: BreadcrumbBarProps) {
 	const display = computeSessionLabel({ piSessionId, cwd, label });
 	const shortId = `sess-${piSessionId.slice(0, 8)}`;
+	const accessibleBreadcrumb = [
+		workspaceName ? `# ${workspaceName}` : null,
+		display,
+		cwd,
+		piSessionId,
+	]
+		.filter(Boolean)
+		.join(" › ");
 	return (
-		<div className="flex items-center gap-1 overflow-hidden whitespace-nowrap border-b border-divider pb-2 text-xs text-muted">
+		<nav
+			className="flex min-w-0 items-center gap-1 overflow-hidden whitespace-nowrap border-b border-divider pb-2 type-metadata"
+			aria-label={accessibleBreadcrumb}
+		>
 			{workspaceName && (
 				<>
-					<span className="text-muted">#&nbsp;{workspaceName}</span>
-					<span>›</span>
+					<span
+						className="min-w-0 type-ellipsis text-muted"
+						title={workspaceName}
+					>
+						#&nbsp;{workspaceName}
+					</span>
+					<span className="shrink-0">›</span>
 				</>
 			)}
-			<span className="text-primary">{display}</span>
+			<span className="min-w-0 type-ellipsis text-primary" title={display}>
+				{display}
+			</span>
 			{cwd && (
 				<>
-					<span>·</span>
-					<span className="truncate" title={cwd}>
+					<span className="shrink-0">·</span>
+					<span className="min-w-0 flex-1 type-ellipsis" title={cwd}>
 						{cwd}
 					</span>
 				</>
 			)}
-			<span>·</span>
-			<span className="text-faint" title={piSessionId}>
+			<span className="shrink-0">·</span>
+			<span className="shrink-0 text-faint" title={piSessionId}>
 				{shortId}
 			</span>
-		</div>
+		</nav>
 	);
 }

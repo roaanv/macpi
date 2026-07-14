@@ -2,6 +2,7 @@
 // Verifies forest construction, the depth-first flatten, last-child detection,
 // through-rail depth tracking, and active-lineage resolution.
 
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
 	buildSessionForest,
@@ -19,6 +20,26 @@ const rows = (...entries: [string, string | null][]): Row[] =>
 		piSessionId,
 		parentPiSessionId,
 	}));
+
+describe("WorkspaceSidebar typography source contract", () => {
+	const source = readFileSync(
+		"src/renderer/components/WorkspaceSidebar.tsx",
+		"utf8",
+	);
+
+	it("uses semantic compact navigation roles without legacy sidebar sizes", () => {
+		for (const role of [
+			"type-compact",
+			"type-overline",
+			"type-label",
+			"type-metadata",
+		]) {
+			expect(source).toContain(role);
+		}
+		expect(source).not.toContain("text-[10px]");
+		expect(source).not.toContain("--font-size-sidebar");
+	});
+});
 
 describe("buildSessionForest", () => {
 	it("builds a flat list of roots when no rows have parents", () => {

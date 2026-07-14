@@ -227,15 +227,15 @@ export function WorkspaceSidebar({
 	);
 
 	return (
-		<div className="flex h-full w-full min-w-0 flex-col gap-px surface-panel p-3 text-[length:var(--font-size-sidebar)] text-primary">
-			<div className="mb-1 flex items-center justify-between px-2 pt-1 text-[10px] text-faint uppercase tracking-widest">
-				<span className="font-semibold">Workspaces</span>
+		<div className="flex h-full w-full min-w-0 flex-col gap-px surface-panel p-3 type-compact text-primary">
+			<div className="mb-1 flex items-center justify-between px-2 pt-1">
+				<span className="type-overline">Workspaces</span>
 				<button
 					type="button"
 					onClick={onOpenCreateWorkspace}
 					title="New workspace"
 					aria-label="New workspace"
-					className="rounded px-1.5 text-xs text-muted hover:surface-row hover:text-primary"
+					className="rounded px-1.5 type-control type-compact text-muted hover:surface-row hover:text-primary"
 				>
 					+
 				</button>
@@ -262,7 +262,7 @@ export function WorkspaceSidebar({
 								setEditingWorkspaceId(null);
 							}
 						}}
-						className="rounded surface-panel px-2 py-1 text-primary outline-none"
+						className="min-w-0 rounded surface-panel px-2 py-1 type-control type-compact text-primary outline-none"
 					/>
 				) : (
 					// biome-ignore lint/a11y/noStaticElementInteractions: right-click opens the same menu the ⋮ button shows; keyboard-accessible via that button
@@ -286,18 +286,20 @@ export function WorkspaceSidebar({
 						<button
 							type="button"
 							onClick={() => onSelectWorkspace(workspace.id)}
-							className="flex-1 px-2 py-1 text-left"
+							className="flex min-w-0 flex-1 items-center gap-1 px-2 py-1 text-left"
 						>
 							<span
 								className={
 									selectedWorkspaceId === workspace.id
-										? "text-accent"
-										: "text-faint"
+										? "shrink-0 text-accent"
+										: "shrink-0 text-faint"
 								}
 							>
 								#
-							</span>{" "}
-							{workspace.name}
+							</span>
+							<span className="min-w-0 type-label type-compact type-ellipsis">
+								{workspace.name}
+							</span>
 						</button>
 						<RowMenu items={workspaceMenuItems(workspace.id, workspace.name)} />
 					</div>
@@ -306,23 +308,15 @@ export function WorkspaceSidebar({
 
 			{selectedWorkspaceId && (
 				<>
-					<div className="mt-3 flex items-center justify-between px-2 pb-1 text-[10px] text-faint uppercase tracking-widest">
-						<span className="font-semibold">Sessions</span>
+					<div className="mt-3 flex items-center justify-between px-2 pb-1">
+						<span className="type-overline">Sessions</span>
 						{workspaceTreeRows.length > 0 && (
-							<span className="font-medium normal-case tracking-normal">
+							<span className="type-metadata type-tabular">
 								{workspaceTreeRows.length}
 							</span>
 						)}
 					</div>
-					{/*
-					 * Sessions render at 90% of the workspace size so the tree feels
-					 * subordinate to its workspace — the wrapper sets the base size
-					 * once and SessionRow inherits it.
-					 */}
-					<div
-						className="flex flex-col gap-px"
-						style={{ fontSize: "calc(var(--font-size-sidebar) * 0.9)" }}
-					>
+					<div className="flex flex-col gap-px">
 						{workspaceTreeRows.map(
 							({ node, depth, isLastChild, throughRailDepths }) => (
 								<SessionRow

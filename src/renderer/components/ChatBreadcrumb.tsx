@@ -11,12 +11,26 @@ export function ChatBreadcrumb({
 	workspaceName,
 	sessionName,
 }: ChatBreadcrumbProps) {
+	const workspace = workspaceName ?? "—";
+	const session = sessionName ?? "—";
 	return (
-		<div className="flex items-center gap-2 border-b border-divider px-3 py-1 text-xs text-muted">
-			<span className="text-faint"># </span>
-			<span>{workspaceName ?? "—"}</span>
-			<span className="text-faint">›</span>
-			<span className="text-primary">{sessionName ?? "—"}</span>
-		</div>
+		<nav
+			className="flex min-w-0 items-center gap-2 overflow-hidden border-b border-divider px-3 py-1 type-metadata"
+			aria-label={`Workspace ${workspace}, session ${session}`}
+		>
+			<span className="flex min-w-0 flex-1 items-center">
+				<span className="shrink-0 text-faint">#&nbsp;</span>
+				<span className="type-ellipsis" title={workspace}>
+					{workspace}
+				</span>
+			</span>
+			<span className="shrink-0 text-faint">›</span>
+			<span
+				className="min-w-0 flex-1 type-ellipsis text-primary"
+				title={session}
+			>
+				{session}
+			</span>
+		</nav>
 	);
 }

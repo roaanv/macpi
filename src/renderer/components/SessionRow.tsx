@@ -96,8 +96,8 @@ export function SessionRow({
 						setEditing(false);
 					}
 				}}
-				style={{ paddingLeft: contentPadLeft, fontSize: "inherit" }}
-				className="rounded surface-panel py-1 pr-2 text-primary outline-none"
+				style={{ paddingLeft: contentPadLeft }}
+				className="min-w-0 rounded surface-panel py-1 pr-2 type-control type-compact text-primary outline-none"
 			/>
 		);
 	}
@@ -140,7 +140,9 @@ export function SessionRow({
 				>
 					<LeafGlyph />
 				</span>
-				<span className="truncate">{label}</span>
+				<span className="min-w-0 type-label type-compact type-ellipsis">
+					{label}
+				</span>
 			</button>
 			<RowMenu items={menuItems} />
 			<ContextMenu

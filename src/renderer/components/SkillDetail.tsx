@@ -28,21 +28,21 @@ export function SkillDetail({ id, onUninstalled }: SkillDetailProps) {
 
 	if (!id) {
 		return (
-			<section className="flex-1 surface-panel p-6 text-sm text-muted">
+			<section className="flex-1 surface-panel p-6 type-status text-muted">
 				Select a skill on the left to view or edit it.
 			</section>
 		);
 	}
 	if (detail.isLoading) {
 		return (
-			<section className="flex-1 surface-panel p-6 text-sm text-muted">
+			<section className="flex-1 surface-panel p-6 type-status text-muted">
 				Loading…
 			</section>
 		);
 	}
 	if (detail.isError || !detail.data) {
 		return (
-			<section className="flex-1 surface-panel p-6 text-sm text-err">
+			<section className="flex-1 surface-panel p-6 type-status text-err">
 				{(detail.error as Error)?.message ?? "Skill not found."}
 			</section>
 		);
@@ -55,18 +55,18 @@ export function SkillDetail({ id, onUninstalled }: SkillDetailProps) {
 	return (
 		<section className="flex flex-1 flex-col surface-panel">
 			<header className="border-b border-divider p-3">
-				<div className="text-sm font-semibold text-primary">{skillName}</div>
-				<div className="text-xs text-muted">
+				<div className="type-section-heading">{skillName}</div>
+				<div className="type-metadata type-technical-wrap">
 					{source} · {detail.data.manifest.relativePath}
 				</div>
 			</header>
 			<CodeEditor value={draft} onChange={setDraft} language="markdown" />
 			<footer className="flex items-center justify-end gap-2 border-t border-divider p-2">
-				{dirty && <span className="text-xs text-warn">• unsaved</span>}
+				{dirty && <span className="type-status text-warn">• unsaved</span>}
 				<button
 					type="button"
 					onClick={() => setRemoveTarget({ id, name: skillName, source })}
-					className="mr-auto rounded px-3 py-1 text-xs text-err hover:surface-err-soft"
+					className="mr-auto rounded px-3 py-1 type-control text-err hover:surface-err-soft"
 				>
 					Uninstall…
 				</button>
@@ -74,7 +74,7 @@ export function SkillDetail({ id, onUninstalled }: SkillDetailProps) {
 					type="button"
 					disabled={!dirty || save.isPending}
 					onClick={() => save.mutate({ id, body: draft })}
-					className="surface-row rounded px-3 py-1 text-xs hover:opacity-80 disabled:opacity-40"
+					className="surface-row rounded px-3 py-1 type-control hover:opacity-80 disabled:opacity-40"
 				>
 					{save.isPending ? "Saving…" : "Save"}
 				</button>

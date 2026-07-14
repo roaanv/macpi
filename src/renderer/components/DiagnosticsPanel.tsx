@@ -20,21 +20,21 @@ export function DiagnosticsPanel({ diagnostics }: DiagnosticsPanelProps) {
 	}
 
 	return (
-		<div className="border-t border-divider text-xs">
+		<div className="border-t border-divider">
 			<button
 				type="button"
 				onClick={() => setCollapsed((c) => !c)}
 				className="flex w-full items-center gap-2 px-2 py-1 text-left surface-row hover:opacity-80"
 			>
 				<span>{collapsed ? "▸" : "▾"}</span>
-				<span className="font-semibold">Diagnostics</span>
+				<span className="type-section-heading">Diagnostics</span>
 				{counts.error && (
-					<span className="text-err">
+					<span className="type-status text-err">
 						{counts.error} error{counts.error > 1 && "s"}
 					</span>
 				)}
 				{counts.warn && (
-					<span className="text-warn">
+					<span className="type-status text-warn">
 						{counts.warn} warning{counts.warn > 1 && "s"}
 					</span>
 				)}
@@ -45,14 +45,18 @@ export function DiagnosticsPanel({ diagnostics }: DiagnosticsPanelProps) {
 						<div
 							// biome-ignore lint/suspicious/noArrayIndexKey: diagnostic rows have no stable id
 							key={i}
-							className={`flex gap-2 px-1 py-0.5 ${d.severity === "error" ? "text-err" : d.severity === "warn" ? "text-warn" : "text-muted"}`}
+							className={`flex gap-2 px-1 py-0.5 type-status ${d.severity === "error" ? "text-err" : d.severity === "warn" ? "text-warn" : "text-muted"}`}
 						>
-							<span className="font-mono text-[10px]">
+							<span className="shrink-0 type-code type-metadata">
 								{d.line}:{d.column}
 							</span>
-							<span className="flex-1">{d.message}</span>
+							<span className="min-w-0 flex-1 type-status type-technical-wrap">
+								{d.message}
+							</span>
 							{d.rule && (
-								<span className="text-[10px] text-muted">{d.rule}</span>
+								<span className="type-code type-metadata type-technical-wrap text-muted">
+									{d.rule}
+								</span>
 							)}
 						</div>
 					))}

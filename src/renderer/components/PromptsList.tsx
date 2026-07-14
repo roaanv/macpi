@@ -32,14 +32,12 @@ export function PromptsList({
 	return (
 		<aside className="flex h-full w-full min-w-0 flex-col surface-rail border-r border-divider">
 			<div className="border-b border-divider px-3 pb-2 pt-3">
-				<div className="text-xs font-semibold uppercase tracking-wide text-muted">
-					Prompts
-				</div>
+				<div className="type-overline">Prompts</div>
 				<div className="mt-2 flex gap-2">
 					<button
 						type="button"
 						onClick={onInstall}
-						className="surface-row rounded px-2 py-1 text-xs hover:opacity-80"
+						className="surface-row rounded px-2 py-1 type-control hover:opacity-80"
 					>
 						+ Install…
 					</button>
@@ -47,15 +45,15 @@ export function PromptsList({
 			</div>
 			<div className="flex-1 overflow-y-auto p-1">
 				{prompts.isLoading && (
-					<div className="p-2 text-xs text-muted">Loading…</div>
+					<div className="p-2 type-status text-muted">Loading…</div>
 				)}
 				{prompts.isError && (
-					<div className="p-2 text-xs text-err">
+					<div className="p-2 type-status text-err">
 						{(prompts.error as Error).message}
 					</div>
 				)}
 				{prompts.data && prompts.data.prompts.length === 0 && (
-					<div className="p-2 text-xs text-muted">
+					<div className="p-2 type-status text-muted">
 						No prompts yet. Install a Pi package to add prompts.
 					</div>
 				)}
@@ -65,7 +63,7 @@ export function PromptsList({
 					return (
 						<div
 							key={p.id}
-							className={`group flex items-start gap-2 rounded px-2 py-1 text-sm ${
+							className={`group flex min-w-0 items-start gap-2 rounded px-2 py-1 ${
 								selectedId === p.id
 									? "surface-row text-primary"
 									: "text-muted hover:surface-row"
@@ -83,22 +81,26 @@ export function PromptsList({
 							<button
 								type="button"
 								onClick={() => onSelect(p.id)}
-								className="flex-1 overflow-hidden text-left"
+								className="min-w-0 flex-1 text-left"
 								title={p.source}
 							>
-								<div className="flex items-baseline gap-2">
-									<span className="truncate font-medium">{p.name}</span>
+								<div className="flex min-w-0 items-baseline gap-2">
+									<span className="min-w-0 flex-1 type-label type-ellipsis">
+										{p.name}
+									</span>
 									{showSource && (
-										<span className="text-[10px] text-faint">{friendly}</span>
+										<span className="min-w-0 type-metadata type-ellipsis text-faint">
+											{friendly}
+										</span>
 									)}
 								</div>
 								{p.description && (
-									<div className="truncate text-xs text-muted">
+									<div className="type-metadata type-ellipsis">
 										{p.description}
 									</div>
 								)}
 								{p.argumentHint && (
-									<div className="truncate text-[10px] text-faint">
+									<div className="type-metadata type-ellipsis text-faint">
 										args: {p.argumentHint}
 									</div>
 								)}

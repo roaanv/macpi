@@ -34,21 +34,21 @@ export function PromptDetail({ id, onUninstalled }: PromptDetailProps) {
 
 	if (!id) {
 		return (
-			<section className="flex-1 surface-panel p-6 text-sm text-muted">
+			<section className="flex-1 surface-panel p-6 type-status text-muted">
 				Select a prompt on the left to view or edit it.
 			</section>
 		);
 	}
 	if (detail.isLoading) {
 		return (
-			<section className="flex-1 surface-panel p-6 text-sm text-muted">
+			<section className="flex-1 surface-panel p-6 type-status text-muted">
 				Loading…
 			</section>
 		);
 	}
 	if (detail.isError || !detail.data) {
 		return (
-			<section className="flex-1 surface-panel p-6 text-sm text-err">
+			<section className="flex-1 surface-panel p-6 type-status text-err">
 				{(detail.error as Error)?.message ?? "Prompt not found."}
 			</section>
 		);
@@ -64,41 +64,41 @@ export function PromptDetail({ id, onUninstalled }: PromptDetailProps) {
 		<section className="flex flex-1 flex-col surface-panel">
 			<header className="flex flex-col gap-2 border-b border-divider p-3">
 				<div>
-					<div className="text-sm font-semibold text-primary">{m.name}</div>
-					<div className="text-xs text-muted">
+					<div className="type-section-heading">{m.name}</div>
+					<div className="type-metadata type-technical-wrap">
 						{m.source} · {m.relativePath}
 					</div>
 				</div>
-				<label className="flex flex-col gap-1 text-xs">
+				<label className="flex flex-col gap-1 type-label">
 					<span className="text-muted">Description</span>
 					<input
 						type="text"
 						value={description}
 						onChange={(e) => setDescription(e.target.value)}
 						placeholder="What this prompt does…"
-						className="rounded surface-row px-2 py-1 text-primary"
+						className="rounded surface-row px-2 py-1 type-control text-primary"
 					/>
 				</label>
-				<label className="flex flex-col gap-1 text-xs">
+				<label className="flex flex-col gap-1 type-label">
 					<span className="text-muted">Argument hint</span>
 					<input
 						type="text"
 						value={argumentHint}
 						onChange={(e) => setArgumentHint(e.target.value)}
 						placeholder="e.g. <message> (optional)"
-						className="rounded surface-row px-2 py-1 text-primary"
+						className="rounded surface-row px-2 py-1 type-control text-primary"
 					/>
 				</label>
 			</header>
 			<CodeEditor value={body} onChange={setBody} language="markdown" />
 			<footer className="flex items-center justify-end gap-2 border-t border-divider p-2">
-				{dirty && <span className="text-xs text-warn">• unsaved</span>}
+				{dirty && <span className="type-status text-warn">• unsaved</span>}
 				<button
 					type="button"
 					onClick={() =>
 						setRemoveTarget({ id, name: m.name, source: m.source })
 					}
-					className="mr-auto rounded px-3 py-1 text-xs text-err hover:surface-err-soft"
+					className="mr-auto rounded px-3 py-1 type-control text-err hover:surface-err-soft"
 				>
 					Uninstall…
 				</button>
@@ -113,7 +113,7 @@ export function PromptDetail({ id, onUninstalled }: PromptDetailProps) {
 							argumentHint,
 						})
 					}
-					className="surface-row rounded px-3 py-1 text-xs hover:opacity-80 disabled:opacity-40"
+					className="surface-row rounded px-3 py-1 type-control hover:opacity-80 disabled:opacity-40"
 				>
 					{save.isPending ? "Saving…" : "Save"}
 				</button>

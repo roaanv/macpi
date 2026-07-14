@@ -32,14 +32,12 @@ export function ExtensionsList({
 	return (
 		<aside className="flex h-full w-full min-w-0 flex-col surface-rail border-r border-divider">
 			<div className="border-b border-divider px-3 pb-2 pt-3">
-				<div className="text-xs font-semibold uppercase tracking-wide text-muted">
-					Extensions
-				</div>
+				<div className="type-overline">Extensions</div>
 				<div className="mt-2 flex gap-2">
 					<button
 						type="button"
 						onClick={onInstall}
-						className="surface-row rounded px-2 py-1 text-xs hover:opacity-80"
+						className="surface-row rounded px-2 py-1 type-control hover:opacity-80"
 					>
 						+ Install…
 					</button>
@@ -47,21 +45,21 @@ export function ExtensionsList({
 			</div>
 			<div className="flex-1 overflow-y-auto p-1">
 				{ext.isLoading && (
-					<div className="p-2 text-xs text-muted">Loading…</div>
+					<div className="p-2 type-status text-muted">Loading…</div>
 				)}
 				{ext.data?.loadErrors.map((e) => (
 					<div
 						key={e.path}
-						className="rounded border-l-2 border-err surface-err-soft px-2 py-1 text-xs text-err"
+						className="rounded border-l-2 border-err surface-err-soft px-2 py-1 text-err"
 					>
-						<div className="font-semibold">⚠ {e.path}</div>
-						<div className="truncate text-[10px]">{e.error}</div>
+						<div className="type-label type-technical-wrap">⚠ {e.path}</div>
+						<div className="type-status type-technical-wrap">{e.error}</div>
 					</div>
 				))}
 				{ext.data &&
 					ext.data.extensions.length === 0 &&
 					ext.data.loadErrors.length === 0 && (
-						<div className="p-2 text-xs text-muted">
+						<div className="p-2 type-status text-muted">
 							No extensions yet. Install a Pi package to add extensions.
 						</div>
 					)}
@@ -71,7 +69,7 @@ export function ExtensionsList({
 					return (
 						<div
 							key={e.id}
-							className={`group flex items-center gap-2 rounded px-2 py-1 text-sm ${selectedId === e.id ? "surface-row text-primary" : "text-muted hover:surface-row"}`}
+							className={`group flex min-w-0 items-center gap-2 rounded px-2 py-1 ${selectedId === e.id ? "surface-row text-primary" : "text-muted hover:surface-row"}`}
 						>
 							<input
 								type="checkbox"
@@ -87,12 +85,14 @@ export function ExtensionsList({
 							<button
 								type="button"
 								onClick={() => onSelect(e.id)}
-								className="flex-1 truncate text-left"
+								className="flex min-w-0 flex-1 items-baseline gap-2 text-left"
 								title={e.source}
 							>
-								{e.name}
+								<span className="min-w-0 flex-1 type-label type-ellipsis">
+									{e.name}
+								</span>
 								{showSource && (
-									<span className="ml-2 text-[10px] text-faint">
+									<span className="min-w-0 type-metadata type-ellipsis text-faint">
 										{friendly}
 									</span>
 								)}

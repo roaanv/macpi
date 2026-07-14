@@ -27,7 +27,7 @@ export function App() {
 	return (
 		<>
 			<SettingsApplier />
-			<div className="flex h-full surface-app font-[family-name:var(--font-family)]">
+			<div className="flex h-full surface-app">
 				<ModeRail
 					mode={mode}
 					onSelect={setMode}

@@ -32,14 +32,12 @@ export function SkillsList({
 	return (
 		<aside className="flex h-full w-full min-w-0 flex-col surface-rail border-r border-divider">
 			<div className="border-b border-divider px-3 pb-2 pt-3">
-				<div className="text-xs font-semibold uppercase tracking-wide text-muted">
-					Skills
-				</div>
+				<div className="type-overline">Skills</div>
 				<div className="mt-2 flex gap-2">
 					<button
 						type="button"
 						onClick={onInstall}
-						className="surface-row rounded px-2 py-1 text-xs hover:opacity-80"
+						className="surface-row rounded px-2 py-1 type-control hover:opacity-80"
 					>
 						+ Install…
 					</button>
@@ -47,15 +45,15 @@ export function SkillsList({
 			</div>
 			<div className="flex-1 overflow-y-auto p-1">
 				{skills.isLoading && (
-					<div className="p-2 text-xs text-muted">Loading…</div>
+					<div className="p-2 type-status text-muted">Loading…</div>
 				)}
 				{skills.isError && (
-					<div className="p-2 text-xs text-err">
+					<div className="p-2 type-status text-err">
 						{(skills.error as Error).message}
 					</div>
 				)}
 				{skills.data && skills.data.skills.length === 0 && (
-					<div className="p-2 text-xs text-muted">
+					<div className="p-2 type-status text-muted">
 						No skills yet. Install a Pi package to add skills.
 					</div>
 				)}
@@ -65,7 +63,7 @@ export function SkillsList({
 					return (
 						<div
 							key={s.id}
-							className={`group flex items-center gap-2 rounded px-2 py-1 text-sm ${selectedId === s.id ? "surface-row text-primary" : "text-muted hover:surface-row"}`}
+							className={`group flex min-w-0 items-center gap-2 rounded px-2 py-1 ${selectedId === s.id ? "surface-row text-primary" : "text-muted hover:surface-row"}`}
 						>
 							<input
 								type="checkbox"
@@ -81,12 +79,14 @@ export function SkillsList({
 							<button
 								type="button"
 								onClick={() => onSelect(s.id)}
-								className="flex-1 truncate text-left"
+								className="flex min-w-0 flex-1 items-baseline gap-2 text-left"
 								title={s.source}
 							>
-								{s.name}
+								<span className="min-w-0 flex-1 type-label type-ellipsis">
+									{s.name}
+								</span>
 								{showSource && (
-									<span className="ml-2 text-[10px] text-faint">
+									<span className="min-w-0 type-metadata type-ellipsis text-faint">
 										{friendly}
 									</span>
 								)}

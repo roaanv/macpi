@@ -24,14 +24,12 @@ export function NotesList({
 	return (
 		<aside className="flex h-full w-full min-w-0 flex-col surface-rail border-r border-divider">
 			<div className="border-b border-divider px-3 pb-2 pt-3">
-				<div className="text-xs font-semibold uppercase tracking-wide text-muted">
-					Notes
-				</div>
+				<div className="type-overline">Notes</div>
 				<div className="mt-2 flex gap-2">
 					<button
 						type="button"
 						onClick={onNew}
-						className="surface-row rounded px-2 py-1 text-xs hover:opacity-80"
+						className="surface-row rounded px-2 py-1 type-control hover:opacity-80"
 					>
 						+ New
 					</button>
@@ -40,7 +38,7 @@ export function NotesList({
 						onClick={() => qc.invalidateQueries({ queryKey: ["notes.list"] })}
 						title="Refresh from disk"
 						aria-label="Refresh notes from disk"
-						className="surface-row rounded px-2 py-1 text-xs hover:opacity-80"
+						className="surface-row rounded px-2 py-1 type-control hover:opacity-80"
 					>
 						↻
 					</button>
@@ -48,15 +46,15 @@ export function NotesList({
 			</div>
 			<div className="flex-1 overflow-y-auto p-1">
 				{notes.isLoading && (
-					<div className="p-2 text-xs text-muted">Loading…</div>
+					<div className="p-2 type-status text-muted">Loading…</div>
 				)}
 				{notes.isError && (
-					<div className="p-2 text-xs text-err">
+					<div className="p-2 type-status text-err">
 						{(notes.error as Error).message}
 					</div>
 				)}
 				{notes.data && notes.data.notes.length === 0 && (
-					<div className="p-2 text-xs text-muted">
+					<div className="p-2 type-status text-muted">
 						No notes yet. + New to begin.
 					</div>
 				)}
@@ -66,7 +64,7 @@ export function NotesList({
 					return (
 						<div
 							key={n.id}
-							className={`group flex items-start gap-2 rounded px-2 py-1.5 text-sm ${
+							className={`group flex min-w-0 items-start gap-2 rounded px-2 py-1.5 ${
 								active
 									? "surface-row text-primary"
 									: "text-muted hover:surface-row"
@@ -75,11 +73,11 @@ export function NotesList({
 							<button
 								type="button"
 								onClick={() => onSelect(n.id)}
-								className="flex-1 overflow-hidden text-left"
+								className="min-w-0 flex-1 text-left"
 							>
-								<div className="truncate font-medium">{title}</div>
+								<div className="type-label type-ellipsis">{title}</div>
 								{n.bodyPreview && (
-									<div className="truncate text-xs text-faint">
+									<div className="type-metadata type-ellipsis text-faint">
 										{n.bodyPreview}
 									</div>
 								)}
@@ -89,7 +87,7 @@ export function NotesList({
 								onClick={() => onRequestDelete(n.id)}
 								title="Delete note"
 								aria-label={`Delete ${title}`}
-								className="opacity-0 transition-opacity group-hover:opacity-100 rounded px-1 text-xs text-faint hover:text-err"
+								className="rounded px-1 type-control text-faint opacity-0 transition-opacity hover:text-err group-hover:opacity-100"
 							>
 								🗑
 							</button>
