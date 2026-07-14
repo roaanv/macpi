@@ -39,14 +39,37 @@
 :root {
 	/* Slate (default) — neutral cool grey, light mode. */
 	--font-display:
+		"Bricolage Grotesque Variable", "Bricolage Grotesque", "Inter Variable",
+		system-ui, sans-serif;
+	--font-interface:
 		"Inter Variable", "Inter", -apple-system, BlinkMacSystemFont, system-ui,
 		sans-serif;
-	--font-body:
-		"Inter Variable", "Inter", -apple-system, BlinkMacSystemFont, system-ui,
-		sans-serif;
+	--font-content: var(--font-interface);
 	--font-mono:
 		"JetBrains Mono Variable", "JetBrains Mono", ui-monospace, SFMono-Regular,
+		Menlo, monospace;
+
+	--theme-font-display:
+		"Inter Variable", "Inter", -apple-system, BlinkMacSystemFont, system-ui,
+		sans-serif;
+	--theme-font-interface: var(--theme-font-display);
+	--theme-font-content: var(--theme-font-interface);
+	--theme-font-mono:
+		"JetBrains Mono Variable", "JetBrains Mono", ui-monospace, SFMono-Regular,
 		monospace;
+
+	--font-size-interface: 14px;
+	--font-size-compact: 13px;
+	--font-size-chat-assistant: 14px;
+	--font-size-chat-user: 14px;
+	--font-size-composer: 14px;
+	--font-size-code-block: 13px;
+
+	/* Temporary compatibility aliases removed in Task 9. */
+	--font-family: var(--font-interface);
+	--font-body: var(--font-content);
+	--font-family-mono: var(--font-mono);
+	--font-size-sidebar: var(--font-size-compact);
 
 	--app-bg: oklch(99% 0.003 250);
 	--app-fg: oklch(22% 0.012 260);
@@ -67,6 +90,13 @@
 	--scrollbar-track: var(--app-bg);
 	--scrollbar-thumb: var(--row-bg);
 	--scrollbar-thumb-hover: var(--text-faint);
+}
+
+html[data-typography-preset="theme"] {
+	--font-display: var(--theme-font-display);
+	--font-interface: var(--theme-font-interface);
+	--font-content: var(--theme-font-content);
+	--font-mono: var(--theme-font-mono);
 }
 
 html.dark {
@@ -91,10 +121,10 @@ html.dark {
  * Space Grotesk (display + body) · IBM Plex Mono.
  * ───────────────────────────────────────────────────────────────────────── */
 html[data-theme-family="carbon"] {
-	--font-display: "Space Grotesk Variable", "Space Grotesk", sans-serif;
-	--font-body: "Space Grotesk Variable", "Space Grotesk", sans-serif;
-	--font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
-	--font-family-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+	--theme-font-display: "Space Grotesk Variable", "Space Grotesk", sans-serif;
+	--theme-font-interface: "Space Grotesk Variable", "Space Grotesk", sans-serif;
+	--theme-font-content: var(--theme-font-interface);
+	--theme-font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
 }
 html[data-theme-family="carbon"]:not(.dark) {
 	--app-bg: #fbfbf6;
@@ -138,12 +168,11 @@ html[data-theme-family="carbon"].dark {
  * Instrument Serif (display) · Hanken Grotesk (body) · JetBrains Mono.
  * ───────────────────────────────────────────────────────────────────────── */
 html[data-theme-family="ember"] {
-	--font-display: "Instrument Serif", Georgia, serif;
-	--font-body:
+	--theme-font-display: "Instrument Serif", Georgia, serif;
+	--theme-font-interface:
 		"Hanken Grotesk Variable", "Hanken Grotesk", system-ui, sans-serif;
-	--font-mono:
-		"JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
-	--font-family-mono:
+	--theme-font-content: var(--theme-font-interface);
+	--theme-font-mono:
 		"JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
 }
 html[data-theme-family="ember"]:not(.dark) {
@@ -188,12 +217,12 @@ html[data-theme-family="ember"].dark {
  * Bricolage Grotesque (display) · Spline Sans (body) · Spline Sans Mono.
  * ───────────────────────────────────────────────────────────────────────── */
 html[data-theme-family="marine"] {
-	--font-display:
+	--theme-font-display:
 		"Bricolage Grotesque Variable", "Bricolage Grotesque", sans-serif;
-	--font-body: "Spline Sans Variable", "Spline Sans", system-ui, sans-serif;
-	--font-mono:
-		"Spline Sans Mono Variable", "Spline Sans Mono", ui-monospace, monospace;
-	--font-family-mono:
+	--theme-font-interface:
+		"Spline Sans Variable", "Spline Sans", system-ui, sans-serif;
+	--theme-font-content: var(--theme-font-interface);
+	--theme-font-mono:
 		"Spline Sans Mono Variable", "Spline Sans Mono", ui-monospace, monospace;
 }
 html[data-theme-family="marine"]:not(.dark) {
@@ -238,11 +267,12 @@ html[data-theme-family="marine"].dark {
  * Familjen Grotesk (display + body) · IBM Plex Mono.
  * ───────────────────────────────────────────────────────────────────────── */
 html[data-theme-family="punch"] {
-	--font-display: "Familjen Grotesk Variable", "Familjen Grotesk", sans-serif;
-	--font-body:
+	--theme-font-display:
+		"Familjen Grotesk Variable", "Familjen Grotesk", sans-serif;
+	--theme-font-interface:
 		"Familjen Grotesk Variable", "Familjen Grotesk", system-ui, sans-serif;
-	--font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
-	--font-family-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+	--theme-font-content: var(--theme-font-interface);
+	--theme-font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
 }
 html[data-theme-family="punch"]:not(.dark) {
 	--app-bg: #fcfbfc;
@@ -288,7 +318,9 @@ body,
 }
 body {
 	margin: 0;
-	font-family: var(--font-family, var(--font-body));
+	font-family: var(--font-family, var(--font-interface));
+	font-size: var(--font-size-interface);
+	line-height: 1.5;
 	background: var(--app-bg);
 	color: var(--app-fg);
 	font-feature-settings: "ss01", "ss02", "cv11";
@@ -510,8 +542,86 @@ html {
 	.surface-err-soft {
 		background: color-mix(in oklab, var(--err) 16%, transparent);
 	}
-	.font-display {
+	.type-view-title {
 		font-family: var(--font-display);
+		font-size: clamp(16px, calc(var(--font-size-interface) + 6px), 38px);
+		font-weight: 650;
+		line-height: 1.4;
+		color: var(--text-primary);
+	}
+	.type-section-heading {
+		font-family: var(--font-interface);
+		font-size: clamp(14px, calc(var(--font-size-interface) + 2px), 34px);
+		font-weight: 600;
+		line-height: 1.5;
+		color: var(--text-primary);
+	}
+	.type-body {
+		font-family: var(--font-content);
+		font-size: var(--font-size-interface);
+		font-weight: 400;
+		line-height: 1.5714;
+		color: var(--text-primary);
+	}
+	.type-control,
+	.type-label {
+		font-family: var(--font-interface);
+		font-size: clamp(12px, calc(var(--font-size-interface) - 1px), 31px);
+		font-weight: 500;
+		line-height: 1.3846;
+	}
+	.type-metadata {
+		font-family: var(--font-interface);
+		font-size: clamp(11px, calc(var(--font-size-interface) - 2px), 30px);
+		font-weight: 400;
+		line-height: 1.3333;
+		color: var(--text-muted);
+	}
+	.type-overline {
+		font-family: var(--font-interface);
+		font-size: clamp(11px, calc(var(--font-size-interface) - 3px), 29px);
+		font-weight: 600;
+		line-height: 1.4545;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--text-faint);
+	}
+	.type-status {
+		font-family: var(--font-interface);
+		font-size: clamp(12px, calc(var(--font-size-interface) - 1px), 31px);
+		font-weight: 400;
+		line-height: 1.3846;
+	}
+	.type-code {
+		font-family: var(--font-mono);
+		font-size: var(--font-size-code-block);
+		font-weight: 400;
+		line-height: 1.5385;
+	}
+	.type-compact {
+		font-size: var(--font-size-compact);
+	}
+	.type-assistant {
+		font-size: var(--font-size-chat-assistant);
+	}
+	.type-user {
+		font-size: var(--font-size-chat-user);
+	}
+	.type-composer {
+		font-size: var(--font-size-composer);
+	}
+	.type-tabular {
+		font-variant-numeric: tabular-nums;
+	}
+	.type-ellipsis {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.type-technical-wrap {
+		overflow-wrap: anywhere;
+		word-break: break-word;
 	}
 }
 
