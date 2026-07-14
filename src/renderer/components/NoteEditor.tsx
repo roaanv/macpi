@@ -104,7 +104,7 @@ export function NoteEditor({ id }: NoteEditorProps) {
 	return (
 		<section className="flex flex-1 flex-col surface-panel">
 			{staleConflict && (
-				<div className="border-b border-divider surface-warn-soft px-4 py-2 text-sm text-warn">
+				<div className="border-b border-divider surface-warn-soft px-4 py-2 type-status text-warn">
 					NOTES.md changed on disk.{" "}
 					<button
 						type="button"

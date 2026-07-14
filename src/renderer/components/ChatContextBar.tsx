@@ -179,7 +179,9 @@ export function ChatContextBar({ piSessionId }: ChatContextBarProps) {
 				{d.sessionLabel && (
 					<>
 						<span aria-hidden>·</span>
-						<span className="type-ellipsis text-muted">{d.sessionLabel}</span>
+						<span className="type-ellipsis text-muted" title={d.sessionLabel}>
+							{d.sessionLabel}
+						</span>
 					</>
 				)}
 			</div>

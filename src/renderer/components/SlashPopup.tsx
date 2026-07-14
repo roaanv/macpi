@@ -59,7 +59,10 @@ export function SlashPopup({
 						{cmd.argumentHint && (
 							<span className="type-metadata">{cmd.argumentHint}</span>
 						)}
-						<span className="ml-auto type-ellipsis type-metadata">
+						<span
+							className="ml-auto type-ellipsis type-metadata"
+							title={cmd.description}
+						>
 							{cmd.description}
 						</span>
 					</button>

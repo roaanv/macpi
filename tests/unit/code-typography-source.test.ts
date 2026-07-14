@@ -37,4 +37,30 @@ describe("code typography source contract", () => {
 		expect(editor).toContain("observer.disconnect");
 		expect(editor).not.toMatch(/\{\s*dark:\s*true\s*\}/);
 	});
+
+	it("uses semantic roles for note conflict and models controls", () => {
+		const noteEditor = source("src/renderer/components/NoteEditor.tsx");
+		expect(noteEditor).toMatch(/surface-warn-soft[^"\n]*type-status/);
+		expect(noteEditor).not.toMatch(/surface-warn-soft[^"\n]*text-sm/);
+
+		const modelsEditor = source("src/renderer/components/ModelsJsonEditor.tsx");
+		expect(modelsEditor).toContain("type-control");
+		expect(modelsEditor).toContain(
+			'<span className="type-label">Custom models</span>',
+		);
+		expect(modelsEditor).not.toMatch(/\b(?:text-sm|font-medium)\b/);
+	});
+
+	it("defines placeholder color and titles for truncated chat values", () => {
+		const css = source("src/renderer/styles.css");
+		expect(css).toMatch(
+			/\.placeholder-faint::placeholder\s*\{[^}]*color:\s*var\(--text-faint\)/s,
+		);
+
+		const slashPopup = source("src/renderer/components/SlashPopup.tsx");
+		expect(slashPopup).toContain("title={cmd.description}");
+
+		const contextBar = source("src/renderer/components/ChatContextBar.tsx");
+		expect(contextBar).toContain("title={d.sessionLabel}");
+	});
 });

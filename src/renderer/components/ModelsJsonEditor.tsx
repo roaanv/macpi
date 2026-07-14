@@ -12,13 +12,13 @@ export function ModelsJsonEditor() {
 	}, [modelsJson.data]);
 
 	return (
-		<div className="rounded border border-border/40 p-2 text-sm">
+		<div className="rounded border border-border/40 p-2">
 			<button
 				type="button"
-				className="flex w-full items-center justify-between text-left font-medium"
+				className="flex w-full items-center justify-between text-left type-control"
 				onClick={() => setOpen((v) => !v)}
 			>
-				<span>Custom models</span>
+				<span className="type-label">Custom models</span>
 				<span>{open ? "▾" : "▸"}</span>
 			</button>
 			{open ? (

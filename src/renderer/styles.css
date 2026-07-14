@@ -519,6 +519,9 @@ html {
 	.text-faint {
 		color: var(--text-faint);
 	}
+	.placeholder-faint::placeholder {
+		color: var(--text-faint);
+	}
 	.text-accent {
 		color: var(--accent);
 	}
