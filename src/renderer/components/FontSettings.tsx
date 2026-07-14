@@ -5,7 +5,6 @@ import React from "react";
 import {
 	type FontSizeRegion,
 	getFontFamily,
-	getFontFamilyMono,
 	getFontSize,
 } from "../../shared/app-settings-keys";
 import { useSetSetting, useSettings } from "../queries";
@@ -33,7 +32,11 @@ const MONO_FAMILIES = [
 const UI_DEFAULT_LABEL = "Default (Inter)";
 const MONO_DEFAULT_LABEL = "Default (JetBrains Mono)";
 
-const REGIONS: { id: FontSizeRegion; label: string }[] = [
+type LegacyFontSizeRegion =
+	| Exclude<FontSizeRegion, "interface" | "compact">
+	| "sidebar";
+
+const REGIONS: { id: LegacyFontSizeRegion; label: string }[] = [
 	{ id: "sidebar", label: "Sidebar" },
 	{ id: "chatAssistant", label: "Chat — assistant text" },
 	{ id: "chatUser", label: "Chat — user message" },
@@ -41,7 +44,7 @@ const REGIONS: { id: FontSizeRegion; label: string }[] = [
 	{ id: "codeBlock", label: "Code blocks" },
 ];
 
-const REGION_KEY: Record<FontSizeRegion, string> = {
+const REGION_KEY: Record<LegacyFontSizeRegion, string> = {
 	sidebar: "fontSize.sidebar",
 	chatAssistant: "fontSize.chatAssistant",
 	chatUser: "fontSize.chatUser",
@@ -63,14 +66,14 @@ export function FontSettings() {
 
 			<FamilyControl
 				label="UI font family"
-				value={getFontFamily(settings)}
+				value={getFontFamily(settings, "interface")}
 				options={UI_FAMILIES}
 				defaultLabel={UI_DEFAULT_LABEL}
 				onChange={(v) => setSetting.mutate({ key: "fontFamily", value: v })}
 			/>
 			<FamilyControl
 				label="Monospace font family"
-				value={getFontFamilyMono(settings)}
+				value={getFontFamily(settings, "mono")}
 				options={MONO_FAMILIES}
 				defaultLabel={MONO_DEFAULT_LABEL}
 				onChange={(v) => setSetting.mutate({ key: "fontFamilyMono", value: v })}
@@ -79,7 +82,8 @@ export function FontSettings() {
 			<div>
 				<div className="mb-2 text-sm font-medium">Sizes (px)</div>
 				{REGIONS.map(({ id, label }) => {
-					const size = getFontSize(settings, id);
+					const region = id === "sidebar" ? "compact" : id;
+					const size = getFontSize(settings, region);
 					return (
 						<div key={id} className="mb-2 flex items-center gap-3 text-sm">
 							<span className="w-44 text-muted">{label}</span>

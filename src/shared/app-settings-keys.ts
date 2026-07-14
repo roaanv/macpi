@@ -7,6 +7,10 @@ export type ThemeMode = "light" | "dark" | "auto";
 
 export type ThemeFamily = "slate" | "carbon" | "ember" | "marine" | "punch";
 
+export type TypographyPreset = "default" | "theme";
+
+export type FontFamilyRegion = "display" | "interface" | "content" | "mono";
+
 // Five families ship today: the classic neutral "slate" plus four
 // trend-forward palettes (each with its own type pairing) defined in
 // styles.css under html[data-theme-family="…"]. Any unrecognised persisted
@@ -14,17 +18,27 @@ export type ThemeFamily = "slate" | "carbon" | "ember" | "marine" | "punch";
 // "slate" — no explicit migration table needed.
 
 export type FontSizeRegion =
-	| "sidebar"
+	| "interface"
+	| "compact"
 	| "chatAssistant"
 	| "chatUser"
 	| "composer"
 	| "codeBlock";
 
+const MIN_FONT_SIZE = 11;
+const MAX_FONT_SIZE = 32;
+
 export const APP_SETTINGS_DEFAULTS = {
 	theme: "auto" as ThemeMode,
 	themeFamily: "slate" as ThemeFamily,
+	typographyPreset: "default" as TypographyPreset,
+	fontFamilyDisplay: "",
 	fontFamily: "",
+	fontFamilyContent: "",
 	fontFamilyMono: "",
+	"fontSize.interface": 14,
+	"fontSize.compact": 13,
+	// Retained as a read-only migration source for existing installations.
 	"fontSize.sidebar": 13,
 	"fontSize.chatAssistant": 14,
 	"fontSize.chatUser": 14,
@@ -102,6 +116,7 @@ const THEME_FAMILY_VALUES: ReadonlySet<ThemeFamily> = new Set<ThemeFamily>([
 	"marine",
 	"punch",
 ]);
+const TYPOGRAPHY_PRESETS = new Set<TypographyPreset>(["default", "theme"]);
 
 export function getTheme(settings: Record<string, unknown>): ThemeMode {
 	const v = settings.theme;
@@ -119,22 +134,34 @@ export function getThemeFamily(settings: Record<string, unknown>): ThemeFamily {
 	return APP_SETTINGS_DEFAULTS.themeFamily;
 }
 
-export function getFontFamily(settings: Record<string, unknown>): string {
-	const v = settings.fontFamily;
-	return typeof v === "string" && v.length > 0
-		? v
-		: APP_SETTINGS_DEFAULTS.fontFamily;
+export function getTypographyPreset(
+	settings: Record<string, unknown>,
+): TypographyPreset {
+	const value = settings.typographyPreset;
+	return typeof value === "string" &&
+		TYPOGRAPHY_PRESETS.has(value as TypographyPreset)
+		? (value as TypographyPreset)
+		: APP_SETTINGS_DEFAULTS.typographyPreset;
 }
 
-export function getFontFamilyMono(settings: Record<string, unknown>): string {
-	const v = settings.fontFamilyMono;
-	return typeof v === "string" && v.length > 0
-		? v
-		: APP_SETTINGS_DEFAULTS.fontFamilyMono;
+const FONT_FAMILY_KEY: Record<FontFamilyRegion, AppSettingsKey> = {
+	display: "fontFamilyDisplay",
+	interface: "fontFamily",
+	content: "fontFamilyContent",
+	mono: "fontFamilyMono",
+};
+
+export function getFontFamily(
+	settings: Record<string, unknown>,
+	region: FontFamilyRegion,
+): string {
+	const value = settings[FONT_FAMILY_KEY[region]];
+	return typeof value === "string" ? value.trim() : "";
 }
 
 const FONT_SIZE_KEY: Record<FontSizeRegion, AppSettingsKey> = {
-	sidebar: "fontSize.sidebar",
+	interface: "fontSize.interface",
+	compact: "fontSize.compact",
 	chatAssistant: "fontSize.chatAssistant",
 	chatUser: "fontSize.chatUser",
 	composer: "fontSize.composer",
@@ -146,10 +173,15 @@ export function getFontSize(
 	region: FontSizeRegion,
 ): number {
 	const key = FONT_SIZE_KEY[region];
-	const v = settings[key];
-	return typeof v === "number" && Number.isFinite(v)
-		? v
-		: (APP_SETTINGS_DEFAULTS[key] as number);
+	const candidate =
+		region === "compact" && settings[key] === undefined
+			? settings["fontSize.sidebar"]
+			: settings[key];
+	const fallback = APP_SETTINGS_DEFAULTS[key] as number;
+	if (typeof candidate !== "number" || !Number.isFinite(candidate)) {
+		return fallback;
+	}
+	return Math.min(MAX_FONT_SIZE, Math.max(MIN_FONT_SIZE, candidate));
 }
 
 export function getDefaultCwd(settings: Record<string, unknown>): string {

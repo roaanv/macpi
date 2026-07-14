@@ -8,7 +8,6 @@ import React from "react";
 import {
 	type FontSizeRegion,
 	getFontFamily,
-	getFontFamilyMono,
 	getFontSize,
 	getTheme,
 	getThemeFamily,
@@ -16,7 +15,11 @@ import {
 } from "../../shared/app-settings-keys";
 import { useSettings } from "../queries";
 
-const REGIONS: FontSizeRegion[] = [
+type LegacyFontSizeRegion =
+	| Exclude<FontSizeRegion, "interface" | "compact">
+	| "sidebar";
+
+const REGIONS: LegacyFontSizeRegion[] = [
 	"sidebar",
 	"chatAssistant",
 	"chatUser",
@@ -24,7 +27,7 @@ const REGIONS: FontSizeRegion[] = [
 	"codeBlock",
 ];
 
-const REGION_VAR: Record<FontSizeRegion, string> = {
+const REGION_VAR: Record<LegacyFontSizeRegion, string> = {
 	sidebar: "--font-size-sidebar",
 	chatAssistant: "--font-size-chat-assistant",
 	chatUser: "--font-size-chat-user",
@@ -67,16 +70,17 @@ export function SettingsApplier() {
 	// CSS variable take over (each theme family declares its own --font-body).
 	React.useEffect(() => {
 		const root = document.documentElement;
-		const fam = getFontFamily(settings);
-		const famMono = getFontFamilyMono(settings);
+		const fam = getFontFamily(settings, "interface");
+		const famMono = getFontFamily(settings, "mono");
 		if (fam) root.style.setProperty("--font-family", fam);
 		else root.style.removeProperty("--font-family");
 		if (famMono) root.style.setProperty("--font-family-mono", famMono);
 		else root.style.removeProperty("--font-family-mono");
 		for (const region of REGIONS) {
+			const sizeRegion = region === "sidebar" ? "compact" : region;
 			root.style.setProperty(
 				REGION_VAR[region],
-				`${getFontSize(settings, region)}px`,
+				`${getFontSize(settings, sizeRegion)}px`,
 			);
 		}
 	}, [settings]);

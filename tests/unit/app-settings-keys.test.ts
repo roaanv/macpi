@@ -5,7 +5,6 @@ import {
 	getDefaultCwd,
 	getFavouriteModels,
 	getFontFamily,
-	getFontFamilyMono,
 	getFontSize,
 	getHttpProxy,
 	getHttpsProxy,
@@ -16,6 +15,7 @@ import {
 	getSelectedModel,
 	getTheme,
 	getThemeFamily,
+	getTypographyPreset,
 	modelRefKey,
 	removeProviderKeychainReference,
 	setProviderKeychainReference,
@@ -58,30 +58,64 @@ describe("app-settings-keys", () => {
 		expect(getTheme({ theme: 123 })).toBe("auto");
 	});
 
-	it("getFontFamily returns default when unset", () => {
-		expect(getFontFamily({})).toBe(APP_SETTINGS_DEFAULTS.fontFamily);
-	});
+	describe("typography settings", () => {
+		it("defaults to the consistent typography preset", () => {
+			expect(getTypographyPreset({})).toBe("default");
+			expect(getTypographyPreset({ typographyPreset: "theme" })).toBe("theme");
+			expect(getTypographyPreset({ typographyPreset: "unknown" })).toBe(
+				"default",
+			);
+		});
 
-	it("getFontFamily returns the stored value", () => {
-		expect(getFontFamily({ fontFamily: "Inter" })).toBe("Inter");
-	});
+		it("supports four independent family categories", () => {
+			expect(getFontFamily({}, "display")).toBe("");
+			expect(getFontFamily({}, "interface")).toBe("");
+			expect(getFontFamily({}, "content")).toBe("");
+			expect(getFontFamily({}, "mono")).toBe("");
 
-	it("getFontFamilyMono returns default when unset", () => {
-		expect(getFontFamilyMono({})).toBe(APP_SETTINGS_DEFAULTS.fontFamilyMono);
-	});
+			const settings = {
+				fontFamilyDisplay: " Display Face ",
+				fontFamily: " Interface Face ",
+				fontFamilyContent: " Content Face ",
+				fontFamilyMono: " Mono Face ",
+			};
+			expect(getFontFamily(settings, "display")).toBe("Display Face");
+			expect(getFontFamily(settings, "interface")).toBe("Interface Face");
+			expect(getFontFamily(settings, "content")).toBe("Content Face");
+			expect(getFontFamily(settings, "mono")).toBe("Mono Face");
+			expect(getFontFamily({ fontFamilyContent: 7 }, "content")).toBe("");
+		});
 
-	it("getFontSize returns the per-region default when unset", () => {
-		expect(getFontSize({}, "sidebar")).toBe(13);
-		expect(getFontSize({}, "chatAssistant")).toBe(14);
-		expect(getFontSize({}, "codeBlock")).toBe(13);
-	});
+		it("defines six scales and migrates the legacy sidebar size", () => {
+			expect(getFontSize({}, "interface")).toBe(14);
+			expect(getFontSize({}, "compact")).toBe(13);
+			expect(getFontSize({}, "chatAssistant")).toBe(14);
+			expect(getFontSize({}, "chatUser")).toBe(14);
+			expect(getFontSize({}, "composer")).toBe(14);
+			expect(getFontSize({}, "codeBlock")).toBe(13);
+			expect(getFontSize({ "fontSize.sidebar": 16 }, "compact")).toBe(16);
+			expect(
+				getFontSize(
+					{ "fontSize.sidebar": 16, "fontSize.compact": 15 },
+					"compact",
+				),
+			).toBe(15);
+		});
 
-	it("getFontSize returns the stored value when set", () => {
-		expect(getFontSize({ "fontSize.sidebar": 16 }, "sidebar")).toBe(16);
-	});
+		it("clamps persisted sizes to the supported 11–32px range", () => {
+			expect(getFontSize({ "fontSize.interface": 8 }, "interface")).toBe(11);
+			expect(getFontSize({ "fontSize.codeBlock": 40 }, "codeBlock")).toBe(32);
+			expect(
+				getFontSize(
+					{ "fontSize.compact": "huge", "fontSize.sidebar": 16 },
+					"compact",
+				),
+			).toBe(13);
+		});
 
-	it("getFontSize clamps non-numeric values to default", () => {
-		expect(getFontSize({ "fontSize.sidebar": "huge" }, "sidebar")).toBe(13);
+		it("keeps legacy keys recognized during migration", () => {
+			expect(APP_SETTINGS_DEFAULTS).toHaveProperty("fontSize.sidebar", 13);
+		});
 	});
 
 	it("getDefaultCwd returns empty string when unset", () => {
