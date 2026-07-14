@@ -3,7 +3,12 @@
 // fires. The default harness disables retry/compaction for determinism, so
 // this file rebuilds the settingsManager override with retry enabled.
 
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it } from "vitest";
+import { CompactionBanner } from "../../src/renderer/components/banners/CompactionBanner";
+import { QueuePills } from "../../src/renderer/components/banners/QueuePills";
+import { RetryBanner } from "../../src/renderer/components/banners/RetryBanner";
 import {
 	createHarness,
 	drive,
@@ -17,6 +22,61 @@ describe("layer-3: banners", () => {
 	afterEach(() => {
 		harness?.dispose();
 		harness = null;
+	});
+
+	it("gives banner feedback semantic typography and live-region urgency", () => {
+		const retry = renderToStaticMarkup(
+			React.createElement(RetryBanner, {
+				retry: {
+					attempt: 1,
+					maxAttempts: 3,
+					errorMessage: "rate limit exceeded",
+				},
+			}),
+		);
+		const compacting = renderToStaticMarkup(
+			React.createElement(CompactionBanner, {
+				compaction: { reason: "threshold" },
+				lastResult: null,
+			}),
+		);
+		const compactionError = renderToStaticMarkup(
+			React.createElement(CompactionBanner, {
+				compaction: null,
+				lastResult: { ok: false, message: "generated failure" },
+			}),
+		);
+		const queue = renderToStaticMarkup(
+			React.createElement(QueuePills, {
+				queue: { steering: ["redirect"], followUp: ["continue"] },
+				onClear: () => undefined,
+				onRemove: () => undefined,
+			}),
+		);
+
+		expect(retry).toContain('role="status"');
+		expect(retry).toContain("type-status");
+		expect(retry).toContain("type-overline");
+		expect(retry).toContain("type-technical-wrap");
+		expect(retry).toContain("rate limit exceeded");
+
+		expect(compacting).toContain('role="status"');
+		expect(compacting).toContain("type-status");
+		expect(compacting).toContain("type-overline");
+		expect(compacting).toContain("threshold");
+		expect(compactionError).toContain('role="alert"');
+		expect(compactionError).toContain("type-status");
+		expect(compactionError).toContain("type-overline");
+		expect(compactionError).toContain("type-technical-wrap");
+		expect(compactionError).toContain("generated failure");
+
+		expect(queue).toContain('role="status"');
+		expect(queue).toContain("type-status");
+		expect(queue.match(/type-control/g)).toHaveLength(3);
+		expect(queue).toContain("steered: redirect");
+		expect(queue).toContain("queued: continue");
+		expect(queue).toContain("Clear");
+		expect(queue).not.toMatch(/text-\[(?:10|11)px\]/);
 	});
 
 	it("emits retry_start when the provider returns a retryable error and retry is enabled", async () => {

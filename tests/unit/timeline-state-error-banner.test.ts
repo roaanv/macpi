@@ -3,7 +3,11 @@
 // tests. We just verify the pure state transitions for session.error and
 // the clear-on-turn-start behavior.
 
-import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, it, vi } from "vitest";
+import { ErrorBanner } from "../../src/renderer/components/banners/ErrorBanner";
 import { __reduceForTesting } from "../../src/renderer/state/timeline-state";
 import type { PiEvent } from "../../src/shared/pi-events";
 
@@ -64,5 +68,35 @@ describe("timeline-state error banner reducer", () => {
 		});
 		expect(s2.queue).toEqual({ steering: ["s1"], followUp: ["f1", "f2"] });
 		expect(s2.errorBanner).toEqual({ code: "unknown", message: "boom" });
+	});
+
+	it("renders errors with urgent feedback and semantic typography", () => {
+		const html = renderToStaticMarkup(
+			React.createElement(ErrorBanner, {
+				state: { code: "auth", message: "bad token" },
+				onOpenSettings: vi.fn(),
+			}),
+		);
+
+		expect(html).toContain('role="alert"');
+		expect(html).toContain('aria-live="assertive"');
+		expect(html).toContain("type-status");
+		expect(html).toContain("type-overline");
+		expect(html).toContain("type-technical-wrap");
+		expect(html.match(/type-control/g)).toHaveLength(2);
+	});
+
+	it("marks ChatPane feedback and technical session values semantically", () => {
+		const source = readFileSync("src/renderer/components/ChatPane.tsx", "utf8");
+
+		expect(
+			source.match(
+				/className="flex flex-1 items-center justify-center type-status text-muted"/g,
+			),
+		).toHaveLength(2);
+		expect(source).toMatch(/role="status"[^>]*className="[^"]*type-status/);
+		expect(source).toMatch(/role="alert"[^>]*className="[^"]*type-status/);
+		expect(source).toContain("type-code type-technical-wrap");
+		expect(source).toMatch(/type-status type-technical-wrap text-err/);
 	});
 });

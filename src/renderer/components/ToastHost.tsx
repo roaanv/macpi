@@ -15,7 +15,7 @@ export function ToastHost() {
 			key={toast.id}
 			type="button"
 			onClick={dismissToast}
-			className="-translate-x-1/2 fixed bottom-6 left-1/2 z-50 rounded bg-black/80 px-4 py-2 text-sm text-white shadow-lg"
+			className="-translate-x-1/2 fixed bottom-6 left-1/2 z-50 max-w-[calc(100vw-2rem)] rounded bg-black/80 px-4 py-2 text-left type-status type-technical-wrap text-white shadow-lg"
 			aria-live="polite"
 		>
 			{toast.message}

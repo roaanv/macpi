@@ -112,7 +112,10 @@ export function ChatPane({
 
 	if (piSessionId && attachQuery.isLoading) {
 		return (
-			<div className="flex flex-1 items-center justify-center text-muted">
+			<div
+				role="status"
+				className="flex flex-1 items-center justify-center type-status text-muted"
+			>
 				Loading session…
 			</div>
 		);
@@ -123,11 +126,18 @@ export function ChatPane({
 				? attachQuery.error.message
 				: String(attachQuery.error);
 		return (
-			<div className="flex flex-1 items-center justify-center px-6 text-center text-muted">
+			<div
+				role="alert"
+				className="flex flex-1 items-center justify-center px-6 text-center type-status text-muted"
+			>
 				<div>
-					Couldn't attach to session{" "}
-					<code className="text-primary">{piSessionId}</code>
-					<div className="mt-2 text-xs text-err">{msg}</div>
+					<span className="type-overline">Couldn't attach to session</span>{" "}
+					<code className="type-code type-technical-wrap text-primary">
+						{piSessionId}
+					</code>
+					<div className="mt-2 type-status type-technical-wrap text-err">
+						{msg}
+					</div>
 				</div>
 			</div>
 		);
@@ -135,7 +145,7 @@ export function ChatPane({
 
 	if (!piSessionId) {
 		return (
-			<div className="flex flex-1 items-center justify-center text-muted">
+			<div className="flex flex-1 items-center justify-center type-status text-muted">
 				Select a session, or create one in the sidebar.
 			</div>
 		);

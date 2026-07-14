@@ -17,16 +17,17 @@ export function SkillsChangedBanner({
 	return (
 		<div
 			role="status"
-			className="flex items-center gap-2 rounded border-l-2 border-warn surface-warn-soft px-3 py-2 text-xs text-warn"
+			className="flex items-center gap-2 rounded border-l-2 border-warn surface-warn-soft px-3 py-2 type-status text-warn"
 		>
 			<span className="flex-1">
-				Tools/resources changed — reload the session to apply.
+				<span className="type-overline text-warn">Tools/resources changed</span>{" "}
+				— reload the session to apply.
 			</span>
 			<button
 				type="button"
 				onClick={onReload}
 				disabled={reloading}
-				className="rounded border border-warn px-2 py-0.5 hover:surface-warn-soft disabled:opacity-40"
+				className="rounded border border-warn px-2 py-0.5 type-control hover:surface-warn-soft disabled:opacity-40"
 			>
 				{reloading ? "Reloading…" : "Reload session"}
 			</button>

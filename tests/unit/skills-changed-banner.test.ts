@@ -15,5 +15,9 @@ describe("SkillsChangedBanner", () => {
 
 		expect(html).toContain("Tools/resources changed");
 		expect(html).toContain("reload the session to apply");
+		expect(html).toContain('role="status"');
+		expect(html).toContain("type-status");
+		expect(html).toContain("type-overline");
+		expect(html).toContain("type-control");
 	});
 });

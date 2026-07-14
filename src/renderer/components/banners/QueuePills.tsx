@@ -10,7 +10,10 @@ export function QueuePills({ queue, onClear, onRemove }: QueuePillsProps) {
 	const total = queue.steering.length + queue.followUp.length;
 	if (total === 0) return null;
 	return (
-		<div className="flex flex-wrap items-center gap-1 rounded surface-panel px-2 py-1 text-[11px] text-primary">
+		<div
+			role="status"
+			className="flex flex-wrap items-center gap-1 rounded surface-panel px-2 py-1 type-status text-primary"
+		>
 			{queue.steering.map((q, i) => (
 				<Pill
 					// biome-ignore lint/suspicious/noArrayIndexKey: queue items have no stable id
@@ -35,7 +38,7 @@ export function QueuePills({ queue, onClear, onRemove }: QueuePillsProps) {
 				<button
 					type="button"
 					onClick={onClear}
-					className="ml-auto rounded border border-divider px-2 py-0.5 text-[10px] text-muted hover:surface-row hover:text-primary"
+					className="ml-auto rounded border border-divider px-2 py-0.5 type-control text-muted hover:surface-row hover:text-primary"
 					title="Clear all steered and queued messages"
 				>
 					Clear
@@ -65,7 +68,7 @@ function Pill({ className, label, title, onRemove }: PillProps) {
 					onClick={onRemove}
 					aria-label={`Remove "${title}" from queue`}
 					title="Remove from queue"
-					className="flex h-4 w-4 items-center justify-center rounded-full text-[14px] leading-none text-primary hover:surface-err hover:text-white"
+					className="flex h-4 w-4 items-center justify-center rounded-full text-[14px] leading-none type-control text-primary hover:surface-err hover:text-white"
 				>
 					×
 				</button>

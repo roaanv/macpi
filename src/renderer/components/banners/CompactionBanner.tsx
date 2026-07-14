@@ -17,22 +17,35 @@ export function CompactionBanner({
 }) {
 	if (compaction) {
 		return (
-			<div className="rounded border-l-2 border-accent surface-accent-soft px-3 py-2 text-xs text-accent">
-				Compacting… ({compaction.reason})
+			<div
+				role="status"
+				className="rounded border-l-2 border-accent surface-accent-soft px-3 py-2 type-status text-accent"
+			>
+				<span className="type-overline text-accent">Compacting</span>… (
+				{compaction.reason})
 			</div>
 		);
 	}
 	if (!lastResult) return null;
 	if (lastResult.ok) {
 		return (
-			<div className="rounded border-l-2 border-ok surface-ok-soft px-3 py-2 text-xs text-ok">
-				Compacted ✓
+			<div
+				role="status"
+				className="rounded border-l-2 border-ok surface-ok-soft px-3 py-2 type-status text-ok"
+			>
+				<span className="type-overline text-ok">Compacted</span> ✓
 			</div>
 		);
 	}
 	return (
-		<div className="rounded border-l-2 border-err surface-err-soft px-3 py-2 text-xs text-err">
-			Compaction failed: {lastResult.message ?? "(no message)"}
+		<div
+			role="alert"
+			className="rounded border-l-2 border-err surface-err-soft px-3 py-2 type-status text-err"
+		>
+			<span className="type-overline text-err">Compaction failed</span>:{" "}
+			<span className="type-technical-wrap">
+				{lastResult.message ?? "(no message)"}
+			</span>
 		</div>
 	);
 }

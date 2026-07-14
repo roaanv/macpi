@@ -30,17 +30,17 @@ export function ErrorBanner({ state, onOpenSettings }: ErrorBannerProps) {
 		<div
 			role="alert"
 			aria-live="assertive"
-			className="flex items-start gap-2 rounded border border-err surface-err-soft px-3 py-2 text-sm text-err"
+			className="flex items-start gap-2 rounded border border-err surface-err-soft px-3 py-2 type-status text-err"
 		>
-			<span className="font-semibold uppercase tracking-wide text-[10px] text-err">
-				{state.code}
+			<span className="type-overline text-err">{state.code}</span>
+			<span className="flex-1 whitespace-pre-wrap type-technical-wrap">
+				{state.message}
 			</span>
-			<span className="flex-1 whitespace-pre-wrap">{state.message}</span>
 			{(state.code === "auth" || state.code === "model") && onOpenSettings && (
 				<button
 					type="button"
 					onClick={onOpenSettings}
-					className="rounded border border-err px-2 py-0.5 text-xs hover:surface-err-soft"
+					className="rounded border border-err px-2 py-0.5 type-control hover:surface-err-soft"
 				>
 					Open Providers
 				</button>
@@ -49,7 +49,7 @@ export function ErrorBanner({ state, onOpenSettings }: ErrorBannerProps) {
 				type="button"
 				onClick={() => setDismissed(state)}
 				aria-label="Dismiss"
-				className="rounded px-1 text-err hover:opacity-80"
+				className="rounded px-1 type-control text-err hover:opacity-80"
 			>
 				×
 			</button>

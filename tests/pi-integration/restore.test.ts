@@ -1,4 +1,8 @@
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it } from "vitest";
+import { ToastHost } from "../../src/renderer/components/ToastHost";
+import { dismissToast, showToast } from "../../src/renderer/hooks/use-toast";
 import {
 	createHarness,
 	drive,
@@ -12,6 +16,19 @@ describe("layer-3: session restore", () => {
 	afterEach(() => {
 		harness?.dispose();
 		harness = null;
+	});
+
+	it("keeps toast feedback readable and politely announced", () => {
+		showToast("Session restored");
+		const html = renderToStaticMarkup(React.createElement(ToastHost));
+		dismissToast();
+
+		expect(html).toContain('aria-live="polite"');
+		expect(html).toContain("Session restored");
+		expect(html).toContain("type-status");
+		expect(html).toContain("type-technical-wrap");
+		expect(html).toContain("max-w-[calc(100vw-2rem)]");
+		expect(html).toContain("text-left");
 	});
 
 	it("attachSession on a fresh manager replays the persisted history", async () => {
