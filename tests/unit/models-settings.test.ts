@@ -38,6 +38,17 @@ const unconfiguredProvider = {
 	supportsStoredApiKey: true,
 };
 
+const customProvider = {
+	id: "custom-openai",
+	name: "Custom OpenAI",
+	authType: "api_key",
+	authStatus: { configured: false },
+	modelCount: 0,
+	availableModelCount: 0,
+	supportsOAuth: false,
+	supportsStoredApiKey: true,
+};
+
 const allModels = [
 	{
 		provider: "anthropic",
@@ -145,6 +156,7 @@ beforeEach(async () => {
 	mocks.providers.data.providers = [
 		...configuredProviders,
 		unconfiguredProvider,
+		customProvider,
 	];
 	mocks.models.data.models = [...allModels];
 	mocks.settings.data.settings = {};
@@ -157,6 +169,7 @@ beforeEach(async () => {
 	mocks.setSetting.error = null;
 	mocks.setSetting.mutateAsync.mockReset();
 	mocks.setSetting.mutateAsync.mockResolvedValue(undefined);
+	mocks.customMutation.mutate.mockReset();
 	await render();
 });
 
@@ -218,7 +231,7 @@ async function settle(action: () => void) {
 }
 
 describe("ModelsSettings", () => {
-	it("lists only configured providers with model counts and switches provider models", async () => {
+	it("lists configured and custom providers with model counts and switches provider models", async () => {
 		expect(container.querySelector("h2")?.classList).toContain(
 			"type-view-title",
 		);
@@ -226,13 +239,53 @@ describe("ModelsSettings", () => {
 		expect(container.textContent).toContain("2 models");
 		expect(container.textContent).toContain("Google");
 		expect(container.textContent).toContain("1 model");
-		expect(container.textContent).not.toContain("OpenAI");
+		expect(container.textContent).not.toContain("GPT-5");
 		expect(container.textContent).toContain("Claude Sonnet 4");
 		expect(container.textContent).not.toContain("Gemini Pro");
 
 		await click(button("Google"));
 		expect(container.textContent).toContain("Gemini Pro");
 		expect(container.textContent).not.toContain("Claude Sonnet 4");
+	});
+
+	it("lists custom providers without fetched models and allows manual or fetched models", async () => {
+		expect(container.textContent).toContain("Custom OpenAI");
+		expect(container.textContent).toContain("0 models");
+
+		await click(button("Custom OpenAI"));
+		expect(
+			container.querySelector<HTMLInputElement>(
+				'input[aria-label="Custom model ID"]',
+			),
+		).not.toBeNull();
+		expect(button("Fetch models")).toBeTruthy();
+
+		const modelId = container.querySelector<HTMLInputElement>(
+			'input[aria-label="Custom model ID"]',
+		);
+		if (!modelId) throw new Error("Custom model input missing");
+		const valueSetter = Object.getOwnPropertyDescriptor(
+			HTMLInputElement.prototype,
+			"value",
+		)?.set;
+		valueSetter?.call(modelId, "llama3.1:8b");
+		await act(async () => {
+			modelId.dispatchEvent(new Event("input", { bubbles: true }));
+		});
+		await click(button("Add model"));
+
+		expect(mocks.customMutation.mutate).toHaveBeenCalledWith(
+			{
+				provider: "custom-openai",
+				model: { id: "llama3.1:8b", name: "" },
+			},
+			expect.objectContaining({ onSuccess: expect.any(Function) }),
+		);
+
+		await click(button("Fetch models"));
+		expect(mocks.customMutation.mutate).toHaveBeenCalledWith({
+			provider: "custom-openai",
+		});
 	});
 
 	it("keeps a selected provider while data changes and falls back when it disappears", async () => {

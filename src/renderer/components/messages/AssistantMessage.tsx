@@ -14,7 +14,7 @@ export function AssistantMessage({ entry }: { entry: AssistantTextEntry }) {
 	return (
 		<div className="type-body type-assistant">
 			<div className="mb-1 type-metadata">
-				<span className="text-warn">pi</span>
+				<span className="text-warn">MacPi</span>
 				<span className="text-muted"> · </span>
 				{hasThinking && (
 					<button

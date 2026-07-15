@@ -325,6 +325,10 @@ export interface IpcMethods {
 		req: CustomOpenAIProviderInput;
 		res: { provider: string };
 	};
+	"modelsAuth.removeCustomProvider": {
+		req: { provider: string };
+		res: Record<string, never>;
+	};
 	"modelsAuth.fetchCustomProviderModels": {
 		req: { provider: string };
 		res: { added: number; total: number };

@@ -61,6 +61,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("../../src/renderer/queries", () => ({
 	useListCustomOpenAIModels: () => mocks.mutation,
 	useLogoutProvider: () => mocks.mutation,
+	useRemoveCustomProvider: () => mocks.mutation,
 	useModelAuthModels: () => mocks.models,
 	useModelAuthProviders: () => mocks.providers,
 	useSaveApiKey: () => mocks.mutation,
@@ -105,8 +106,10 @@ afterEach(async () => {
 });
 
 function button(name: string): HTMLButtonElement {
-	const match = [...container.querySelectorAll("button")].find((candidate) =>
-		candidate.textContent?.includes(name),
+	const match = [...container.querySelectorAll("button")].find(
+		(candidate) =>
+			candidate.getAttribute("aria-label") === name ||
+			candidate.textContent?.includes(name),
 	);
 	if (!match) throw new Error(`Button not found: ${name}`);
 	return match;
@@ -189,6 +192,7 @@ describe("ProvidersSettings", () => {
 			"select#provider-filter",
 		);
 		expect(select?.labels?.[0]?.textContent).toBe("Filter providers");
+		expect(select?.value).toBe("configured");
 		expect(
 			[...(select?.options ?? [])].map((option) => [option.value, option.text]),
 		).toEqual([
@@ -217,6 +221,35 @@ describe("ProvidersSettings", () => {
 				'input[aria-label="API key for Anthropic"]',
 			),
 		).not.toBeNull();
+	});
+
+	it("deletes custom providers from the custom filter with confirmation", async () => {
+		const select = container.querySelector<HTMLSelectElement>(
+			"select#provider-filter",
+		);
+		if (!select) throw new Error("Provider filter not found");
+		select.value = "custom";
+		await act(async () => {
+			select.dispatchEvent(new Event("change", { bubbles: true }));
+		});
+
+		await click(button("Ollama"));
+		await click(button("Delete provider Ollama"));
+
+		const dialog = container.querySelector<HTMLElement>(
+			'[role="dialog"][aria-label="Delete provider"]',
+		);
+		expect(dialog?.textContent).toContain("custom-ollama");
+		const confirm = [...(dialog?.querySelectorAll("button") ?? [])].find(
+			(candidate) => candidate.textContent?.includes("Delete provider"),
+		);
+		if (!confirm) throw new Error("Delete confirmation missing");
+		await click(confirm);
+
+		expect(mocks.mutation.mutate).toHaveBeenCalledWith(
+			{ provider: "custom-ollama" },
+			expect.objectContaining({ onSuccess: expect.any(Function) }),
+		);
 	});
 
 	it("renders a models query failure separately from a registry warning and hides false zero inventory", async () => {

@@ -16,7 +16,6 @@ import {
 } from "../queries";
 import {
 	buildProviderViews,
-	configuredProviderViews,
 	filterModels,
 	type ProviderView,
 } from "../utils/model-provider-view";
@@ -52,21 +51,20 @@ export function ModelsSettings() {
 	const mountedRef = React.useRef(true);
 	const [queueIdle, setQueueIdle] = React.useState(true);
 
-	const configuredProviders = React.useMemo(
+	const modelProviders = React.useMemo(
 		() =>
-			configuredProviderViews(
-				buildProviderViews(
-					providers.data?.providers ?? [],
-					models.data?.models ?? [],
-				),
+			buildProviderViews(
+				providers.data?.providers ?? [],
+				models.data?.models ?? [],
+			).filter(
+				(provider) =>
+					provider.authStatus.configured || provider.kind === "custom",
 			),
 		[providers.data?.providers, models.data?.models],
 	);
 	const activeProvider =
-		configuredProviders.find(
-			(provider) => provider.id === selectedProviderId,
-		) ??
-		configuredProviders[0] ??
+		modelProviders.find((provider) => provider.id === selectedProviderId) ??
+		modelProviders[0] ??
 		null;
 	const visibleModels = React.useMemo(
 		() => filterModels(activeProvider?.models ?? [], query),
@@ -206,7 +204,7 @@ export function ModelsSettings() {
 					{models.isLoading ? <div>Loading models…</div> : null}
 					{settings.isLoading ? <div>Loading favourite settings…</div> : null}
 				</div>
-			) : configuredProviders.length === 0 ? (
+			) : modelProviders.length === 0 ? (
 				<div className="flex flex-1 items-center justify-center p-6 text-center type-status">
 					<div>
 						<div className="type-label">No configured providers</div>
@@ -219,7 +217,7 @@ export function ModelsSettings() {
 				<div className="grid min-h-0 flex-1 grid-cols-[minmax(200px,260px)_1fr] overflow-hidden">
 					<aside className="min-h-0 overflow-y-auto border-r border-divider p-3">
 						<div className="flex flex-col gap-1">
-							{configuredProviders.map((provider) => (
+							{modelProviders.map((provider) => (
 								<ProviderRow
 									key={provider.id}
 									provider={provider}
@@ -296,7 +294,7 @@ export function ModelsSettings() {
 										>
 											{fetchCustomModels.isPending
 												? "Fetching…"
-												: "Fetch Models"}
+												: "Fetch models"}
 										</button>
 									</div>
 									{fetchCustomModels.data ? (

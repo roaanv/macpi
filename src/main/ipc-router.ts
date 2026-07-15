@@ -532,6 +532,15 @@ export class IpcRouter {
 				return err("custom_provider_failed", msg);
 			}
 		});
+		this.register("modelsAuth.removeCustomProvider", async (args) => {
+			try {
+				await this.deps.modelAuthService.removeCustomProvider(args.provider);
+				return ok({});
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				return err("custom_provider_failed", msg);
+			}
+		});
 		this.register("modelsAuth.fetchCustomProviderModels", async (args) => {
 			try {
 				return ok(

@@ -85,7 +85,7 @@ describe("ModelAuthService custom model management", () => {
 						getAvailable: () => [],
 						getError: () => undefined,
 						find: () => undefined,
-						getProviderAuthStatus: () => ({ configured: true }),
+						getProviderAuthStatus: () => ({ configured: false }),
 						getProviderDisplayName: () => "Demo",
 						hasConfiguredAuth: () => true,
 						isUsingOAuth: () => false,
@@ -93,6 +93,12 @@ describe("ModelAuthService custom model management", () => {
 				},
 			}),
 		});
+
+		expect(
+			(await service.listProviders()).find(
+				(provider) => provider.id === "custom-demo",
+			)?.authStatus.configured,
+		).toBe(true);
 
 		expect(await service.fetchCustomProviderModels("custom-demo")).toEqual({
 			added: 1,
@@ -125,5 +131,15 @@ describe("ModelAuthService custom model management", () => {
 			modelId: "manual",
 		});
 		expect(refresh).toHaveBeenCalledTimes(3);
+
+		await service.removeCustomProvider("custom-demo");
+		expect(readModels(root).providers).not.toHaveProperty("custom-demo");
+		expect(values.providerKeychainReferences).toEqual({});
+		expect(values.modelFavourites).toEqual([]);
+		expect(values.selectedModel).toBeNull();
+		expect(runtime.has("custom-demo")).toBe(false);
+		expect(auth.logout).toHaveBeenCalledWith("custom-demo");
+		expect(auth.remove).toHaveBeenCalledWith("custom-demo");
+		expect(refresh).toHaveBeenCalledTimes(5);
 	});
 });

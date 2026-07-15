@@ -8,6 +8,7 @@ import {
 	useLogoutProvider,
 	useModelAuthModels,
 	useModelAuthProviders,
+	useRemoveCustomProvider,
 	useSaveApiKey,
 	useSaveCustomOpenAIProvider,
 } from "../queries";
@@ -17,6 +18,7 @@ import {
 	type ProviderFilter,
 	type ProviderView,
 } from "../utils/model-provider-view";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { ImportPiAuthModels } from "./ImportPiAuthModels";
 import { ModelsJsonEditor } from "./ModelsJsonEditor";
 import { OAuthLoginDialog } from "./OAuthLoginDialog";
@@ -33,12 +35,15 @@ export function ProvidersSettings() {
 	const models = useModelAuthModels();
 	const saveApiKey = useSaveApiKey();
 	const logout = useLogoutProvider();
+	const removeProvider = useRemoveCustomProvider();
 	const [oauthProvider, setOAuthProvider] = React.useState<string | null>(null);
+	const [deletingProvider, setDeletingProvider] =
+		React.useState<ProviderView | null>(null);
 	const [selectedProviderId, setSelectedProviderId] = React.useState<
 		string | null
 	>(null);
 	const [query, setQuery] = React.useState("");
-	const [filter, setFilter] = React.useState<ProviderFilter>("all");
+	const [filter, setFilter] = React.useState<ProviderFilter>("configured");
 	const [editingProvider, setEditingProvider] = React.useState<string | null>(
 		null,
 	);
@@ -79,6 +84,34 @@ export function ProvidersSettings() {
 			<OAuthLoginDialog
 				provider={oauthProvider}
 				onClose={() => setOAuthProvider(null)}
+			/>
+			<ConfirmDialog
+				open={!!deletingProvider}
+				title="Delete provider"
+				body={
+					deletingProvider ? (
+						<>
+							Delete {deletingProvider.name} ({deletingProvider.id}) and its
+							custom models? Stored authentication and favourites for this
+							provider will also be removed.
+						</>
+					) : null
+				}
+				confirmLabel="Delete provider"
+				destructive
+				onCancel={() => setDeletingProvider(null)}
+				onConfirm={() => {
+					if (!deletingProvider) return;
+					removeProvider.mutate(
+						{ provider: deletingProvider.id },
+						{
+							onSuccess: () => {
+								setDeletingProvider(null);
+								setSelectedProviderId(null);
+							},
+						},
+					);
+				}}
 			/>
 			<SettingsOverlay
 				open={showAdvanced}
@@ -234,6 +267,11 @@ export function ProvidersSettings() {
 								setCredentialMode("apiKey");
 							}}
 							onLogout={() => logout.mutate({ provider: activeProvider.id })}
+							onDelete={
+								activeProvider.kind === "custom"
+									? () => setDeletingProvider(activeProvider)
+									: undefined
+							}
 							editingApiKey={editingProvider === activeProvider.id}
 							apiKey={apiKey}
 							keychainService={keychainService}
@@ -266,7 +304,11 @@ export function ProvidersSettings() {
 									},
 								)
 							}
-							authError={saveApiKey.error?.message ?? logout.error?.message}
+							authError={
+								saveApiKey.error?.message ??
+								logout.error?.message ??
+								removeProvider.error?.message
+							}
 						/>
 					) : (
 						<div className="type-status text-muted">
@@ -535,6 +577,7 @@ function ProviderDetail({
 	onStartOAuth,
 	onStartApiKey,
 	onLogout,
+	onDelete,
 	editingApiKey,
 	apiKey,
 	keychainService,
@@ -551,6 +594,7 @@ function ProviderDetail({
 	onStartOAuth: (provider: string) => void;
 	onStartApiKey: () => void;
 	onLogout: () => void;
+	onDelete?: () => void;
 	editingApiKey: boolean;
 	apiKey: string;
 	keychainService: string;
@@ -582,6 +626,32 @@ function ProviderDetail({
 							: "OpenAI-compatible custom provider endpoint."}
 					</p>
 				</div>
+				{onDelete ? (
+					<button
+						type="button"
+						onClick={onDelete}
+						aria-label={`Delete provider ${provider.name}`}
+						title="Delete provider"
+						className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded border border-err text-err hover:surface-err-soft"
+					>
+						<svg
+							aria-hidden="true"
+							viewBox="0 0 24 24"
+							className="h-[18px] w-[18px]"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth="2"
+							strokeLinecap="round"
+							strokeLinejoin="round"
+						>
+							<path d="M3 6h18" />
+							<path d="M8 6V4h8v2" />
+							<path d="M19 6l-1 14H6L5 6" />
+							<path d="M10 11v6" />
+							<path d="M14 11v6" />
+						</svg>
+					</button>
+				) : null}
 			</section>
 
 			<section>

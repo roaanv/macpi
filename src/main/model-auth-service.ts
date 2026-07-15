@@ -500,6 +500,49 @@ export class ModelAuthService {
 		return { provider };
 	}
 
+	async removeCustomProvider(providerId: string): Promise<void> {
+		const provider = this.requireCustomProvider(providerId);
+		const config = this.readModelsConfig();
+		if (!config.providers[provider]) {
+			throw new Error(`Custom provider ${provider} not found`);
+		}
+		delete config.providers[provider];
+		await this.writeCustomModelsConfig(config);
+
+		const auth = await this.getAuthStorage();
+		auth.removeRuntimeApiKey?.(provider);
+		auth.logout?.(provider);
+		auth.remove?.(provider);
+
+		const references = this.getKeychainReferences();
+		const reference = references[provider];
+		if (reference) {
+			if (reference.managed && this.deps.keychain) {
+				await this.deps.keychain.removeManaged(reference.service);
+			}
+			if (this.deps.appSettings) {
+				this.saveKeychainReferences(
+					removeProviderKeychainReference(references, provider),
+				);
+			}
+		}
+
+		this.credentialDiagnostics.delete(provider);
+		if (this.deps.appSettings) {
+			const settings = this.deps.appSettings.getAll();
+			const favourites = getFavouriteModels(settings).filter(
+				(item) => item.provider !== provider,
+			);
+			this.deps.appSettings.set("modelFavourites", favourites);
+			const selected = getSelectedModelSetting(settings);
+			if (selected?.provider === provider) {
+				this.deps.appSettings.set("selectedModel", null);
+			}
+		}
+
+		await this.refresh();
+	}
+
 	async fetchCustomProviderModels(
 		providerId: string,
 	): Promise<{ added: number; total: number }> {
@@ -621,12 +664,13 @@ export class ModelAuthService {
 		const oauthProviders = auth.getOAuthProviders();
 		const oauthProviderIds = new Set(oauthProviders.map((p) => p.id));
 		const providerIds = new Set<string>();
+		const keychainReferences = this.getKeychainReferences();
 
 		for (const model of allModels) providerIds.add(model.provider);
 		for (const provider of availableModels) providerIds.add(provider.provider);
 		for (const provider of oauthProviders) providerIds.add(provider.id);
 		for (const provider of auth.list()) providerIds.add(provider);
-		for (const provider of Object.keys(this.getKeychainReferences()))
+		for (const provider of Object.keys(keychainReferences))
 			providerIds.add(provider);
 		const configuredProviders = this.readModelsConfig().providers;
 		for (const provider of Object.keys(configuredProviders))
@@ -645,6 +689,7 @@ export class ModelAuthService {
 				).length;
 				const authStatus = registry.getProviderAuthStatus(provider);
 				const credentialDiagnostic = this.credentialDiagnostics.get(provider);
+				const keychainReference = keychainReferences[provider];
 				const configName = configuredProviders[provider]?.name;
 				return {
 					id: provider,
@@ -660,7 +705,8 @@ export class ModelAuthService {
 					authStatus: {
 						configured:
 							authStatus.configured ||
-							(typeof auth.get === "function" && !!auth.get(provider)),
+							(typeof auth.get === "function" && !!auth.get(provider)) ||
+							(!!keychainReference && !credentialDiagnostic),
 						source: authStatus.source as AuthSource | undefined,
 						label: credentialDiagnostic ?? authStatus.label,
 					},

@@ -499,6 +499,20 @@ export function useSaveCustomOpenAIProvider() {
 		},
 	});
 }
+export function useRemoveCustomProvider() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (input: { provider: string }) =>
+			invoke("modelsAuth.removeCustomProvider", input),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["modelsAuth.providers"] });
+			qc.invalidateQueries({ queryKey: ["modelsAuth.models"] });
+			qc.invalidateQueries({ queryKey: ["modelsAuth.modelsJson"] });
+			qc.invalidateQueries({ queryKey: ["modelsAuth.selectedModel"] });
+			qc.invalidateQueries({ queryKey: ["settings"] });
+		},
+	});
+}
 
 function useInvalidateCustomModelsMutation<T>(
 	mutationFn: (input: T) => Promise<unknown>,
