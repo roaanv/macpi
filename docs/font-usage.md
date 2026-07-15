@@ -9,6 +9,8 @@
 
 The typography design system is implemented. This section describes the current contract; §5 is intentionally preserved as the static pre-migration inventory and must not be read as a description of current renderer behavior.
 
+> **Historical-baseline guide:** Sections 1–3, 5, and 9–11 describe the pre-migration audit and current-state baseline captured on 2026-07-13. Sections 4 and 6–8 describe the approved target design that is now implemented. The Implemented token contract below identifies the current authoritative source files.
+
 | Layer | Current implementation contract |
 |---|---|
 | Settings | `src/shared/app-settings-keys.ts` defines the default/follow-theme preset, four family regions, six size regions, defaults, validation, the legacy sidebar-size migration fallback, and the 11–32px persisted-value clamp. |
@@ -578,7 +580,7 @@ This is prioritization guidance, not an implementation plan.
 
 - This is a static source audit. It does not include a computed-style capture from a running Electron build.
 - Actual system-font fallback and native control rendering can vary by platform.
-- Runtime verification is still needed for font loading, ellipsis, localization expansion, zoom, and light/dark visual balance.
+- A held-open Electron/Vite smoke confirmed renderer startup without missing-font, import, or runtime errors; it did not capture computed styles or complete the screenshot/manual visual matrix. Visual verification is still needed for ellipsis, localization expansion, zoom, and light/dark visual balance.
 - Tailwind metric values are based on its standard scale and the project’s unmodified typography configuration.
 
 These limitations do not affect the central architectural findings: MacPi currently mixes theme tokens, user overrides, fixed utilities, arbitrary sizes, and editor defaults without a shared semantic role layer.
