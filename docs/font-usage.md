@@ -14,7 +14,7 @@ The typography design system is implemented. This section describes the current 
 | Layer | Current implementation contract |
 |---|---|
 | Settings | `src/shared/app-settings-keys.ts` defines the default/follow-theme preset, four family regions, six size regions, defaults, validation, the legacy sidebar-size migration fallback, and the 11–32px persisted-value clamp. |
-| Runtime | `src/renderer/components/SettingsApplier.tsx` applies the preset, family overrides, size variables, theme family, and light/dark state to the document root, including automatic color-scheme updates. |
+| Runtime | `src/renderer/components/SettingsApplier.tsx` projects the appearance class, theme family, typography preset, family overrides, and size variables onto the document root. |
 | Family, metric, role, and behavior tokens | `src/renderer/styles.css` defines the default and theme family stacks; size metrics and clamps; semantic typography roles; truncation, technical wrapping, and tabular-number behaviors; and theme-backed semantic status colors. |
 | Controls | `src/renderer/components/FontSettings.tsx` exposes the default/follow-theme preset, Display/Interface/Content/Monospace family overrides, and all six size controls. |
 | Regression tests | `tests/unit/typography-*.test.ts` enforce the CSS token contract, semantic-role migration, behavior helpers, and the 11px minimum for arbitrary text sizes. Related settings, runtime-application, editor, and long-value contracts are covered by focused unit and integration tests alongside them. |

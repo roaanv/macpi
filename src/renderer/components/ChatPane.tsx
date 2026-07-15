@@ -220,12 +220,19 @@ export function ChatPane({
 					<button
 						type="button"
 						onClick={() => setFilesOpen((v) => !v)}
-						className="mt-1 rounded px-2 py-1 text-xs hover:surface-row"
+						className="mt-1 inline-flex h-6 w-7 items-center justify-center rounded hover:surface-row"
 						title={filesOpen ? "Hide file browser" : "Show file browser"}
 						aria-label={filesOpen ? "Hide file browser" : "Show file browser"}
 						aria-pressed={filesOpen}
 					>
-						📁
+						<svg
+							aria-hidden="true"
+							className="h-3 w-3"
+							viewBox="0 0 12 12"
+							fill="currentColor"
+						>
+							<path d="M1 2.5h3.5l1 1H11v6H1z" />
+						</svg>
 					</button>
 				</div>
 				<Timeline

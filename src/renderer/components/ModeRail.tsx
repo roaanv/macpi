@@ -43,7 +43,7 @@ function GearGlyph() {
 	return (
 		<span
 			aria-hidden="true"
-			className="inline-flex h-4 w-4 items-center justify-center text-base leading-none"
+			className="inline-flex h-4 w-4 items-center justify-center leading-none"
 		>
 			⚙️
 		</span>

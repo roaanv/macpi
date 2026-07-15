@@ -162,7 +162,19 @@ export function ProvidersSettings() {
 									: "text-muted hover:surface-row"
 							}`}
 						>
-							<span className="surface-row rounded px-3 py-2 text-xl">+</span>
+							<span className="surface-row inline-flex h-11 w-9 shrink-0 items-center justify-center rounded">
+								<svg
+									aria-hidden="true"
+									className="h-5 w-5"
+									viewBox="0 0 20 20"
+									fill="none"
+									stroke="currentColor"
+									strokeWidth="2"
+									strokeLinecap="round"
+								>
+									<path d="M10 4v12M4 10h12" />
+								</svg>
+							</span>
 							<span>Add custom OpenAI-compatible provider</span>
 						</button>
 						{providers.error ? (

@@ -13,6 +13,22 @@ function rendererSources(directory: string): string[] {
 const sourceFiles = rendererSources("src/renderer");
 const joined = sourceFiles.map((file) => readFileSync(file, "utf8")).join("\n");
 
+function source(path: string): string {
+	return readFileSync(path, "utf8");
+}
+
+function openingTagContaining(contents: string, marker: string): string {
+	const markerIndex = contents.indexOf(marker);
+	expect(
+		markerIndex,
+		`missing source marker: ${marker}`,
+	).toBeGreaterThanOrEqual(0);
+	return contents.slice(
+		contents.lastIndexOf("<", markerIndex),
+		contents.indexOf(">", markerIndex) + 1,
+	);
+}
+
 const arbitraryTextSizePattern =
 	/text-\[((?:-?\d+(?:\.\d+)?|-?\.\d+))(px|rem|pt)\]/g;
 
@@ -78,5 +94,47 @@ describe("typography source guardrails", () => {
 		]) {
 			expect(joined).toContain(role);
 		}
+	});
+
+	it("gives the mounted help dialog a semantic body role", () => {
+		const helpDialog = source("src/renderer/components/HelpDialog.tsx");
+		const dialogTag = openingTagContaining(helpDialog, 'role="dialog"');
+		expect(dialogTag).toContain("type-body");
+		expect(dialogTag).not.toContain("text-sm");
+	});
+
+	it("does not use text-size utilities for the reviewed icon-only controls", () => {
+		const chatPane = source("src/renderer/components/ChatPane.tsx");
+		expect(
+			openingTagContaining(chatPane, "aria-pressed={filesOpen}"),
+		).not.toContain("text-xs");
+
+		const modeRail = source("src/renderer/components/ModeRail.tsx");
+		const gearGlyph = modeRail.slice(modeRail.indexOf("function GearGlyph()"));
+		expect(openingTagContaining(gearGlyph, 'aria-hidden="true"')).not.toContain(
+			"text-base",
+		);
+
+		const oauthDialog = source("src/renderer/components/OAuthLoginDialog.tsx");
+		const oauthResult = oauthDialog.slice(
+			oauthDialog.indexOf("{result ? ("),
+			oauthDialog.indexOf("{!result"),
+		);
+		expect(oauthResult).not.toContain("text-xl");
+
+		const providersSettings = source(
+			"src/renderer/components/ProvidersSettings.tsx",
+		);
+		const addProviderControl = providersSettings.slice(
+			providersSettings.indexOf("setAddingCustom(true)"),
+			providersSettings.indexOf("Add custom OpenAI-compatible provider") +
+				"Add custom OpenAI-compatible provider".length,
+		);
+		expect(addProviderControl).not.toContain("text-xl");
+
+		const queuePills = source("src/renderer/components/banners/QueuePills.tsx");
+		expect(
+			openingTagContaining(queuePills, 'aria-label={`Remove "'),
+		).not.toContain("text-[14px]");
 	});
 });

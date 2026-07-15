@@ -132,8 +132,26 @@ export function OAuthLoginDialog({ provider, onClose }: OAuthLoginDialogProps) {
 						role="status"
 						aria-live="polite"
 					>
-						<div className="text-xl" aria-hidden="true">
-							{result.kind === "success" ? "✓" : "✕"}
+						<div
+							className="flex h-7 w-5 shrink-0 items-center justify-center"
+							aria-hidden="true"
+						>
+							<svg
+								aria-hidden="true"
+								className="h-5 w-5"
+								viewBox="0 0 20 20"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2"
+								strokeLinecap="round"
+								strokeLinejoin="round"
+							>
+								{result.kind === "success" ? (
+									<path d="m4 10 4 4 8-8" />
+								) : (
+									<path d="m5 5 10 10M15 5 5 15" />
+								)}
+							</svg>
 						</div>
 						<div>
 							<div className="type-label">

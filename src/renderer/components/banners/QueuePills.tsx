@@ -68,9 +68,19 @@ function Pill({ className, label, title, onRemove }: PillProps) {
 					onClick={onRemove}
 					aria-label={`Remove "${title}" from queue`}
 					title="Remove from queue"
-					className="flex h-4 w-4 items-center justify-center rounded-full text-[14px] leading-none type-control text-primary hover:surface-err hover:text-white"
+					className="flex h-4 w-4 items-center justify-center rounded-full type-control text-primary hover:surface-err hover:text-white"
 				>
-					×
+					<svg
+						aria-hidden="true"
+						className="h-3.5 w-3.5"
+						viewBox="0 0 14 14"
+						fill="none"
+						stroke="currentColor"
+						strokeWidth="1.5"
+						strokeLinecap="round"
+					>
+						<path d="m4 4 6 6M10 4l-6 6" />
+					</svg>
 				</button>
 			)}
 		</span>

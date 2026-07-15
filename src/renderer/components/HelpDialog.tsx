@@ -47,7 +47,7 @@ export function HelpDialog({ open, onClose, commands }: HelpDialogProps) {
 			role="presentation"
 		>
 			<div
-				className="surface-panel border-divider max-h-[80vh] w-[640px] max-w-[90vw] overflow-auto rounded border p-4 text-sm text-primary shadow-xl"
+				className="surface-panel border-divider max-h-[80vh] w-[640px] max-w-[90vw] overflow-auto rounded border p-4 type-body text-primary shadow-xl"
 				onClick={(e) => e.stopPropagation()}
 				onKeyDown={(e) => e.stopPropagation()}
 				role="dialog"
