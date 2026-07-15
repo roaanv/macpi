@@ -281,6 +281,14 @@ describe("ModelsSettings", () => {
 			},
 			expect.objectContaining({ onSuccess: expect.any(Function) }),
 		);
+		const saveOptions = mocks.customMutation.mutate.mock.calls[0]?.[1] as
+			| { onSuccess?: () => void }
+			| undefined;
+		await act(async () => saveOptions?.onSuccess?.());
+		expect(container.textContent).toContain("llama3.1:8b");
+		expect(container.textContent).not.toContain(
+			"Custom OpenAI has no models available",
+		);
 
 		await click(button("Fetch models"));
 		expect(mocks.customMutation.mutate).toHaveBeenCalledWith({

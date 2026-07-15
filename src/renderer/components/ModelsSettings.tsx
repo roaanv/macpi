@@ -36,6 +36,9 @@ export function ModelsSettings() {
 	const [allModelsOpen, setAllModelsOpen] = React.useState(true);
 	const [customModelId, setCustomModelId] = React.useState("");
 	const [customModelName, setCustomModelName] = React.useState("");
+	const [optimisticCustomModels, setOptimisticCustomModels] = React.useState<
+		ModelSummary[]
+	>([]);
 	const settingsSnapshot = settings.data?.settings;
 	const [favouritesDraft, setFavouritesDraft] = React.useState(() =>
 		getFavouriteModels(settingsSnapshot ?? {}),
@@ -51,16 +54,34 @@ export function ModelsSettings() {
 	const mountedRef = React.useRef(true);
 	const [queueIdle, setQueueIdle] = React.useState(true);
 
+	const modelSummaries = React.useMemo(() => {
+		const baseModels = models.data?.models ?? [];
+		const baseKeys = new Set(
+			baseModels.map((model) =>
+				modelRefKey({ provider: model.provider, modelId: model.id }),
+			),
+		);
+		return [
+			...baseModels,
+			...optimisticCustomModels.filter(
+				(model) =>
+					!baseKeys.has(
+						modelRefKey({ provider: model.provider, modelId: model.id }),
+					),
+			),
+		];
+	}, [models.data?.models, optimisticCustomModels]);
+
 	const modelProviders = React.useMemo(
 		() =>
 			buildProviderViews(
 				providers.data?.providers ?? [],
-				models.data?.models ?? [],
+				modelSummaries,
 			).filter(
 				(provider) =>
 					provider.authStatus.configured || provider.kind === "custom",
 			),
-		[providers.data?.providers, models.data?.models],
+		[providers.data?.providers, modelSummaries],
 	);
 	const activeProvider =
 		modelProviders.find((provider) => provider.id === selectedProviderId) ??
@@ -273,6 +294,34 @@ export function ModelsSettings() {
 													},
 													{
 														onSuccess: () => {
+															const id = customModelId.trim();
+															const name = customModelName.trim() || id;
+															setOptimisticCustomModels((current) => [
+																...current.filter(
+																	(model) =>
+																		modelRefKey({
+																			provider: model.provider,
+																			modelId: model.id,
+																		}) !==
+																		modelRefKey({
+																			provider: activeProvider.id,
+																			modelId: id,
+																		}),
+																),
+																{
+																	provider: activeProvider.id,
+																	providerName: activeProvider.name,
+																	id,
+																	name,
+																	authConfigured: true,
+																	usingOAuth: false,
+																	reasoning: false,
+																	thinkingLevels: [],
+																	input: ["text"],
+																	contextWindow: 0,
+																	maxTokens: 0,
+																},
+															]);
 															setCustomModelId("");
 															setCustomModelName("");
 														},
